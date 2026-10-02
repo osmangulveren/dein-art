@@ -6,18 +6,10 @@
 const artist = subject.chain;
 if (artist) {
 const put = (key, html) => $$(`[data-w="${key}"]`).forEach(el => { el.innerHTML = html; });
-const scan = c => c.chain === 'Arbitrum' ? 'https://arbiscan.io' : 'https://etherscan.io';
 
-put('count', `${artist.collections.length} on record`);
-put('collections', artist.collections.map(c => `
-  <div class="chainset">
-    <div class="chainhead">
-      <div><b>${c.name}</b><span class="muted small">${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted · ${c.chain} · ${c.date.slice(0, 4)}${c.cc0 ? ' · CC0' : ''}</span></div>
-      <a class="link" href="${scan(c)}/address/${c.contract}" target="_blank" rel="noopener">Contract</a>
-    </div>
-    ${c.tokens.length ? `<div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
-      : `<p class="muted small">${c.cc0 ? 'Images for this chain are not loaded in the prototype.' : 'Not released under CC0, so no images are shown here.'}</p>`}
-  </div>`).join(''));
+put('count', `${artist.collections.length} ${artist.collections.length === 1 ? 'collection' : 'collections'}`);
+put('collections', `<div class="grid shelf colls">${artist.collections.map(x => collCard(artist, x)).join('')}</div>`);
+
 /* ---------- the claim ---------- */
 
 const claims = () => { try { return JSON.parse(localStorage.getItem('claims')) || {}; } catch { return {}; } };

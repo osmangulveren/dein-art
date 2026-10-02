@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collection — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="collection">
+<main class="wrap">
+  <p style="padding-top:24px" data-c="back"></p>
+  <section class="campaign coll" style="padding-top:12px">
+    <div data-c="cover"></div>
+    <div>
+      <p class="muted small">NFT collection</p>
+      <h1 data-c="name"></h1>
+      <div class="byline" style="margin-top:14px" data-c="by"></div>
+      <p style="margin-top:16px;max-width:560px;font-size:17px;line-height:1.5" data-c="about"></p>
+      <dl class="facts" style="margin-top:18px;max-width:520px" data-c="facts"></dl>
+      <p style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap" data-c="acts"></p>
+    </div>
+  </section>
+  <div data-c="pieces"></div>
+  <div data-c="more"></div>
+</main>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

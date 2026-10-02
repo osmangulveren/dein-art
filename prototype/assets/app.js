@@ -40,7 +40,7 @@ const assets = [
   ...CATALOG.music.map(a => ({ ...a, kind: 'Music', creator: a.by, sub: a.perf })),
   ...CATALOG.images.map(a => ({ ...a, kind: 'Image', creator: a.by, sub: a.year })),
   stillOf(film['trip-to-the-moon'], 2), stillOf(film['impossible-voyage'], 2), stillOf(film['impossible-voyage'], 3),
-  ...ONCHAIN.flatMap(a => a.collections.filter(c => c.tokens.length).flatMap(c => c.tokens.slice(2, 4).map(t => ({ title: `${c.name} #${t.n}`, kind: 'Image', creator: a.name, sub: c.date.slice(0, 4), pic: t.img, lic: 'CC0', page: t.live })))),
+  ...ONCHAIN.flatMap(a => a.collections.filter(c => c.tokens.length).flatMap(c => c.tokens.slice(2, 4).map(t => ({ title: `${c.name} #${t.n}`, kind: 'Image', creator: a.name, sub: c.year, pic: t.img, lic: 'CC0', page: t.live })))),
 ];
 // mix the kinds so the first row of the marketplace shows all three
 const mixed = [0, 5, 13, 1, 6, 14, 2, 7].map(i => assets[i]);
@@ -445,6 +445,11 @@ $$('[data-known]').forEach(el => { el.innerHTML = knownHtml(subject); });
 $$('[data-credits]').forEach(el => { el.innerHTML = creditsHtml(subject); });
 $$('[data-credit-count]').forEach(el => { el.textContent = `${totalCredits(subject)} titles`; });
 
+// One tile per NFT collection; it opens the collection's own page.
+const collUrl = (a, c) => `collection.html?artist=${encodeURIComponent(a.name)}&c=${c.slug}`;
+const tile = (c, cls = '') => c.tokens.length ? `<div class="thumb sq ${cls}"><img src="${c.tokens[0].img}" alt="" loading="lazy"></div>` : `<div class="thumb sq typo ${cls}"><span>${c.name}</span></div>`;
+const collCard = (a, c) => `<a class="card" href="${collUrl(a, c)}">${tile(c)}<h3>${c.name}</h3><p>${c.year}${c.minted ? ` · ${c.minted.toLocaleString('en-US')} pieces` : ''}${c.cc0 ? ' · CC0' : ''}</p></a>`;
+
 // A profile: the same page for every artist, and for the signed-in account.
 if (page === 'artist' || page === 'creator') {
   const a = subject, me = a.name === ME, chain = a.chain, mine = filmsOf(a), ranked = artists.find(x => x.name === a.name);
@@ -463,13 +468,14 @@ if (page === 'artist' || page === 'creator') {
   $$('[data-p="withpanel"]').forEach(el => { el.hidden = !with_.length; });
 
   if (chain) {
-    const pieces = chain.collections.reduce((n, c) => n + c.minted, 0), first = chain.collections.map(c => c.date).sort()[0];
-    set('line', `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces on-chain`);
-    set('bio', `Has minted work on Ethereum since ${first.slice(0, 4)}: ${chain.collections.map(c => c.name).join(', ')}. This page is built from public on-chain records.`);
-    set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + (chain.website ? ext(esc(chain.website), esc(chain.website.replace(/^https?:\/\/(www\.)?/, ''))) : ''));
+    if (chain.film) $('[data-panel="videos"]').innerHTML = `<a class="card" href="${chain.film.page}" target="_blank" rel="noopener"><div class="thumb typo"><span>${chain.film.title}</span><span class="badge dur">On the artist's site ↗</span></div><div class="meta">${face(a.name)}<div><h3>${chain.film.title}</h3><p>${a.name} · plays on ${chain.film.page.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p></div></div></a>`;
+    const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0];
+    set('line', `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
+    set('bio', `Has released work on-chain since ${first}${chain.collections.length <= 3 ? ': ' + chain.collections.map(c => c.name).join(', ') : `, across ${chain.collections.length} collections`}. This page is built from public records${chain.site ? ' and the list of work on the artist\'s own site' : ''}.`);
+    set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
     set('side', '<span class="pop" data-w="status"></span>');
     set('factstitle', 'On-chain record');
-    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`)], ['First mint', first], ['Collections', chain.collections.length], ['Pieces', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`)], ['Since', first], ['Collections', chain.collections.length], ['Pieces counted', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   } else {
     const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
     const lead = `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`;
@@ -485,6 +491,29 @@ if (page === 'artist' || page === 'creator') {
     set('factstitle', 'Personal details');
     set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   }
+}
+
+/* ---------- an NFT collection's own page ---------- */
+
+if (page === 'collection') {
+  const a = ONCHAIN.find(x => x.name === param('artist')) || ONCHAIN[0], c = a.collections.find(x => x.slug === param('c')) || a.collections[0];
+  const set = (key, html) => $$(`[data-c="${key}"]`).forEach(el => { el.innerHTML = html; });
+  const ext = (href, label, cls = 'link') => `<a class="${cls}" href="${href}" target="_blank" rel="noopener">${label}</a>`;
+  const scan = c.chain === 'Arbitrum' ? 'https://arbiscan.io' : c.chain === 'Base' ? 'https://basescan.org' : 'https://etherscan.io';
+  const host = u => u.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+  document.title = `${c.name} by ${a.name} — dein.art`;
+  set('back', `<a class="muted small" href="${artistUrl(a.name)}#collections">← ${a.name}</a>`);
+  set('cover', tile(c));
+  set('name', c.name);
+  set('by', `<a href="${artistUrl(a.name)}">${avatar(a.name)}</a><a class="who" href="${artistUrl(a.name)}"><b>${a.name}</b><span class="muted small">Artist · <span class="mono">${short(a.address)}</span></span></a>`);
+  set('about', c.about || `A collection by ${a.name}, minted on ${c.chain || 'a blockchain'} in ${c.year}.`);
+  set('acts', [c.page && ext(c.page, `See it on ${host(c.page)} ↗`, 'btn primary'), c.market && ext(c.market, `${host(c.market)} ↗`, 'btn'), c.contract && ext(`${scan}/address/${c.contract}`, 'Contract ↗', 'btn')].filter(Boolean).join(''));
+  set('facts', [['Year', c.year], ['Pieces', c.minted && `${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted`], ['Chain', c.chain], ['Contract', c.contract && ext(`${scan}/address/${c.contract}`, `<span class="mono">${short(c.contract)}</span>`)],
+    ['Licence', c.cc0 ? 'CC0' : 'Not stated'], ['Source', c.minted ? 'On-chain record, as indexed by Art Blocks' : `Listed on ${host(c.page || a.site || '')}`]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+  set('pieces', c.tokens.length ? `<div class="sec"><h2>Pieces</h2><p>${c.tokens.length} of ${c.minted.toLocaleString('en-US')} shown</p></div><div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
+    : `<div class="box" style="margin-top:28px"><b>No images here yet</b><p>Images are shown only for collections whose licence is confirmed as CC0. This one's licence is not stated, so the work stays on the artist's own pages${c.page ? `: ${ext(c.page, host(c.page))}` : ''}. When the artist claims this page, they decide what appears here.</p></div>`);
+  const others = a.collections.filter(x => x !== c);
+  set('more', others.length ? `<div class="sec"><h2>More by ${a.name}</h2><a href="${artistUrl(a.name)}#collections">All ${a.collections.length}</a></div><div class="grid shelf colls">${others.slice(0, 6).map(x => collCard(a, x)).join('')}</div>` : '');
 }
 
 /* ---------- a profile's assets: one section per type, and a pop-up with the details of each ---------- */
