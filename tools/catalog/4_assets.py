@@ -32,7 +32,7 @@ MUSIC = [
 ]
 IMAGES = [
  ('Great Wave off Kanagawa2.jpg', 'The Great Wave off Kanagawa', 'Katsushika Hokusai', 'c. 1831', 'Woodblock print'),
- ('Vincent van Gogh - Starry Night - Google Art Project.jpg', 'The Starry Night', 'Vincent van Gogh', '1889', 'Painting'),
+ ('Vincent van Gogh - Starry Night - Google Art Project.jpg', 'Starry Night Over the Rhône', 'Vincent van Gogh', '1888', 'Painting'),
  ('Meisje met de parel.jpg', 'Girl with a Pearl Earring', 'Johannes Vermeer', 'c. 1665', 'Painting'),
  ('Monet - Impression, Sunrise.jpg', 'Impression, Sunrise', 'Claude Monet', '1872', 'Painting'),
  ('Klimt - The Kiss.jpg', 'The Kiss', 'Gustav Klimt', '1908', 'Painting'),

@@ -38,7 +38,7 @@ const assets = [
   ...CATALOG.music.map(a => ({ ...a, kind: 'Music', creator: a.by, sub: a.perf })),
   ...CATALOG.images.map(a => ({ ...a, kind: 'Image', creator: a.by, sub: a.year })),
   stillOf(film['trip-to-the-moon'], 2), stillOf(film['impossible-voyage'], 2), stillOf(film['impossible-voyage'], 3),
-].map((a, i) => ({ ...a, price: [12, 8, 25, 15, 5, 18, 10, 30][i % 8] }));
+];
 // mix the kinds so the first row of the marketplace shows all three
 const mixed = [0, 5, 13, 1, 6, 14, 2, 7].map(i => assets[i]);
 assets.sort((a, b) => (mixed.indexOf(a) + 1 || 99) - (mixed.indexOf(b) + 1 || 99));
@@ -79,6 +79,7 @@ const face = name => avatar(name, 'xs');
 const mug = c => avatar(c.name);
 const person = a => avatar(a.name);
 const artistUrl = name => name === ME ? 'creator.html' : who[name] ? 'artist.html?name=' + encodeURIComponent(name) : '#';
+const short = a => a.slice(0, 6) + '…' + a.slice(-4);
 const years = p => p.born ? `${p.born}–${p.died || ''}` : '';
 
 /* ---------- icons ---------- */
@@ -106,8 +107,8 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
-  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1]],
-  you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#collections', 'NFT collections', 'creator.html#collections', 'gem'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
+  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['onchain', 'On-chain artists', 'onchain.html', 'gem', 1]],
+  you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
         ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
   explore: [['', 'Documentaries', 'watch.html?f=man-with-a-movie-camera', 'film'], ['', 'Short films', 'watch.html?f=great-train-robbery', 'film'], ['', 'Animation', 'watch.html?f=gertie-the-dinosaur', 'film'],
             ['', 'Footage', 'market.html?kind=Footage', 'market'], ['', 'Music', 'market.html?kind=Music', 'market'], ['', 'Images', 'market.html?kind=Image', 'market']],
@@ -173,7 +174,7 @@ document.body.insertAdjacentHTML('beforeend', `
   <a class="logo" href="index.html"><span class="de">de</span><span class="in">in</span><i>.</i><b>art</b></a>
   <span class="tagline">Own your narrative.</span>
   <span class="muted small">Blockchain-based · Watch · Live · Marketplace · Shared revenue</span>
-  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Prices, counts, earnings and campaigns are examples, and nothing is charged.</p>
+  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
 </div></footer>
 <dialog id="pay">
   <div class="form">
@@ -222,7 +223,7 @@ document.addEventListener('click', e => {
   $('.lead', dialog).textContent = mode.lead;
   $('.amounts', dialog).hidden = !mode.pick;
   $('.confirm', dialog).textContent = mode.confirm;
-  $('.src', dialog).innerHTML = (btn.dataset.src ? `${btn.dataset.lic} · <a class="link" href="${btn.dataset.src}" target="_blank" rel="noopener">source file on Wikimedia Commons</a>. ` : '') + 'Prototype: nothing is charged.';
+  $('.src', dialog).textContent = 'Prototype: nothing is charged.';
   $$('.amounts .pick', dialog).forEach(p => p.classList.toggle('on', p.dataset.amount === '10'));
   $('.form', dialog).hidden = false; $('.thanks', dialog).hidden = true;
   drawSum();
@@ -250,15 +251,17 @@ const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}</p></div></div></a>`,
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
-  assets: a => `<button class="card" data-kind="${a.kind}" data-pay="buy" data-title="${esc(a.title)}" data-price="${a.price}" data-creator="${esc(a.creator)}" data-src="${a.page}" data-lic="${a.lic}" ${a.creator === ME ? 'data-split' : ''}><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price">$${a.price}</span></p></button>`,
+  assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the file on Wikimedia Commons"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
   merch: m => `<button class="card" data-kind="Merch" data-pay="merch" data-title="${esc(m.title)}" data-price="${m.price}" data-creator="${esc(m.creator)}" ${m.creator === ME ? 'data-split' : ''}><div class="thumb merch" style="background:${m.bg};color:${m.ink}"><svg viewBox="0 0 100 100" fill="currentColor">${merchArt[m.art]}</svg></div><h3>${m.title}</h3><p>${m.creator} · <span class="price">$${m.price}</span></p></button>`,
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}</p></div><span class="up">▲ ${f.up}%</span></a>`,
   castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
   artists: a => `<a class="rankrow" href="${artistUrl(a.name)}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${a.name}</h3><p class="muted small">${a.role} · known for ${a.known}</p></div><span class="up">▲ ${a.up}%</span></a>`,
   channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow">Follow</button></div>`,
-  collections: c => `<a class="card" href="#pieces"><div class="mosaic">${c.pics.map(p => `<img src="${p}" alt="" loading="lazy">`).join('')}</div><h3>${c.title}</h3><p>${c.pieces} pieces · ${c.collectors} collectors · from <span class="price">$${c.from}</span></p></a>`,
-  nfts: n => `<button class="card" data-pay="collect" data-split data-title="${esc(n.title)}" data-price="${n.price}"><div class="thumb sq"><img src="${n.pic}" alt="" loading="lazy"><span class="badge kind">${n.edition}</span></div><h3>${n.title}</h3><p><span class="price">$${n.price}</span> · minted on-chain</p></button>`,
+  onchain: a => {
+    const pics = a.collections.flatMap(c => c.tokens.slice(1, 2)).concat(a.collections.flatMap(c => c.tokens.slice(4))).slice(0, 3);
+    return `<a class="card" href="wallet.html?a=${a.address}"><div class="mosaic">${pics.map(t => `<img src="${t.img}" alt="" loading="lazy">`).join('')}<span class="badge kind claim-badge" data-claim-badge="${a.address}">Unclaimed</span></div><h3>${a.name}</h3><p><span class="mono">${short(a.address)}</span> · ${a.collections.length} ${a.collections.length === 1 ? 'collection' : 'collections'} · ${a.collections.reduce((n, c) => n + c.minted, 0).toLocaleString('en-US')} pieces on-chain</p></a>`;
+  },
   campaigns: c => {
     const pct = Math.round(c.raised / c.goal * 100);
     return `<a class="card" href="fund.html"><div class="thumb"><img src="${c.pic}" alt="" loading="lazy"><span class="badge kind">Funding</span></div><h3>${c.title}</h3><p>${c.creator}</p><div class="progress"><span style="width:${pct}%"></span></div><p><span class="price">$${c.raised.toLocaleString('en-US')}</span> raised · ${pct}% · ${c.days} days left</p></a>`;
@@ -280,11 +283,7 @@ const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukra
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
   .map(c => ({ name: c.name, tone: tone(c.name), href: c.name === 'Star Film Company' ? 'creator.html' : watchUrl(film[c.films[0]]),
                about: `${c.films.length} ${c.films.length === 1 ? 'film' : 'films'} here · founded ${c.founded}${c.place ? ', ' + c.place : ''}` }));
-// NFT collections: the scenes of a film, and single pieces from them.
-const collectable = filmsOf(subject).filter(f => f.scenes.length > 2 && f.scenes[0][1]);
-const collections = collectable.map((f, i) => ({ title: `${f.title}: scenes`, pics: f.scenes.slice(0, 3).map(s => frame(f, s[0])), pieces: f.scenes.length, collectors: [212, 87, 39, 124, 56, 18][i % 6], from: 5 }));
-const nfts = collectable.slice(0, 2).flatMap(f => f.scenes.slice(0, 2).map(s => ({ f, s }))).map(({ f, s }, i) => ({ title: `${f.title}: ${s[1]}`, pic: frame(f, s[0]), edition: ['340 collected', '12 of 50 left', '1 of 1', '97 collected'][i], price: [5, 15, 120, 5][i] }));
-const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels, collections, nfts };
+const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels, onchain: ONCHAIN };
 $$('[data-list]').forEach(el => {
   const names = el.dataset.list.split(' ');
   // a profile shows everything by that person, not just the front page's pick
@@ -321,7 +320,7 @@ audio.addEventListener('ended', stopAudio);
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-audio]');
   if (!b) return;
-  e.stopPropagation();
+  e.stopPropagation(); e.preventDefault();
   if (playing === b) return stopAudio();
   stopAudio();
   b.dataset.label = b.textContent; b.textContent = '❚❚ Playing';
@@ -375,9 +374,10 @@ if (video) {
   // Moments of the film that viewers can collect, marked on the timeline. A click jumps the film there.
   const marks = $('[data-marks]'), sceneBox = $('[data-scene]');
   if (marks) {
-    const scenes = cur.scenes.filter(s => s[1]).map(([t, name], i) => ({ t, name, by: [128, 212, 340, 97, 56][i] }));
+    const scenes = cur.scenes.filter(s => s[1]).map(([t, name]) => ({ t, name }));
+    sceneBox.addEventListener('click', e => { const b = e.target.closest('[data-from]'); if (b) { video.currentTime = Number(b.dataset.from); video.play(); } });
     const showScene = (s, jump) => {
-      sceneBox.innerHTML = `<img src="${frame(cur, s.t, 330)}" alt=""><div><b>Scene: ${s.name}</b><span class="muted small">At ${clock(s.t)} · collected by ${s.by} people</span></div><button class="btn dark" data-pay="collect" data-split data-title="${esc(`${cur.title}: ${s.name}`)}" data-price="5">Collect · $5</button>`;
+      sceneBox.innerHTML = `<img src="${frame(cur, s.t, 330)}" alt=""><div><b>Scene: ${s.name}</b><span class="muted small">At ${clock(s.t)}</span></div><button class="btn dark" data-from="${s.t}">▶ Play from here</button>`;
       $$('.mark', marks).forEach((m, i) => m.classList.toggle('on', scenes[i] === s));
       if (jump) { video.currentTime = s.t; $('span', marks).style.width = s.t / cur.secs * 100 + '%'; }
     };
@@ -456,10 +456,9 @@ if (page === 'artist') {
   $('.person-top video').poster = frame(reel, reel.at, 960);
   $('.person-top video').innerHTML = sources(reel);
   set('reel', `${reel.title} · ${reel.dur}`);
-  set('tiles', `<a class="tile" href="#known"><b>${mine.length}</b><span>On dein.art</span></a><a class="tile" href="#credits"><b>${totalCredits(a)}</b><span>Credits</span></a><a class="tile" href="#collections"><b>${collections.reduce((n, c) => n + c.pieces, 0)}</b><span>NFTs</span></a>`);
+  set('tiles', `<a class="tile" href="#known"><b>${mine.length}</b><span>On dein.art</span></a><a class="tile" href="#credits"><b>${totalCredits(a)}</b><span>Credits</span></a><a class="tile" href="#photos"><b>${mine.reduce((n, f) => n + f.scenes.length, 0)}</b><span>Stills</span></a>`);
   const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
   set('lead', `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`);
-  $$('[data-has-collections]').forEach(el => { el.hidden = !collections.length; });
   set('stills', mine.flatMap(f => f.scenes.filter(s => s[1]).map(s => `<a href="${watchUrl(f)}" title="${esc(f.title)}: ${esc(s[1])}"><img src="${frame(f, s[0], 330)}" alt="" loading="lazy"></a>`)).slice(0, 12).join(''));
   set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')],
     ['Sources', [`<a class="link" href="https://www.wikidata.org/wiki/${a.wd}" target="_blank" rel="noopener">Wikidata</a>`, a.imdb && `<a class="link" href="https://www.imdb.com/name/${a.imdb}/" target="_blank" rel="noopener">IMDb</a>`, a.wiki && `<a class="link" href="https://en.wikipedia.org/wiki/${encodeURIComponent(a.wiki.replace(/ /g, '_'))}" target="_blank" rel="noopener">Wikipedia</a>`].filter(Boolean).join(' · ')]]
@@ -468,6 +467,12 @@ if (page === 'artist') {
   const with_ = [...new Set(mine.flatMap(f => f.crew.map(c => c.name)))].filter(n => n !== a.name && who[n]).slice(0, 5);
   set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join('') || '<span class="muted small">No shared credits yet.</span>');
 }
+
+// Cards of on-chain artists show whether their page has been claimed on this device.
+try {
+  const claimed = JSON.parse(localStorage.getItem('claims')) || {};
+  $$('[data-claim-badge]').forEach(b => { if (claimed[b.dataset.claimBadge]) { b.textContent = '✓ Claimed'; b.classList.add('claimed'); } });
+} catch {}
 
 /* ---------- chips and tabs ---------- */
 

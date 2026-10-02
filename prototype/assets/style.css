@@ -519,3 +519,27 @@ img.avatar { object-fit: cover; object-position: top; }
 .grid > * { min-width: 0; }
 .thumb > img { position: absolute; inset: 0; }
 button.card { align-self: start; }
+
+/* ---------- on-chain artists and claiming a page ---------- */
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; letter-spacing: -.02em; }
+.price.free { color: var(--ok); }
+.mosaic { position: relative; }
+.claim-badge.claimed { background: var(--ok); color: #fff; }
+.steps3 { grid-template-columns: repeat(3, 1fr); }
+.pop b.ok { color: var(--ok); }
+.claimbox { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 28px; align-items: center; padding: 22px 24px; border-radius: var(--r); border: 1px solid var(--dot); background: linear-gradient(120deg, rgba(245,166,35,.12), transparent 60%), var(--soft); }
+.claimbox.claimed { border-color: var(--ok); background: linear-gradient(120deg, rgba(13,138,79,.12), transparent 60%), var(--soft); }
+.claimbox h2 { font: 400 28px var(--serif); margin-bottom: 6px; }
+.claimbox p { max-width: 720px; line-height: 1.5; }
+.claimbox p + p { margin-top: 8px; }
+.claimbox .fold { grid-column: 1 / -1; }
+.claimacts { display: flex; gap: 8px; flex-wrap: wrap; }
+.claimnote { padding: 10px 14px; border-radius: 12px; background: var(--bg); font-weight: 500; }
+.claimnote.bad { color: var(--live); }
+.proofbox { margin: 0; padding: 14px 16px; white-space: pre-wrap; word-break: break-all; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+.chainset + .chainset { margin-top: 34px; }
+.chainhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.chainhead b { display: block; font-size: 18px; }
+.grid.tokens { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.grid.tokens .card p { margin-top: 6px; }
+@media (max-width: 760px) { .claimbox { grid-template-columns: 1fr; } .steps3 { grid-template-columns: 1fr; } .grid.tokens { grid-template-columns: repeat(2, 1fr); } }

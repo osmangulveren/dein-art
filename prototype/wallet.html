@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On-chain artist — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="onchain">
+<main class="wrap person-page">
+  <p style="padding-top:24px"><a class="muted small" href="onchain.html">← On-chain artists</a></p>
+  <header class="person-head" style="padding-top:12px">
+    <div>
+      <h1 data-w="name"></h1>
+      <p class="muted" data-w="line"></p>
+    </div>
+    <span class="pop" data-w="status"></span>
+  </header>
+
+  <section class="claim" data-w="claim" aria-live="polite"></section>
+
+  <div class="person-body">
+    <div>
+      <div class="sec" style="margin-top:0"><h2>NFT collections</h2><p data-w="count"></p></div>
+      <div data-w="collections"></div>
+    </div>
+    <aside class="person-side">
+      <div class="panel">
+        <h3>On-chain record</h3>
+        <dl class="facts" data-w="facts"></dl>
+      </div>
+      <div class="panel">
+        <h3>About this page</h3>
+        <p class="muted small" style="line-height:1.5">Built from public blockchain records, as indexed by Art Blocks. The artist has not joined dein.art and nothing here is offered by them through this site. Images are shown only for collections released under CC0.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script src="assets/claim.js"></script>
+</body>
+</html>
