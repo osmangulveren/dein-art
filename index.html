@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dein.art — the blockchain-based home for film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="home">
+<main class="wrap">
+  <a class="hero" href="watch.html">
+    <img src="https://picsum.photos/id/220/1800/900" alt="">
+    <div class="hero-in">
+      <span class="pill">Blockchain-based platform</span> <span class="pill">Featured film</span> <span class="pill">Documentary · 2025 · 1h 18m</span>
+      <h1>Last Train to Kars</h1>
+      <p>One winter night on the slow train across Anatolia, and the people who still ride it. Free to watch — whatever it earns is shared across its cast and crew.</p>
+      <div class="cta"><span class="btn white">▶ Watch free</span><span class="btn glass">Support the film</span></div>
+    </div>
+  </a>
+
+  <div class="sec"><h2>Everything a filmmaker needs, in one place</h2><p>Blockchain-based: credits, ownership and payouts are recorded on-chain</p></div>
+  <div class="pillars">
+    <a class="pillar" href="watch.html"><i data-icon="watch"></i><b>Watch</b><span>Release films to a free audience.</span></a>
+    <a class="pillar" href="live.html"><i data-icon="live"></i><b>Live</b><span>Stream your process and take tips.</span></a>
+    <a class="pillar" href="market.html"><i data-icon="market"></i><b>Marketplace</b><span>Share footage, scripts and templates.</span></a>
+    <a class="pillar" href="creator.html#merch"><i data-icon="merch"></i><b>Merch</b><span>Printed on demand, shipped for you.</span></a>
+    <a class="pillar" href="creator.html#funding"><i data-icon="fund"></i><b>Funding</b><span>Raise the budget for the next one.</span></a>
+    <a class="pillar" href="watch.html#crew"><i data-icon="split"></i><b>Shared revenue</b><span>Whatever it earns, split on-chain across cast and crew.</span></a>
+  </div>
+
+  <div class="sec"><h2>Trending this week</h2><a href="trending.html">See all</a></div>
+  <div class="grid row" data-list="trending" data-limit="4"></div>
+
+  <div class="cast strip"><a class="btn dark" href="trending.html#artists">Trending artists</a><div class="castlist" data-list="artists" data-card="castp" data-limit="6"></div></div>
+
+  <div class="sec"><h2>Live now</h2><a href="live.html">See all</a></div>
+  <div class="grid row" data-list="live" data-limit="4"></div>
+
+  <div class="sec"><h2>Films</h2><p>Free to watch</p></div>
+  <div class="grid" data-list="films"></div>
+
+  <div class="sec"><h2>Film channels</h2><a href="trending.html#channels">See all</a></div>
+  <div class="grid c3" data-list="channels" data-limit="3"></div>
+
+  <div class="sec"><h2>From the marketplace</h2><a href="market.html">See all</a></div>
+  <div class="grid row" data-list="assets" data-limit="4"></div>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

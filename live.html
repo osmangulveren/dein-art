@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="live">
+<main class="wrap">
+  <div class="watch">
+    <div>
+      <div class="stage"><img class="glow" src="https://picsum.photos/id/180/320/180" alt="">
+      <div class="player">
+        <img src="https://picsum.photos/id/180/1600/900" alt="">
+        <span class="pill live">● LIVE</span><span class="pill">2.4K watching</span>
+      </div></div>
+      <h1>Editing Last Train to Kars live — ask me anything</h1>
+      <div class="byline">
+        <a class="avatar" href="creator.html">AD</a>
+        <a class="who" href="creator.html"><b>Aras Demirkol</b><span class="muted small">404.5K followers · started 48 minutes ago</span></a>
+        <button class="btn follow">Follow</button>
+        <button class="btn primary" data-pay="tip" data-split>♥ Tip</button>
+      </div>
+      <div class="box">
+        <p>Cutting the final scene and answering questions as I go. Tips are shared with the editor and the rest of the crew, the same way everything else on this film is.</p>
+      </div>
+    </div>
+
+    <aside class="chat">
+      <header>Live chat</header>
+      <div class="msgs"></div>
+      <form><input placeholder="Say something" aria-label="Chat message"><button class="btn dark">Send</button></form>
+    </aside>
+  </div>
+
+  <div class="sec"><h2>Also live</h2></div>
+  <div class="grid" data-list="live" data-skip="1"></div>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

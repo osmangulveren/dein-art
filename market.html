@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marketplace — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="market">
+<main class="wrap">
+  <div class="page-head">
+    <h1>Marketplace</h1>
+    <p>Footage, scripts, templates and music, shared by the people who made them. What you pay goes to them, minus a flat $1.</p>
+  </div>
+  <div class="chips">
+    <button class="chip on" data-kind="all">All</button>
+    <button class="chip" data-kind="Raw footage">Raw footage</button>
+    <button class="chip" data-kind="Script">Scripts</button>
+    <button class="chip" data-kind="Storyboard">Storyboards</button>
+    <button class="chip" data-kind="Template">Templates</button>
+    <button class="chip" data-kind="Music">Music</button>
+  </div>
+  <div class="grid" data-list="assets"></div>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="create">
+<main class="narrow">
+  <section data-step="0">
+    <h1>What do you want to do?</h1>
+    <p class="muted">Publish, stream, share and fund your stories from one account. We take care of getting everyone paid.</p>
+    <div class="choices">
+      <button class="choice" data-go="1"><i data-icon="upload"></i><span><b>Release a film</b><span>Upload it, credit your crew, publish.</span></span></button>
+      <a class="choice" href="live.html"><i data-icon="live"></i><span><b>Go live</b><span>Stream your process and take tips.</span></span></a>
+      <button class="choice" data-go="4"><i data-icon="market"></i><span><b>Share an asset</b><span>Footage, scripts, storyboards, templates, music.</span></span></button>
+      <button class="choice" data-go="4"><i data-icon="merch"></i><span><b>Add merch</b><span>We print it, ship it and pay your crew.</span></span></button>
+      <a class="choice" href="fund.html"><i data-icon="fund"></i><span><b>Start funding</b><span>Raise the budget for your next project.</span></span></a>
+    </div>
+  </section>
+
+  <div data-step="1" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
+    <h1>Upload your film</h1>
+    <p class="muted">Uploading is free and unlimited. Viewers watch for free.</p>
+    <div class="drop">
+      <b>Drag a video here</b>
+      <p class="muted small">MP4, MOV or ProRes, any length</p>
+      <button class="btn primary" data-go="2">Choose file</button>
+    </div>
+    <div class="actions"><button class="btn" data-go="0">Back</button><span></span></div>
+  </div>
+
+  <div data-step="2" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
+    <h1>Details</h1>
+    <p class="muted small">last-train-to-kars-master.mov · 12.4 GB · uploaded</p>
+    <label for="title">Title</label>
+    <input class="field" id="title" value="Last Train to Kars">
+    <label for="desc">Description</label>
+    <textarea class="field" id="desc" rows="4">One winter night on the slow train across Anatolia, and the people who still ride it.</textarea>
+    <label for="cat">Category</label>
+    <select class="field" id="cat"><option>Documentary</option><option>Fiction</option><option>Short film</option><option>Series</option></select>
+    <div class="actions"><button class="btn" data-go="1">Back</button><button class="btn primary" data-go="3">Next</button></div>
+  </div>
+
+  <div data-step="3" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
+    <h1>Cast and crew</h1>
+    <p class="muted" style="margin-bottom:12px">Add everyone who worked on the film and give each a share. Whenever the film earns, each person is paid their share straight away — no invoices, no chasing.</p>
+    <div id="shares"></div>
+    <div class="total-line"><button class="btn" id="addPerson">+ Add a person</button><span id="total"></span></div>
+    <div class="actions"><button class="btn" data-go="2">Back</button><button class="btn primary" id="toEarn" data-go="4">Next</button></div>
+  </div>
+
+  <div data-step="4" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
+    <h1>Share more of it</h1>
+    <p class="muted">Offer the material behind your film, and merch. Suggested amounts are filled in; we collect the payments and pay everyone their share, minus a flat $1 each time.</p>
+
+    <p class="subhead">Marketplace</p>
+    <div class="sell"><input type="checkbox" checked aria-label="Share raw footage"><span><b>Raw footage</b><br><span class="muted small">rushes.zip · 86 GB</span></span><input class="field" type="number" min="2" value="120" aria-label="Amount in dollars"><span class="get"></span></div>
+    <div class="sell"><input type="checkbox" checked aria-label="Share script"><span><b>Script</b><br><span class="muted small">script.pdf · 64 pages</span></span><input class="field" type="number" min="2" value="15" aria-label="Amount in dollars"><span class="get"></span></div>
+    <div class="sell"><input type="checkbox" aria-label="Share storyboards"><span><b>Storyboards</b><br><span class="muted small">Add files to share</span></span><input class="field" type="number" min="2" value="40" aria-label="Amount in dollars"><span class="get"></span></div>
+
+    <p class="subhead">Merch</p>
+    <div class="sell" data-cost="9"><input type="checkbox" checked aria-label="Share tee"><span><b>Tee</b><br><span class="muted small">Printed on demand · costs $9 to make</span></span><input class="field" type="number" min="11" value="28" aria-label="Amount in dollars"><span class="get"></span></div>
+    <div class="sell" data-cost="6"><input type="checkbox" checked aria-label="Share poster"><span><b>Poster</b><br><span class="muted small">Printed on demand · costs $6 to make</span></span><input class="field" type="number" min="8" value="35" aria-label="Amount in dollars"><span class="get"></span></div>
+
+    <label style="display:flex;gap:10px;align-items:center;font-weight:500;margin-top:24px"><input type="checkbox" checked> Let viewers send support on the watch page</label>
+    <label for="payout">Where should we pay you?</label>
+    <select class="field" id="payout"><option>Crypto wallet · 0x41c7…9ae</option><option>Bank account</option></select>
+    <p class="muted small" style="margin-top:6px">No bank account needed — a wallet is enough to get paid anywhere in the world. Each crew member chooses their own.</p>
+    <div class="actions"><button class="btn" data-go="3">Back</button><button class="btn primary" data-go="5">Publish</button></div>
+  </div>
+
+  <section data-step="5" class="done" hidden>
+    <div class="tick">✓</div>
+    <h1>Your film is live</h1>
+    <p class="muted" style="margin:6px 0 22px">Anyone can watch it for free. Your crew has been invited, and everyone is paid their share the moment the film earns.</p>
+    <a class="btn primary" href="watch.html">View it</a> <a class="btn" href="creator.html">Go to your profile</a>
+  </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>
