@@ -6,6 +6,8 @@
 
 <p align="center">One place for creators to publish, go live, fund the next project and share the revenue with everyone who worked on it.</p>
 
+<p align="center"><a href="https://dein-art.osmangulveren.workers.dev"><b>Open the live prototype →</b></a></p>
+
 ---
 
 ## What this is
@@ -31,7 +33,7 @@ This is an early, side-project build, made in public a little at a time. Right n
 
 | Folder | Contents |
 | --- | --- |
-| [`prototype/`](prototype) | Clickable website design: static HTML, CSS and JavaScript, no build step |
+| [`prototype/`](prototype) | Clickable website design: static HTML, CSS and JavaScript, no build step. Live at [dein-art.osmangulveren.workers.dev](https://dein-art.osmangulveren.workers.dev) |
 | [`brand/`](brand) | The emblem, as SVG and PNG |
 | [`promo/`](promo) | The promo video ([watch](promo/dein-art-promo.mp4)) |
 
