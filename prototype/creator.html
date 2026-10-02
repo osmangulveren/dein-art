@@ -12,56 +12,60 @@
 <body data-page="creator">
 <main class="wrap">
   <section class="profile">
-    <div data-me-avatar></div>
+    <div data-p="avatar"></div>
     <div class="about">
-      <h1>Georges Méliès</h1>
-      <p class="muted">Director, producer, actor · Paris, France · 1861–1938</p>
-      <p class="bio">Stage magician and owner of the Théâtre Robert-Houdin in Paris, who began making films in 1896. He built one of the first film studios, at Montreuil, and made more than five hundred films, writing, designing, directing and acting in most of them.</p>
-      <p style="margin-top:14px;display:flex;gap:8px"><button class="btn follow">Follow</button><button class="btn primary" data-pay="support" data-title="Support Georges Méliès" data-creator="Georges Méliès">♥ Support</button></p>
-      <p class="links"><a class="link" href="https://www.wikidata.org/wiki/Q152272" target="_blank" rel="noopener" data-me-wd>Wikidata</a><a class="link" href="https://commons.wikimedia.org/wiki/Category:Georges_M%C3%A9li%C3%A8s" target="_blank" rel="noopener">Wikimedia Commons</a></p>
+      <h1 data-p="name"></h1>
+      <p class="muted" data-p="line"></p>
+      <p class="bio" data-p="bio"></p>
+      <p style="margin-top:14px;display:flex;gap:8px" data-p="acts"></p>
+      <p class="links" data-p="links"></p>
     </div>
-    <div class="earn">
-      <span class="muted small">Your share of earnings · only you see this · example figures</span>
-      <div class="total">$63,790</div>
-      <dl>
-        <dt>Marketplace</dt><dd>$42,000</dd>
-        <dt>Merch</dt><dd>$9,540</dd>
-        <dt>Support and live tips</dt><dd>$12,250</dd>
-      </dl>
-      <p class="muted small" style="margin-top:10px">Another $123,285 went to your cast and crew.</p>
-    </div>
+    <div data-p="side"></div>
   </section>
+
+  <section class="claim" data-w="claim" aria-live="polite"></section>
 
   <div class="tabs">
     <button class="tab on" data-tab="videos">Videos</button>
     <button class="tab" data-tab="credits">Credits</button>
     <button class="tab" data-tab="live">Live</button>
     <button class="tab" data-tab="assets">Assets</button>
+    <button class="tab" data-tab="collections" data-chain-only hidden>NFT collections</button>
     <button class="tab" data-tab="merch">Merch</button>
     <button class="tab" data-tab="funding">Funding</button>
     <button class="tab" data-tab="about">About</button>
   </div>
 
-  <div class="grid" data-panel="videos" data-list="films" data-by="Georges Méliès"></div>
+  <div class="grid" data-panel="videos" data-list="films" data-by="@subject" data-empty="No videos here yet."></div>
   <div data-panel="credits" hidden>
-    <div class="sec" style="margin-top:0"><h2>Known for</h2></div>
-    <div class="known" data-known></div>
-
-    <div class="sec"><h2>Credits</h2><p data-credit-count></p></div>
-    <div data-credits></div>
-    <p class="muted small" style="margin-top:14px">Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from Wikidata.</p>
+    <div data-has-credits>
+      <div class="sec" style="margin-top:0"><h2>Known for</h2></div>
+      <div class="known" data-known></div>
+      <div class="sec"><h2>Credits</h2><p data-credit-count></p></div>
+      <div data-credits></div>
+    </div>
+    <p class="muted small" style="margin-top:14px" data-p="creditnote"></p>
   </div>
-  <div class="grid" data-panel="live" data-list="live" data-by="Georges Méliès" hidden></div>
-  <div class="grid" data-panel="assets" data-list="assets" data-by="Georges Méliès" hidden></div>
-  <div class="grid" data-panel="merch" data-list="merch" data-by="Georges Méliès" hidden></div>
-  <div class="grid c3" data-panel="funding" data-list="campaigns" data-by="Georges Méliès" hidden></div>
-  <div data-panel="about" hidden style="max-width:680px">
-    <p>Born in Paris in 1861. A stage magician first, he saw the Lumière brothers' films in 1895 and was making his own within a year. His studio company, Star Film, released films around the world until 1913.</p>
-    <p class="muted" style="margin-top:12px">On this demo: 10 films · merch · 2 projects funding. The films are in the public domain; the earnings, merch and campaigns are examples.</p>
+  <div class="grid" data-panel="live" data-list="live" data-by="@subject" data-empty="Not live right now." hidden></div>
+  <div class="grid" data-panel="assets" data-list="assets" data-by="@subject" data-empty="No assets shared yet." hidden></div>
+  <div data-panel="collections" hidden>
+    <div class="sec" style="margin-top:0"><h2>NFT collections</h2><p data-w="count"></p></div>
+    <div data-w="collections"></div>
+  </div>
+  <div class="grid" data-panel="merch" data-list="merch" data-by="@subject" data-empty="No merch yet." hidden></div>
+  <div class="grid c3" data-panel="funding" data-list="campaigns" data-by="@subject" data-empty="No project is funding right now." hidden></div>
+  <div class="person-body" data-panel="about" style="padding-top:0" hidden>
+    <div data-p="about"></div>
+    <aside class="person-side">
+      <div class="panel"><h3 data-p="factstitle"></h3><dl class="facts" data-p="facts"></dl></div>
+      <div class="panel" data-p="withpanel"><h3>Worked with</h3><div class="castlist-v" data-p="with"></div></div>
+    </aside>
   </div>
 </main>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script src="assets/claim.js"></script>
 </body>
 </html>

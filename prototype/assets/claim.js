@@ -3,14 +3,11 @@
    a message with it: no transaction, no gas. The signature is checked here in the browser against the wallet on record.
    This is a prototype without a server, so a claim is remembered on this device only. */
 
-const artist = ONCHAIN.find(a => a.address.toLowerCase() === (param('a') || '').toLowerCase()) || ONCHAIN[0];
+const artist = subject.chain;
+if (artist) {
 const put = (key, html) => $$(`[data-w="${key}"]`).forEach(el => { el.innerHTML = html; });
 const scan = c => c.chain === 'Arbitrum' ? 'https://arbiscan.io' : 'https://etherscan.io';
-const pieces = artist.collections.reduce((n, c) => n + c.minted, 0);
 
-document.title = `${artist.name} — dein.art`;
-put('name', artist.name);
-put('line', `<span class="mono">${artist.address}</span> · ${artist.collections.length} ${artist.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces on-chain`);
 put('count', `${artist.collections.length} on record`);
 put('collections', artist.collections.map(c => `
   <div class="chainset">
@@ -21,14 +18,6 @@ put('collections', artist.collections.map(c => `
     ${c.tokens.length ? `<div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
       : `<p class="muted small">${c.cc0 ? 'Images for this chain are not loaded in the prototype.' : 'Not released under CC0, so no images are shown here.'}</p>`}
   </div>`).join(''));
-put('facts', [
-  ['Wallet', `<a class="link mono" href="https://etherscan.io/address/${artist.address}" target="_blank" rel="noopener">${short(artist.address)}</a>`],
-  ['First mint', artist.collections.map(c => c.date).sort()[0]],
-  ['Collections', artist.collections.length],
-  ['Pieces', pieces.toLocaleString('en-US')],
-  ['Link on record', artist.website && `<a class="link" href="${esc(artist.website)}" target="_blank" rel="noopener">${esc(artist.website.replace(/^https?:\/\/(www\.)?/, ''))}</a>`],
-].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
-
 /* ---------- the claim ---------- */
 
 const claims = () => { try { return JSON.parse(localStorage.getItem('claims')) || {}; } catch { return {}; } };
@@ -42,7 +31,7 @@ const messageFor = () => [
   'dein.art: claim this artist page', '',
   `Artist: ${artist.name}`,
   `Wallet: ${artist.address}`,
-  `Page: ${location.origin}${location.pathname}?a=${artist.address}`,
+  `Page: ${location.origin}${location.pathname}?name=${encodeURIComponent(artist.name)}`,
   `Nonce: ${[...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join('')}`,
   `Issued: ${new Date().toISOString()}`, '',
   'Signing this message is free. It does not send a transaction and gives no access to your funds.',
@@ -91,3 +80,4 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-release]')) { const all = claims(); delete all[artist.address]; save(all); draw(); }
 });
 draw();
+}

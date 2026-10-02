@@ -29,8 +29,10 @@ for p in projects:
         n = p['invocations']; picks = sorted({int(n * x) for x in (0, .13, .27, .41, .55, .69, .83, .97)})
         toks = q('{ tokens_metadata(where:{project_id:{_eq:"%s"}, invocation:{_in:%s}}, order_by:{invocation:asc}) { token_id invocation preview_asset_url live_view_url } }' % (p['id'], json.dumps(picks)))['tokens_metadata']
         for t in toks:
-            full = t['preview_asset_url']; head, name = full.rsplit('/', 1); thumb = f'{head}/thumb/{name}'
-            c['tokens'].append(dict(id=t['token_id'], n=t['invocation'], img=thumb if ok(thumb) else full, live=t['live_view_url']))
+            full = t['preview_asset_url']; head, name = full.rsplit('/', 1); still = name.rsplit('.', 1)[0] + '.png'
+            # animated pieces have a video preview; use a still image of them, or leave the piece out
+            img = next((u for u in (f'{head}/thumb/{still}', f'{head}/{still}') if ok(u)), None)
+            if img: c['tokens'].append(dict(id=t['token_id'], n=t['invocation'], img=img, live=t['live_view_url']))
     a['collections'].append(c)
     print(p['artist_name'], '|', p['name'], '|', 'CC0' if c['cc0'] else p['license'], '|', c['minted'], '/', c['max'], '|', c['chain'], '|', len(c['tokens']), 'images')
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../prototype/assets/onchain.js')

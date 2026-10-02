@@ -10,56 +10,62 @@
 <script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
 </head>
 <body data-page="artist">
-<main class="wrap person-page">
-  <header class="person-head">
-    <div>
-      <h1 data-artist="name"></h1>
-      <p class="muted" data-artist="line"></p>
+<main class="wrap">
+  <section class="profile">
+    <div data-p="avatar"></div>
+    <div class="about">
+      <h1 data-p="name"></h1>
+      <p class="muted" data-p="line"></p>
+      <p class="bio" data-p="bio"></p>
+      <p style="margin-top:14px;display:flex;gap:8px" data-p="acts"></p>
+      <p class="links" data-p="links"></p>
     </div>
-    <a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#<span data-artist="rank"></span></b><span class="up">▲ <span data-artist="up"></span>%</span></a>
-  </header>
-
-  <section class="person-top">
-    <div class="portrait" data-artist="portrait"></div>
-    <div class="stage"><img class="glow" alt="">
-      <div class="player">
-        <video controls preload="none" playsinline></video>
-        <span class="pill" data-artist="reel"></span>
-      </div>
-    </div>
-    <div class="tiles" data-artist="tiles"></div>
+    <div data-p="side"></div>
   </section>
 
-  <div class="person-body">
-    <div>
-      <p class="lead" data-artist="lead"></p>
-      <p style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn follow">Follow</button><button class="btn">Share</button></p>
+  <section class="claim" data-w="claim" aria-live="polite"></section>
 
-      <div class="sec" id="known"><h2>Known for</h2></div>
+  <div class="tabs">
+    <button class="tab on" data-tab="videos">Videos</button>
+    <button class="tab" data-tab="credits">Credits</button>
+    <button class="tab" data-tab="live">Live</button>
+    <button class="tab" data-tab="assets">Assets</button>
+    <button class="tab" data-tab="collections" data-chain-only hidden>NFT collections</button>
+    <button class="tab" data-tab="merch">Merch</button>
+    <button class="tab" data-tab="funding">Funding</button>
+    <button class="tab" data-tab="about">About</button>
+  </div>
+
+  <div class="grid" data-panel="videos" data-list="films" data-by="@subject" data-empty="No videos here yet."></div>
+  <div data-panel="credits" hidden>
+    <div data-has-credits>
+      <div class="sec" style="margin-top:0"><h2>Known for</h2></div>
       <div class="known" data-known></div>
-
-      <div class="sec" id="credits"><h2>Credits</h2><p data-credit-count></p></div>
+      <div class="sec"><h2>Credits</h2><p data-credit-count></p></div>
       <div data-credits></div>
-      <p class="muted small" style="margin-top:14px">Credits come from Wikidata. On dein.art they are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one.</p>
-
-      <div class="sec" id="photos"><h2>Stills</h2></div>
-      <div class="photos" data-artist="stills"></div>
     </div>
-
+    <p class="muted small" style="margin-top:14px" data-p="creditnote"></p>
+  </div>
+  <div class="grid" data-panel="live" data-list="live" data-by="@subject" data-empty="Not live right now." hidden></div>
+  <div class="grid" data-panel="assets" data-list="assets" data-by="@subject" data-empty="No assets shared yet." hidden></div>
+  <div data-panel="collections" hidden>
+    <div class="sec" style="margin-top:0"><h2>NFT collections</h2><p data-w="count"></p></div>
+    <div data-w="collections"></div>
+  </div>
+  <div class="grid" data-panel="merch" data-list="merch" data-by="@subject" data-empty="No merch yet." hidden></div>
+  <div class="grid c3" data-panel="funding" data-list="campaigns" data-by="@subject" data-empty="No project is funding right now." hidden></div>
+  <div class="person-body" data-panel="about" style="padding-top:0" hidden>
+    <div data-p="about"></div>
     <aside class="person-side">
-      <div class="panel">
-        <h3>Personal details</h3>
-        <dl class="facts" data-artist="facts"></dl>
-      </div>
-      <div class="panel">
-        <h3>Worked with</h3>
-        <div class="castlist-v" data-artist="with"></div>
-      </div>
+      <div class="panel"><h3 data-p="factstitle"></h3><dl class="facts" data-p="facts"></dl></div>
+      <div class="panel" data-p="withpanel"><h3>Worked with</h3><div class="castlist-v" data-p="with"></div></div>
     </aside>
   </div>
 </main>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script src="assets/claim.js"></script>
 </body>
 </html>

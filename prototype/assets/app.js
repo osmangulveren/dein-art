@@ -14,6 +14,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const film = Object.fromEntries(CATALOG.films.map(f => [f.key, f]));
 const who = CATALOG.people;
 CATALOG.films.forEach(f => { f.creator = f.by[0]; });
+// Artists whose work lives on a blockchain are people like any other; they carry their wallet and collections.
+ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: 'Artist', pic: a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: [], occ: [], chain: a }; });
 
 // A still from a film at a given second, in one of the widths Wikimedia serves.
 const WIDTHS = [250, 330, 500, 960, 1280];
@@ -38,6 +40,7 @@ const assets = [
   ...CATALOG.music.map(a => ({ ...a, kind: 'Music', creator: a.by, sub: a.perf })),
   ...CATALOG.images.map(a => ({ ...a, kind: 'Image', creator: a.by, sub: a.year })),
   stillOf(film['trip-to-the-moon'], 2), stillOf(film['impossible-voyage'], 2), stillOf(film['impossible-voyage'], 3),
+  ...ONCHAIN.flatMap(a => a.collections.filter(c => c.tokens.length).flatMap(c => c.tokens.slice(2, 4).map(t => ({ title: `${c.name} #${t.n}`, kind: 'Image', creator: a.name, sub: c.date.slice(0, 4), pic: t.img, lic: 'CC0', page: t.live })))),
 ];
 // mix the kinds so the first row of the marketplace shows all three
 const mixed = [0, 5, 13, 1, 6, 14, 2, 7].map(i => assets[i]);
@@ -107,7 +110,7 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
-  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['onchain', 'On-chain artists', 'onchain.html', 'gem', 1]],
+  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1]],
   you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
         ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
   explore: [['', 'Documentaries', 'watch.html?f=man-with-a-movie-camera', 'film'], ['', 'Short films', 'watch.html?f=great-train-robbery', 'film'], ['', 'Animation', 'watch.html?f=gertie-the-dinosaur', 'film'],
@@ -131,7 +134,7 @@ document.body.insertAdjacentHTML('afterbegin', `
   <hr><h4>You</h4>
   ${side.you.map(sideLink).join('')}
   <hr><h4>Following</h4>
-  ${['F. W. Murnau', 'Dziga Vertov', 'Buster Keaton', 'Lois Weber'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
+  ${['F. W. Murnau', 'XCOPY', 'Buster Keaton', 'Jack Butcher'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
   <hr><h4>Explore</h4>
   ${side.explore.map(sideLink).join('')}
   <hr><p class="side-foot">Own your narrative.</p>
@@ -251,17 +254,13 @@ const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}</p></div></div></a>`,
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
-  assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the file on Wikimedia Commons"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
+  assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the original"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
   merch: m => `<button class="card" data-kind="Merch" data-pay="merch" data-title="${esc(m.title)}" data-price="${m.price}" data-creator="${esc(m.creator)}" ${m.creator === ME ? 'data-split' : ''}><div class="thumb merch" style="background:${m.bg};color:${m.ink}"><svg viewBox="0 0 100 100" fill="currentColor">${merchArt[m.art]}</svg></div><h3>${m.title}</h3><p>${m.creator} · <span class="price">$${m.price}</span></p></button>`,
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}</p></div><span class="up">▲ ${f.up}%</span></a>`,
   castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
   artists: a => `<a class="rankrow" href="${artistUrl(a.name)}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${a.name}</h3><p class="muted small">${a.role} · known for ${a.known}</p></div><span class="up">▲ ${a.up}%</span></a>`,
   channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow">Follow</button></div>`,
-  onchain: a => {
-    const pics = a.collections.flatMap(c => c.tokens.slice(1, 2)).concat(a.collections.flatMap(c => c.tokens.slice(4))).slice(0, 3);
-    return `<a class="card" href="wallet.html?a=${a.address}"><div class="mosaic">${pics.map(t => `<img src="${t.img}" alt="" loading="lazy">`).join('')}<span class="badge kind claim-badge" data-claim-badge="${a.address}">Unclaimed</span></div><h3>${a.name}</h3><p><span class="mono">${short(a.address)}</span> · ${a.collections.length} ${a.collections.length === 1 ? 'collection' : 'collections'} · ${a.collections.reduce((n, c) => n + c.minted, 0).toLocaleString('en-US')} pieces on-chain</p></a>`;
-  },
   campaigns: c => {
     const pct = Math.round(c.raised / c.goal * 100);
     return `<a class="card" href="fund.html"><div class="thumb"><img src="${c.pic}" alt="" loading="lazy"><span class="badge kind">Funding</span></div><h3>${c.title}</h3><p>${c.creator}</p><div class="progress"><span style="width:${pct}%"></span></div><p><span class="price">$${c.raised.toLocaleString('en-US')}</span> raised · ${pct}% · ${c.days} days left</p></a>`;
@@ -277,18 +276,23 @@ const related = [...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by
 // What is rising this week: films, the people behind them, and the companies that made them.
 const trending = ['nosferatu', 'sherlock-jr', 'man-with-a-movie-camera', 'trip-to-the-moon', 'the-general', 'cabinet-of-dr-caligari', 'impossible-voyage', 'nanook-of-the-north', 'within-our-gates', 'suspense']
   .map((k, i) => ({ ...film[k], rank: i + 1, up: [212, 148, 96, 81, 77, 64, 52, 40, 33, 21][i] }));
-const artists = [['Max Schreck', 64], ['Buster Keaton', 51], ['Yelizaveta Ignatevna Svilova', 43], ['F. W. Murnau', 38], ['Lois Weber', 31], ['Dziga Vertov', 27], ['Oscar Micheaux', 22], ['Mikhail Kaufman', 18], ['Robert J. Flaherty', 15], ['Sergei Eisenstein', 12]]
-  .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: film[who[name].films[0]].title, rank: i + 1 }));
+const artists = [['Max Schreck', 64], ['XCOPY', 58], ['Buster Keaton', 51], ['Jack Butcher', 47], ['Yelizaveta Ignatevna Svilova', 43], ['F. W. Murnau', 38], ['Rosenlykke', 34], ['Lois Weber', 31], ['Dziga Vertov', 27], ['Han x Nicolas Daniel', 24], ['Oscar Micheaux', 22], ['Robert J. Flaherty', 15]]
+  .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: who[name].chain ? who[name].chain.collections.find(c => c.cc0).name : film[who[name].films[0]].title, rank: i + 1 }));
 const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukrainian Photo-Cinema Administration', 'Metro Pictures', 'Hal Roach Studios']
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
   .map(c => ({ name: c.name, tone: tone(c.name), href: c.name === 'Star Film Company' ? 'creator.html' : watchUrl(film[c.films[0]]),
                about: `${c.films.length} ${c.films.length === 1 ? 'film' : 'films'} here · founded ${c.founded}${c.place ? ', ' + c.place : ''}` }));
-const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels, onchain: ONCHAIN };
+const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels };
 $$('[data-list]').forEach(el => {
   const names = el.dataset.list.split(' ');
   // a profile shows everything by that person, not just the front page's pick
-  let items = names.flatMap(name => (el.dataset.by ? [...lists[name], ...(more[name] || [])] : lists[name]).map(item => ({ item, name })));
-  if (el.dataset.by) items = items.filter(x => x.item.creator === el.dataset.by);
+  const by = el.dataset.by === '@subject' ? subject.name : el.dataset.by;
+  let items = names.flatMap(name => (by ? [...lists[name], ...(more[name] || [])] : lists[name]).map(item => ({ item, name })));
+  // on a profile: what this person made, and the films they are credited on
+  if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by));
+  // someone with no assets of their own still has stills from the films they worked on
+  if (by && names[0] === 'assets' && !items.length) items = filmsOf(who[by]).flatMap(f => f.scenes.slice(0, 2).map((_, i) => ({ item: stillOf(f, i), name: 'assets' }))).slice(0, 8);
+  if (!items.length && el.dataset.empty) { el.innerHTML = `<p class="muted empty">${el.dataset.empty}${subject.chain && !subject.claimed ? ' This opens up when the page is claimed.' : ''}</p>`; return; }
   if (el.dataset.card === 'next') items = items.filter(x => x.item !== cur);
   if (el.dataset.skip) items = items.slice(Number(el.dataset.skip));
   if (el.dataset.limit) items = items.slice(0, Number(el.dataset.limit));
@@ -296,7 +300,7 @@ $$('[data-list]').forEach(el => {
 
   // The public feeds never end: "Load more" keeps adding cards.
   const name = names[0];
-  if (!more[name]?.length || el.dataset.by || el.dataset.card) return;
+  if (!more[name]?.length || by || el.dataset.card) return;
   const pool = [...more[name], ...lists[name]], batch = name === 'live' ? 4 : 8;
   let at = 0;
   el.insertAdjacentHTML('afterend', '<div class="more"><button class="btn">Load more</button></div>');
@@ -423,7 +427,6 @@ if (hero) {
 }
 
 $$('[data-campaign-pic]').forEach(i => { i.src = frame(film['conquest-of-the-pole'], undefined, 960); });
-$$('[data-me-avatar]').forEach(el => { el.outerHTML = avatar(ME, 'lg').replace('/120px-', '/250px-'); });
 
 /* ---------- people: artist pages and the Credits tab of a profile ---------- */
 
@@ -442,37 +445,49 @@ $$('[data-known]').forEach(el => { el.innerHTML = knownHtml(subject); });
 $$('[data-credits]').forEach(el => { el.innerHTML = creditsHtml(subject); });
 $$('[data-credit-count]').forEach(el => { el.textContent = `${totalCredits(subject)} titles`; });
 
-if (page === 'artist') {
-  const a = subject, mine = filmsOf(a), ranked = artists.find(x => x.name === a.name);
+// A profile: the same page for every artist, and for the signed-in account.
+if (page === 'artist' || page === 'creator') {
+  const a = subject, me = a.name === ME, chain = a.chain, mine = filmsOf(a), ranked = artists.find(x => x.name === a.name);
+  const set = (key, html) => $$(`[data-p="${key}"]`).forEach(el => { el.innerHTML = html; });
+  const ext = (href, label) => `<a class="link" href="${href}" target="_blank" rel="noopener">${label}</a>`;
   document.title = `${a.name} — dein.art`;
-  const set = (key, html) => $$(`[data-artist="${key}"]`).forEach(el => { el.innerHTML = html; });
+  set('avatar', avatar(a.name, 'lg').replace('/120px-', '/250px-'));
   set('name', a.name);
-  set('line', [a.role, ...a.occ.filter(o => o.toLowerCase() !== a.role.toLowerCase()).slice(0, 2).map(o => o[0].toUpperCase() + o.slice(1)), years(a)].filter(Boolean).join(' · '));
-  $('.pop').hidden = !ranked;
-  if (ranked) { set('rank', ranked.rank); set('up', ranked.up); }
-  set('portrait', a.pic ? `<img src="${a.pic}" alt="">` : `<span class="big" style="background:${tone(a.name)}">${initials(a.name)}</span>`);
-  const reel = mine[0];
-  $('.person-top .glow').src = frame(reel, reel.at, 330);
-  $('.person-top video').poster = frame(reel, reel.at, 960);
-  $('.person-top video').innerHTML = sources(reel);
-  set('reel', `${reel.title} · ${reel.dur}`);
-  set('tiles', `<a class="tile" href="#known"><b>${mine.length}</b><span>On dein.art</span></a><a class="tile" href="#credits"><b>${totalCredits(a)}</b><span>Credits</span></a><a class="tile" href="#photos"><b>${mine.reduce((n, f) => n + f.scenes.length, 0)}</b><span>Stills</span></a>`);
-  const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
-  set('lead', `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`);
-  set('stills', mine.flatMap(f => f.scenes.filter(s => s[1]).map(s => `<a href="${watchUrl(f)}" title="${esc(f.title)}: ${esc(s[1])}"><img src="${frame(f, s[0], 330)}" alt="" loading="lazy"></a>`)).slice(0, 12).join(''));
-  set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')],
-    ['Sources', [`<a class="link" href="https://www.wikidata.org/wiki/${a.wd}" target="_blank" rel="noopener">Wikidata</a>`, a.imdb && `<a class="link" href="https://www.imdb.com/name/${a.imdb}/" target="_blank" rel="noopener">IMDb</a>`, a.wiki && `<a class="link" href="https://en.wikipedia.org/wiki/${encodeURIComponent(a.wiki.replace(/ /g, '_'))}" target="_blank" rel="noopener">Wikipedia</a>`].filter(Boolean).join(' · ')]]
-    .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
-  // the people credited on the same films
+  set('acts', `<button class="btn follow">Follow</button><button class="btn">Share</button>${me ? `<button class="btn primary" data-pay="support" data-title="Support ${esc(a.name)}" data-creator="${esc(a.name)}">♥ Support</button>` : ''}`);
+  $$('[data-chain-only]').forEach(el => { el.hidden = !chain; });
+  $$('[data-has-credits]').forEach(el => { el.hidden = !a.credits.length; });
+  set('creditnote', a.credits.length ? 'Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from Wikidata.'
+    : 'No credits yet. Credits are added when a work is published and the people who made it are listed.');
   const with_ = [...new Set(mine.flatMap(f => f.crew.map(c => c.name)))].filter(n => n !== a.name && who[n]).slice(0, 5);
-  set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join('') || '<span class="muted small">No shared credits yet.</span>');
-}
+  set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join(''));
+  $$('[data-p="withpanel"]').forEach(el => { el.hidden = !with_.length; });
 
-// Cards of on-chain artists show whether their page has been claimed on this device.
-try {
-  const claimed = JSON.parse(localStorage.getItem('claims')) || {};
-  $$('[data-claim-badge]').forEach(b => { if (claimed[b.dataset.claimBadge]) { b.textContent = '✓ Claimed'; b.classList.add('claimed'); } });
-} catch {}
+  if (chain) {
+    const pieces = chain.collections.reduce((n, c) => n + c.minted, 0), first = chain.collections.map(c => c.date).sort()[0];
+    set('line', `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces on-chain`);
+    set('bio', `Has minted work on Ethereum since ${first.slice(0, 4)}: ${chain.collections.map(c => c.name).join(', ')}. This page is built from public on-chain records.`);
+    set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + (chain.website ? ext(esc(chain.website), esc(chain.website.replace(/^https?:\/\/(www\.)?/, ''))) : ''));
+    set('side', '<span class="pop" data-w="status"></span>');
+    set('about', `<p class="lead">This page was built from public blockchain records, as indexed by Art Blocks. Until it is claimed, the artist has not joined dein.art and nothing here is offered by them through this site. Images are shown only for collections released under CC0.</p>`);
+    set('factstitle', 'On-chain record');
+    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`)], ['First mint', first], ['Collections', chain.collections.length], ['Pieces', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+  } else {
+    const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
+    const lead = `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`;
+    set('line', [a.role, ...a.occ.filter(o => o.toLowerCase() !== a.role.toLowerCase()).slice(0, 2).map(o => o[0].toUpperCase() + o.slice(1)), a.bornIn, years(a)].filter(Boolean).join(' · '));
+    set('bio', me ? 'Stage magician and owner of the Théâtre Robert-Houdin in Paris, who began making films in 1896. He built one of the first film studios, at Montreuil, and made more than five hundred films, writing, designing, directing and acting in most of them.' : lead);
+    set('links', [ext(`https://www.wikidata.org/wiki/${a.wd}`, 'Wikidata'), a.imdb && ext(`https://www.imdb.com/name/${a.imdb}/`, 'IMDb'), a.wiki && ext(`https://en.wikipedia.org/wiki/${encodeURIComponent(a.wiki.replace(/ /g, '_'))}`, 'Wikipedia')].filter(Boolean).join(''));
+    set('side', me ? `<div class="earn">
+      <span class="muted small">Your share of earnings · only you see this · example figures</span>
+      <div class="total">$63,790</div>
+      <dl><dt>Marketplace</dt><dd>$42,000</dd><dt>Merch</dt><dd>$9,540</dd><dt>Support and live tips</dt><dd>$12,250</dd></dl>
+      <p class="muted small" style="margin-top:10px">Another $123,285 went to your cast and crew.</p></div>`
+      : ranked ? `<a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#${ranked.rank}</b><span class="up">▲ ${ranked.up}%</span></a>` : '');
+    set('about', `<p class="lead">${lead}</p>${me ? '<p class="muted" style="margin-top:12px">The films are in the public domain. The earnings, merch and campaigns on this page are examples of what a creator\'s page holds.</p>' : ''}`);
+    set('factstitle', 'Personal details');
+    set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+  }
+}
 
 /* ---------- chips and tabs ---------- */
 
