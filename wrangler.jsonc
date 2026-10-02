@@ -1,0 +1,6 @@
+{
+  // Cloudflare: serve the static prototype as-is, no build step
+  "name": "dein-art",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./prototype" }
+}
