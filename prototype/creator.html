@@ -23,6 +23,11 @@
     <div data-p="side"></div>
   </section>
 
+  <section class="details">
+    <div class="panel"><h3 data-p="factstitle"></h3><dl class="facts" data-p="facts"></dl></div>
+    <div class="panel" data-p="withpanel"><h3>Worked with</h3><div class="withrow" data-p="with"></div></div>
+  </section>
+
   <section class="claim" data-w="claim" aria-live="polite"></section>
 
   <div class="tabs">
@@ -33,7 +38,6 @@
     <button class="tab" data-tab="collections" data-chain-only hidden>NFT collections</button>
     <button class="tab" data-tab="merch">Merch</button>
     <button class="tab" data-tab="funding">Funding</button>
-    <button class="tab" data-tab="about">About</button>
   </div>
 
   <div class="grid" data-panel="videos" data-list="films" data-by="@subject" data-empty="No videos here yet."></div>
@@ -54,13 +58,6 @@
   </div>
   <div class="grid" data-panel="merch" data-list="merch" data-by="@subject" data-empty="No merch yet." hidden></div>
   <div class="grid c3" data-panel="funding" data-list="campaigns" data-by="@subject" data-empty="No project is funding right now." hidden></div>
-  <div class="person-body" data-panel="about" style="padding-top:0" hidden>
-    <div data-p="about"></div>
-    <aside class="person-side">
-      <div class="panel"><h3 data-p="factstitle"></h3><dl class="facts" data-p="facts"></dl></div>
-      <div class="panel" data-p="withpanel"><h3>Worked with</h3><div class="castlist-v" data-p="with"></div></div>
-    </aside>
-  </div>
 </main>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>

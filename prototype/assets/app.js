@@ -458,7 +458,7 @@ if (page === 'artist' || page === 'creator') {
   $$('[data-has-credits]').forEach(el => { el.hidden = !a.credits.length; });
   set('creditnote', a.credits.length ? 'Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from Wikidata.'
     : 'No credits yet. Credits are added when a work is published and the people who made it are listed.');
-  const with_ = [...new Set(mine.flatMap(f => f.crew.map(c => c.name)))].filter(n => n !== a.name && who[n]).slice(0, 5);
+  const with_ = [...new Set(mine.flatMap(f => f.crew.map(c => c.name)))].filter(n => n !== a.name && who[n]).slice(0, 6);
   set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join(''));
   $$('[data-p="withpanel"]').forEach(el => { el.hidden = !with_.length; });
 
@@ -468,7 +468,6 @@ if (page === 'artist' || page === 'creator') {
     set('bio', `Has minted work on Ethereum since ${first.slice(0, 4)}: ${chain.collections.map(c => c.name).join(', ')}. This page is built from public on-chain records.`);
     set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + (chain.website ? ext(esc(chain.website), esc(chain.website.replace(/^https?:\/\/(www\.)?/, ''))) : ''));
     set('side', '<span class="pop" data-w="status"></span>');
-    set('about', `<p class="lead">This page was built from public blockchain records, as indexed by Art Blocks. Until it is claimed, the artist has not joined dein.art and nothing here is offered by them through this site. Images are shown only for collections released under CC0.</p>`);
     set('factstitle', 'On-chain record');
     set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`)], ['First mint', first], ['Collections', chain.collections.length], ['Pieces', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   } else {
@@ -483,7 +482,6 @@ if (page === 'artist' || page === 'creator') {
       <dl><dt>Marketplace</dt><dd>$42,000</dd><dt>Merch</dt><dd>$9,540</dd><dt>Support and live tips</dt><dd>$12,250</dd></dl>
       <p class="muted small" style="margin-top:10px">Another $123,285 went to your cast and crew.</p></div>`
       : ranked ? `<a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#${ranked.rank}</b><span class="up">▲ ${ranked.up}%</span></a>` : '');
-    set('about', `<p class="lead">${lead}</p>${me ? '<p class="muted" style="margin-top:12px">The films are in the public domain. The earnings, merch and campaigns on this page are examples of what a creator\'s page holds.</p>' : ''}`);
     set('factstitle', 'Personal details');
     set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   }
