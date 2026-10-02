@@ -489,6 +489,50 @@ if (page === 'artist' || page === 'creator') {
   }
 }
 
+/* ---------- a profile's assets: one section per type, and a pop-up with the details of each ---------- */
+
+const shelf = typeof ASSETS !== 'undefined' && (page === 'artist' || page === 'creator') && ASSETS[subject.name];
+if (shelf) {
+  const shape = { Posters: 'tall', Press: 'tall', Photographs: 'tall', Footage: 'wide' };
+  const all = shelf.flatMap(g => g.items.map(item => ({ ...item, type: g.type })));
+  const panel = $('[data-panel="assets"]');
+  panel.classList.remove('grid');
+  panel.innerHTML = `
+    <div class="chips" style="margin-bottom:8px">${shelf.map(g => `<a class="chip" href="#assets-${g.type.replace(/\W+/g, '-').toLowerCase()}">${g.type} <span class="muted">${g.items.length}</span></a>`).join('')}</div>` +
+    shelf.map(g => `
+    <div class="sec" id="assets-${g.type.replace(/\W+/g, '-').toLowerCase()}"><h2>${g.type}</h2><p>${g.items.length} ${g.items.length === 1 ? 'item' : 'items'} · free</p></div>
+    <div class="grid shelf ${shape[g.type] || 'std'}">${g.items.map(i => `<button class="card" data-asset="${all.findIndex(x => x.url === i.url)}"><div class="thumb"><img src="${i.pic}" alt="" loading="lazy">${i.dur ? `<span class="badge dur">${i.dur}</span>` : ''}</div><h3>${i.title}</h3><p>${i.year || 'Undated'} · <span class="price free">Free</span></p></button>`).join('')}</div>`).join('');
+
+  document.body.insertAdjacentHTML('beforeend', '<dialog id="asset" class="assetbox"></dialog>');
+  const box = $('#asset');
+  const show = n => {
+    const i = all[(n + all.length) % all.length], f = film[i.film];
+    const facts = [['Type', i.type], ['Year', i.year], ['From', f ? `<a class="link" href="${watchUrl(f)}">${f.title} (${f.year})</a>` : ''], ['Credit', i.credit],
+      [i.dur ? 'Length' : 'Size', i.dur ? `${i.dur} · ${i.w} × ${i.h}` : `${i.w.toLocaleString('en-US')} × ${i.h.toLocaleString('en-US')} px`], ['File', `${i.format} · ${i.mb} MB`], ['Licence', i.lic], ['Shared by', subject.name]];
+    box.dataset.at = all.indexOf(i);
+    box.innerHTML = `
+      <div class="assetmedia">${i.dur ? `<video controls playsinline preload="none" poster="${i.pic}">${sources(i)}</video>` : `<img src="${i.big}" alt="">`}
+        <button class="btn icon nav prev" data-step="-1" aria-label="Previous asset">‹</button><button class="btn icon nav next" data-step="1" aria-label="Next asset">›</button></div>
+      <div class="assetinfo">
+        <span class="pill tint">${i.type}</span>
+        <h2>${i.title}</h2>
+        <p class="muted">${i.note}</p>
+        <dl class="facts">${facts.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        <div class="assetacts"><a class="btn primary" href="${i.url}" target="_blank" rel="noopener">Get the original · Free</a><a class="btn" href="${i.page}" target="_blank" rel="noopener">Source</a></div>
+        <p class="muted small">Public-domain file from Wikimedia Commons. Free to use, no payment and no account.</p>
+        <button class="btn wide" data-close>Close</button>
+      </div>`;
+    if (!box.open) box.showModal();
+  };
+  document.addEventListener('click', e => {
+    const card = e.target.closest('[data-asset]'), step = e.target.closest('#asset [data-step]');
+    if (card) show(Number(card.dataset.asset));
+    if (step) show(Number(box.dataset.at) + Number(step.dataset.step));
+  });
+  box.addEventListener('keydown', e => { if (e.key === 'ArrowRight') show(Number(box.dataset.at) + 1); if (e.key === 'ArrowLeft') show(Number(box.dataset.at) - 1); });
+  box.addEventListener('close', () => { box.innerHTML = ''; });   // stops a playing clip
+}
+
 /* ---------- chips and tabs ---------- */
 
 const chips = $$('.chip');
