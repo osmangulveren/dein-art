@@ -3,75 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Last Train to Kars — dein.art</title>
+<title>Watch — dein.art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
 </head>
-<body data-page="home">
+<body data-page="watch">
 <main class="wrap watch">
   <div>
-    <div class="stage"><img class="glow" src="https://picsum.photos/id/220/320/180" alt="">
+    <div class="stage"><img class="glow" alt="">
     <div class="player">
-      <img src="https://picsum.photos/id/220/1600/900" alt="">
+      <video data-f-video controls preload="none" playsinline></video>
       <button class="play" aria-label="Play">▶</button>
-      <div class="scene" data-scene></div>
-      <div class="controls"><span>▶</span><span>10:58 / 1:18:22</span><span class="muted-w">Scenes are marked on the timeline</span></div>
-      <div class="bar" data-marks><span></span></div>
     </div></div>
-    <div class="proof">
-      <span class="muted small">Published on-chain · 0x7a3f…c21e</span>
-      <span class="link" title="The record of who made this film and how earnings are split">Etherscan</span>
-      <span class="link" title="Title, credits and rights, stored with the film">Metadata</span>
-      <span class="link" title="Where the film file is permanently stored">Arweave</span>
-    </div>
-    <h1>Last Train to Kars</h1>
-    <div class="byline">
-      <a class="avatar" href="creator.html">AD</a>
-      <a class="who" href="creator.html"><b>Aras Demirkol</b><span class="muted small">404.5K followers</span></a>
-      <button class="btn follow">Follow</button>
-      <button class="btn">Share</button>
-      <button class="btn primary" data-pay="support" data-split>♥ Support</button>
-    </div>
-    <div class="box">
-      <b>1.2M views · 2025 · Documentary</b>
-      <p>One winter night on the slow train across Anatolia, and the people who still ride it. Free to watch — if it stays with you, support the people who made it.</p>
-    </div>
+    <div class="track" data-marks title="Scenes are marked on the timeline"><span></span></div>
+    <div class="scenecard" data-scene></div>
+    <div class="proof" data-f="proof"></div>
+    <h1 data-f="title"></h1>
+    <div class="byline" data-f="byline"></div>
+    <div class="box" data-f="about"></div>
     <div class="cast" data-cast></div>
 
-
-    <details class="fold" id="behind">
-      <summary><span><b>Behind this film</b><span class="muted small">8 kinds of material · raw footage, script, storyboards, sound and more</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-      <div class="rows" data-picks>
-        <label class="row"><input type="checkbox" value="120" checked><div class="info"><b>Raw footage</b><span class="muted small">4 hours of rushes · 4K ProRes · cleared for reuse</span></div><span class="amount">$120</span></label>
-        <label class="row"><input type="checkbox" value="15" checked><div class="info"><b>Script and treatment</b><span class="muted small">PDF · 64 pages</span></div><span class="amount">$15</span></label>
-        <label class="row"><input type="checkbox" value="40"><div class="info"><b>Storyboards</b><span class="muted small">Collectible edition of 250 · 61 left</span></div><span class="amount">$40</span></label>
-        <label class="row"><input type="checkbox" value="8"><div class="info"><b>Behind-the-scenes photos</b><span class="muted small">140 photos from the shoot</span></div><span class="amount">$8</span></label>
-        <label class="row"><input type="checkbox" value="12"><div class="info"><b>Behind-the-scenes videos</b><span class="muted small">Six short films from the set</span></div><span class="amount">$12</span></label>
-        <label class="row"><input type="checkbox" value="10"><div class="info"><b>Sound effects</b><span class="muted small">Train, station and winter recordings</span></div><span class="amount">$10</span></label>
-        <label class="row"><input type="checkbox" value="14"><div class="info"><b>Soundtrack</b><span class="muted small">Original score · stems included</span></div><span class="amount">$14</span></label>
-        <label class="row"><input type="checkbox" value="25"><div class="info"><b>Project files</b><span class="muted small">The full edit for Premiere and Resolve</span></div><span class="amount">$25</span></label>
-        <div class="row total"><div class="info"><b data-picked></b></div><button class="btn dark" data-pay="buy" data-split>Get selected</button></div>
-      </div>
-    </details>
-
     <section class="block">
-      <h2>Related</h2>
-      <p>Interviews, the edit and the making of the film.</p>
+      <h2 data-f="related">Related</h2>
       <div class="grid" data-list="related" data-card="films"></div>
     </section>
 
     <section class="block" id="reviews">
-      <h2>4,540 reviews</h2>
-      <form class="review-form"><span class="avatar">AD</span><input placeholder="Add a review" aria-label="Add a review"><button class="btn dark">Publish</button></form>
-      <div class="reviews" data-reviews></div>
+      <h2>Reviews</h2>
+      <form class="review-form"><input placeholder="Add a review" aria-label="Add a review"><button class="btn dark">Publish</button></form>
+      <div class="reviews" data-reviews><p class="muted" data-noreviews>No reviews yet. Be the first.</p></div>
     </section>
   </div>
 
   <aside class="side">
     <h2>Up next</h2>
-    <div data-list="films" data-card="next" data-skip="1" data-limit="6"></div>
+    <div data-list="films" data-card="next" data-limit="6"></div>
   </aside>
 </main>
 <dialog id="crew" class="wide">
@@ -80,6 +48,7 @@
   <div data-crew></div>
   <button class="btn wide" data-close style="margin-top:18px">Close</button>
 </dialog>
+<script src="assets/catalog.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

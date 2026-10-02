@@ -13,107 +13,59 @@
 <main class="wrap person-page">
   <header class="person-head">
     <div>
-      <h1 data-artist="name">Elif Karabey</h1>
-      <p class="muted"><span data-artist="role">Cinematographer</span> · Additional crew · Istanbul, Türkiye</p>
+      <h1 data-artist="name"></h1>
+      <p class="muted" data-artist="line"></p>
     </div>
-    <a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#<span data-artist="rank">1</span></b><span class="up">▲ <span data-artist="up">64</span>%</span></a>
+    <a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#<span data-artist="rank"></span></b><span class="up">▲ <span data-artist="up"></span>%</span></a>
   </header>
 
   <section class="person-top">
-    <div class="portrait" data-artist="portrait"><img src="https://i.pravatar.cc/400?img=47" alt=""></div>
-    <div class="stage"><img class="glow" src="https://picsum.photos/id/196/320/180" alt="">
+    <div class="portrait" data-artist="portrait"></div>
+    <div class="stage"><img class="glow" alt="">
       <div class="player">
-        <img src="https://picsum.photos/id/196/1280/720" alt="">
-        <button class="play" aria-label="Play">▶</button>
-        <span class="pill">Showreel · 2:41</span>
+        <video controls preload="none" playsinline></video>
+        <span class="pill" data-artist="reel"></span>
       </div>
     </div>
-    <div class="tiles">
-      <a class="tile" href="#credits"><b>12</b><span>Videos</span></a>
-      <a class="tile" href="#photos"><b>48</b><span>Photos</span></a>
-      <a class="tile" href="#collections"><b>86</b><span>NFTs</span></a>
-    </div>
+    <div class="tiles" data-artist="tiles"></div>
   </section>
 
   <div class="person-body">
     <div>
-      <p class="lead">Known for patient, available-light photography on documentaries shot across Anatolia. Began as a camera operator in 2020 and has photographed five films since, among them "Last Train to Kars" and "Salt Road".</p>
-      <p style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn follow">Follow</button><button class="btn primary" data-pay="support" data-title="Support this artist">♥ Support</button><button class="btn">Share</button></p>
+      <p class="lead" data-artist="lead"></p>
+      <p style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn follow">Follow</button><button class="btn">Share</button></p>
 
-      <div class="sec"><h2>Known for</h2></div>
-      <div class="known">
-        <a class="poster" href="watch.html"><div class="thumb"><img src="https://picsum.photos/id/220/360/520" alt="" loading="lazy"></div><b>Last Train to Kars</b><span class="muted small"><span data-artist="role">Cinematographer</span> · 2025</span><span class="muted small">Documentary</span></a>
-        <a class="poster" href="watch.html"><div class="thumb"><img src="https://picsum.photos/id/196/360/520" alt="" loading="lazy"></div><b>Salt Road</b><span class="muted small"><span data-artist="role">Cinematographer</span> · 2024</span><span class="muted small">Documentary</span></a>
-        <a class="poster" href="watch.html"><div class="thumb"><img src="https://picsum.photos/id/124/360/520" alt="" loading="lazy"></div><b>The Red Boat</b><span class="muted small"><span data-artist="role">Cinematographer</span> · 2023</span><span class="muted small">Short film</span></a>
-        <a class="poster" href="watch.html"><div class="thumb"><img src="https://picsum.photos/id/229/360/520" alt="" loading="lazy"></div><b>A Forest in Fog</b><span class="muted small"><span data-artist="role">Cinematographer</span> · 2022</span><span class="muted small">Documentary</span></a>
+      <div class="sec" id="known"><h2>Known for</h2></div>
+      <div class="known" data-known></div>
+
+      <div class="sec" id="credits"><h2>Credits</h2><p data-credit-count></p></div>
+      <div data-credits></div>
+      <p class="muted small" style="margin-top:14px">Credits come from Wikidata. On dein.art they are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one.</p>
+
+      <div data-has-collections>
+        <div class="sec" id="collections"><h2>NFT collections</h2></div>
+        <div class="grid c3" data-list="collections" data-limit="3"></div>
+        <div class="sec" id="pieces"><h2>Latest pieces</h2></div>
+        <div class="grid" data-list="nfts"></div>
       </div>
 
-      <div class="sec" id="credits"><h2>Credits</h2><p>11 titles</p></div>
-      <details class="fold" open>
-        <summary><span><b><span data-artist="role">Cinematographer</span></b><span class="muted small">5 titles</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-        <div class="rows">
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/139/192/108" alt="" loading="lazy"></div><div class="info"><b>Hands of the Bazaar — Season 2</b><span class="muted small">Documentary series · funding now</span></div><span class="year">In production</span><a class="btn" href="fund.html">Back it</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/220/192/108" alt="" loading="lazy"></div><div class="info"><b>Last Train to Kars</b><span class="muted small">Documentary · 1.2M views</span></div><span class="year">2025</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/196/192/108" alt="" loading="lazy"></div><div class="info"><b>Salt Road</b><span class="muted small">Documentary · 412K views</span></div><span class="year">2024</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/124/192/108" alt="" loading="lazy"></div><div class="info"><b>The Red Boat</b><span class="muted small">Short film · 73K views</span></div><span class="year">2023</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/229/192/108" alt="" loading="lazy"></div><div class="info"><b>A Forest in Fog</b><span class="muted small">Documentary · 88K views</span></div><span class="year">2022</span><a class="btn" href="watch.html">Play</a></div>
-        </div>
-      </details>
-      <details class="fold">
-        <summary><span><b>Additional crew</b><span class="muted small">4 titles</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-        <div class="rows">
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/188/192/108" alt="" loading="lazy"></div><div class="info"><b>Snow Over the Rooftops</b><span class="muted small">Camera operator · 310K views</span></div><span class="year">2023</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/271/192/108" alt="" loading="lazy"></div><div class="info"><b>Night Ferry</b><span class="muted small">Second unit · 96K views</span></div><span class="year">2022</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/238/192/108" alt="" loading="lazy"></div><div class="info"><b>City of Glass</b><span class="muted small">Camera assistant · 205K views</span></div><span class="year">2021</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/232/192/108" alt="" loading="lazy"></div><div class="info"><b>Lamplight</b><span class="muted small">Camera assistant</span></div><span class="year">2020</span><span class="muted small">Not on dein.art yet</span></div>
-        </div>
-      </details>
-      <details class="fold">
-        <summary><span><b>Self</b><span class="muted small">2 titles</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
-        <div class="rows">
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/204/192/108" alt="" loading="lazy"></div><div class="info"><b>Making Last Train to Kars</b><span class="muted small">Appears as self · 87K views</span></div><span class="year">2025</span><a class="btn" href="watch.html">Play</a></div>
-          <div class="row credit"><div class="thumb"><img src="https://picsum.photos/id/197/192/108" alt="" loading="lazy"></div><div class="info"><b>Behind the scenes: a week on board</b><span class="muted small">Appears as self · 143K views</span></div><span class="year">2025</span><a class="btn" href="watch.html">Play</a></div>
-        </div>
-      </details>
-
-      <div class="sec" id="collections"><h2>NFT collections</h2><p>2 collections</p></div>
-      <div class="grid c3" data-list="collections" data-limit="2"></div>
-      <div class="sec" id="pieces"><h2>Latest pieces</h2></div>
-      <div class="grid" data-list="nfts"></div>
-
-      <div class="sec" id="photos"><h2>Photos</h2><p>48</p></div>
-      <div class="photos">
-        <img src="https://picsum.photos/id/250/300/300" alt="" loading="lazy"><img src="https://picsum.photos/id/177/300/300" alt="" loading="lazy"><img src="https://picsum.photos/id/242/300/300" alt="" loading="lazy"><img src="https://picsum.photos/id/184/300/300" alt="" loading="lazy"><img src="https://picsum.photos/id/192/300/300" alt="" loading="lazy"><img src="https://picsum.photos/id/110/300/300" alt="" loading="lazy">
-      </div>
+      <div class="sec" id="photos"><h2>Stills</h2></div>
+      <div class="photos" data-artist="stills"></div>
     </div>
 
     <aside class="person-side">
       <div class="panel">
-        <h3>Awards</h3>
-        <p><b>3 wins</b> and 5 nominations</p>
-        <p class="muted small">Best Cinematography, Silver Crane Film Festival 2025, for "Last Train to Kars"</p>
-      </div>
-      <div class="panel">
         <h3>Personal details</h3>
-        <dl class="facts">
-          <dt>Born</dt><dd>1991 · İzmir, Türkiye</dd>
-          <dt>Based in</dt><dd>Istanbul</dd>
-          <dt>Works in</dt><dd>Turkish, English</dd>
-          <dt>On dein.art since</dt><dd>2025</dd>
-          <dt>Official sites</dt><dd><span class="link">Website</span> · <span class="link">Instagram</span></dd>
-        </dl>
+        <dl class="facts" data-artist="facts"></dl>
       </div>
       <div class="panel">
-        <h3>Did you know</h3>
-        <p class="muted">Shot most of "Last Train to Kars" on a single lens, from a seat by the dining-car window.</p>
-      </div>
-      <div class="panel">
-        <h3>Works often with</h3>
-        <div class="castlist-v" data-list="artists" data-card="castp" data-skip="2" data-limit="4"></div>
+        <h3>Worked with</h3>
+        <div class="castlist-v" data-artist="with"></div>
       </div>
     </aside>
   </div>
 </main>
+<script src="assets/catalog.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

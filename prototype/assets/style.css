@@ -493,3 +493,29 @@ html[data-bar="hidden"] .sidebar { top: 12px; }
 html[data-side="closed"] .sl.on::after { display: none; }
 .sec h2::before, .page-head h1::before { content: ""; display: inline-block; width: .26em; height: .26em; border-radius: 50%; background: var(--dot); margin-right: .38em; vertical-align: .12em; }
 .foot .tagline::after { content: ""; display: inline-block; width: .3em; height: .3em; border-radius: 50%; background: var(--dot); margin-left: .3em; }
+
+/* ---------- real media: the film player, its scene timeline, music and source notes ---------- */
+.player video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.player:has(video)::after { display: none; }
+.player .play[hidden] { display: none; }
+.track { position: relative; z-index: 1; height: 4px; margin: 18px 8px 0; border-radius: 4px; background: var(--line); }
+.track > span { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--dot); }
+.track .mark { position: absolute; top: -5px; width: 14px; height: 14px; margin-left: -7px; padding: 0; border-radius: 50%; border: 2px solid var(--bg); background: var(--dot); cursor: pointer; transition: transform .15s; }
+.track .mark:hover, .track .mark.on { transform: scale(1.4); box-shadow: 0 0 10px rgba(245,166,35,.7); }
+.scenecard { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 10px; background: var(--soft); border-radius: var(--r); }
+.scenecard img { width: 128px; height: 72px; flex: none; border-radius: 10px; }
+.scenecard div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+.scenecard .btn { flex: none; margin-right: 6px; }
+.byline img.avatar, .profile img.avatar, .review img.avatar { object-fit: cover; }
+img.avatar { object-fit: cover; object-position: top; }
+.badge.listen { cursor: pointer; }
+.badge.listen:hover { background: var(--dot); color: #101216; }
+.thumb.blank { background: linear-gradient(135deg, var(--accent-soft), var(--soft)); }
+.photos a { display: block; border-radius: 12px; overflow: hidden; }
+.photos a img { border-radius: 0; }
+.poster .thumb img { object-position: center; }
+.foot .demo-note { flex-basis: 100%; max-width: 860px; line-height: 1.5; }
+@media (max-width: 640px) { .scenecard { flex-wrap: wrap; } .scenecard .btn { margin-left: 142px; } }
+.grid > * { min-width: 0; }
+.thumb > img { position: absolute; inset: 0; }
+button.card { align-self: start; }

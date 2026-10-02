@@ -1,0 +1,5 @@
+cache/
+*.json
+__pycache__/
+frames/
+sheets/
