@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy to testnet — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="deploy">
+<main class="wrap" style="max-width:820px">
+  <div class="page-head">
+    <h1>Put dein.art on the testnet</h1>
+    <p>This deploys the page-claims contract to Sepolia, Ethereum's test network, from your own wallet. Test ETH has no value and is free from a faucet; nothing here touches real money.</p>
+  </div>
+  <ol class="deploysteps">
+    <li><b>Have a wallet</b><span>MetaMask or Rabby in this browser.</span></li>
+    <li><b>Get free Sepolia ETH</b><span>From any Sepolia faucet. About 0.01 test ETH is plenty: deploying needs roughly 0.002, a claim far less.</span></li>
+    <li><b>Deploy</b><span>Your wallet asks you to confirm one transaction on Sepolia.</span></li>
+  </ol>
+  <div class="claimbox" data-d="box"></div>
+  <p class="muted small" style="margin-top:14px">The contract's source is <a class="link" href="https://github.com/osmangulveren/dein-art/blob/main/contracts/DeinArtClaims.sol" target="_blank" rel="noopener">contracts/DeinArtClaims.sol</a>. A wallet can only claim its own page, so nobody can claim or block a page for someone else.</p>
+</main>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+<script src="assets/claims-contract.js"></script>
+<script>
+(() => {
+  const box = document.querySelector('[data-d="box"]');
+  const saved = (() => { try { return CLAIMS.address || localStorage.getItem('claimsAddress') || ''; } catch { return CLAIMS.address; } })();
+  let me = '';
+  const show = (title, text, acts = '', tone = '') => { box.className = 'claimbox' + (tone === 'ok' ? ' claimed' : ''); box.innerHTML = `<div><h2>${title}</h2><p>${text}</p></div><div class="claimacts">${acts}</div>`; };
+  const ready = () => saved
+    ? show('The contract is on Sepolia', `Address <span class="mono">${saved}</span>. Claims made on artist pages are now recorded there. <a class="link" href="${CLAIMS.explorer}/address/${saved}" target="_blank" rel="noopener">See it on Etherscan</a>`,
+        `<button class="btn primary" data-mine>Open my wallet's page</button>`, 'ok')
+    : show('Ready to deploy', 'Connect your wallet; it will switch to Sepolia and ask you to confirm.', '<button class="btn primary" data-deploy>Connect and deploy</button>');
+  async function sepolia() {
+    const id = '0x' + CLAIMS.chainId.toString(16);
+    try { await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: id }] }); }
+    catch (e) { if (e.code !== 4902) throw e; await ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: id, chainName: 'Sepolia', nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: [CLAIMS.rpc], blockExplorerUrls: [CLAIMS.explorer] }] }); }
+    return new ethers.BrowserProvider(window.ethereum);
+  }
+  async function deploy() {
+    if (!window.ethereum) return show('No wallet found', 'Open this page in a browser with MetaMask or Rabby installed.', '<button class="btn primary" data-deploy>Try again</button>');
+    try {
+      [me] = await ethereum.request({ method: 'eth_requestAccounts' });
+      const provider = await sepolia(), signer = await provider.getSigner();
+      const balance = await provider.getBalance(me);
+      if (balance < ethers.parseEther('0.001')) return show('This wallet needs test ETH', `<span class="mono">${me}</span> has ${ethers.formatEther(balance)} Sepolia ETH. Get some free from a Sepolia faucet, then deploy.`, '<button class="btn primary" data-deploy>Deploy</button>');
+      show('Confirm in your wallet', 'One transaction on Sepolia creates the contract.');
+      const c = await new ethers.ContractFactory(CLAIMS.abi, CLAIMS.bytecode, signer).deploy();
+      show('Deploying…', `Waiting for Sepolia to include it. <a class="link" href="${CLAIMS.explorer}/tx/${c.deploymentTransaction().hash}" target="_blank" rel="noopener">Follow the transaction</a>`);
+      await c.waitForDeployment();
+      const at = await c.getAddress();
+      try { localStorage.setItem('claimsAddress', at); } catch {}
+      show('Deployed', `The contract is at <span class="mono">${at}</span>. It already works in this browser. Send this address to Claude to make it the address for everyone.`, `<button class="btn primary" data-mine>Open my wallet's page</button><a class="btn" href="${CLAIMS.explorer}/address/${at}" target="_blank" rel="noopener">Etherscan</a>`, 'ok');
+    } catch (e) {
+      show('Not deployed', (e?.code === 4001 || e?.code === 'ACTION_REJECTED') ? 'You cancelled in your wallet. Nothing was sent.' : 'The wallet did not complete the request. Nothing was deployed.', '<button class="btn primary" data-deploy>Try again</button>');
+    }
+  }
+  document.addEventListener('click', async e => {
+    if (e.target.closest('[data-deploy]')) deploy();
+    if (e.target.closest('[data-mine]')) { if (!me && window.ethereum) [me] = await ethereum.request({ method: 'eth_requestAccounts' }); if (me) location.href = 'artist.html?wallet=' + me; }
+  });
+  ready();
+})();
+</script>
+</body>
+</html>

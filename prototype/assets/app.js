@@ -16,6 +16,12 @@ const who = CATALOG.people;
 CATALOG.films.forEach(f => { f.creator = f.by[0]; });
 // Artists whose work lives on a blockchain are people like any other; they carry their wallet and collections.
 ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: 'Artist', pic: a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: [], occ: [], chain: a }; });
+// Any wallet has a page: artist.html?wallet=0x… shows it even if no index lists the wallet yet, so its holder can claim it.
+const walletParam = (param('wallet') || '').trim();
+if (/^0x[0-9a-fA-F]{40}$/.test(walletParam) && !ONCHAIN.some(a => a.address.toLowerCase() === walletParam.toLowerCase())) {
+  const w = { name: walletParam.slice(0, 6) + '…' + walletParam.slice(-4), address: walletParam.toLowerCase(), collections: [], listed: false };
+  ONCHAIN.push(w); who[w.name] = { name: w.name, role: 'Artist', films: [], credits: [], occ: [], chain: w };
+}
 
 // A still from a film at a given second, in one of the widths Wikimedia serves.
 const WIDTHS = [250, 330, 500, 960, 1280];
@@ -268,7 +274,7 @@ const cards = {
 };
 
 // The person an artist page or a profile is about.
-const subject = page === 'artist' ? who[param('name')] || who['F. W. Murnau'] : who[ME];
+const subject = page === 'artist' ? who[param('name')] || who[(ONCHAIN.find(a => a.address === walletParam.toLowerCase()) || {}).name] || who['F. W. Murnau'] : who[ME];
 const filmsOf = p => p.films.map(k => film[k]);
 
 // Next to a film: the director's other films, then films of the same kind.
@@ -292,7 +298,7 @@ $$('[data-list]').forEach(el => {
   if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by));
   // someone with no assets of their own still has stills from the films they worked on
   if (by && names[0] === 'assets' && !items.length) items = filmsOf(who[by]).flatMap(f => f.scenes.slice(0, 2).map((_, i) => ({ item: stillOf(f, i), name: 'assets' }))).slice(0, 8);
-  if (!items.length && el.dataset.empty) { el.innerHTML = `<p class="muted empty">${el.dataset.empty}${subject.chain && !subject.claimed ? ' This opens up when the page is claimed.' : ''}</p>`; return; }
+  if (!items.length && el.dataset.empty) { el.innerHTML = `<p class="muted empty">${el.dataset.empty}</p>`; return; }
   if (el.dataset.card === 'next') items = items.filter(x => x.item !== cur);
   if (el.dataset.skip) items = items.slice(Number(el.dataset.skip));
   if (el.dataset.limit) items = items.slice(0, Number(el.dataset.limit));
@@ -469,8 +475,9 @@ if (page === 'artist' || page === 'creator') {
 
   if (chain) {
     if (chain.film) $('[data-panel="videos"]').innerHTML = `<a class="card" href="${chain.film.page}" target="_blank" rel="noopener"><div class="thumb typo"><span>${chain.film.title}</span><span class="badge dur">On the artist's site ↗</span></div><div class="meta">${face(a.name)}<div><h3>${chain.film.title}</h3><p>${a.name} · plays on ${chain.film.page.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p></div></div></a>`;
-    const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0];
+    const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0] || '—';
     set('line', `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
+    if (chain.listed === false) set('bio', 'A wallet page. Whoever holds this wallet can claim it and start publishing here.'); else
     set('bio', `Has released work on-chain since ${first}${chain.collections.length <= 3 ? ': ' + chain.collections.map(c => c.name).join(', ') : `, across ${chain.collections.length} collections`}. This page is built from public records${chain.site ? ' and the list of work on the artist\'s own site' : ''}.`);
     set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
     set('side', '<span class="pop" data-w="status"></span>');

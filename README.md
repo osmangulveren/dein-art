@@ -35,7 +35,7 @@ The content in the prototype is real, so the pages can be judged with actual fil
 - **Credits** on film and artist pages come from Wikidata.
 - **Music and images** in the marketplace are CC0 or public-domain recordings, paintings and photographs.
 
-- **Artists from the blockchain** sit alongside the others: real artists with CC0 collections on Ethereum, listed with the wallet that created the work. Their pages are unclaimed: the artists have not joined dein.art. A page is claimed by signing a message with that wallet, and the signature is checked in the browser. It is free and not a transaction.
+- **Artists from the blockchain** sit alongside the others: real artists with CC0 collections on Ethereum, listed with the wallet that created the work. Their pages are unclaimed: the artists have not joined dein.art. A page is claimed from that wallet. Once the claims contract is deployed to the Sepolia testnet (`prototype/deploy.html`), the claim is a transaction there, public and the same for everyone, paid with free test ETH. Until then, the wallet signs a message that is checked in the browser. Any wallet also has a page at `artist.html?wallet=0x…` that its holder can claim.
 
 Every entry links back to its source file. Public-domain and CC0 works are shown as free. What is not real: view counts, earnings, the revenue split percentages, merch and funding campaigns. They show how the platform would work, and nothing is charged.
 
@@ -46,6 +46,7 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 | [`prototype/`](prototype) | Clickable website design: static HTML, CSS and JavaScript, no build step. Live at [dein-art.osmangulveren.workers.dev](https://dein-art.osmangulveren.workers.dev) |
 | [`brand/`](brand) | The emblem, as SVG and PNG |
 | [`promo/`](promo) | The promo video ([watch](promo/dein-art-promo.mp4)) |
+| [`contracts/`](contracts) | `DeinArtClaims.sol`: page claims recorded on the Sepolia testnet |
 | [`tools/catalog/`](tools/catalog) | Scripts that build the demo catalogue from Wikimedia Commons, Wikidata and public on-chain records |
 
 ### Pages in the prototype
