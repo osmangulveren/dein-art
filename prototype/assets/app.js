@@ -15,6 +15,7 @@ const film = Object.fromEntries(CATALOG.films.map(f => [f.key, f]));
 const who = CATALOG.people;
 CATALOG.films.forEach(f => { f.creator = f.by[0]; });
 // Artists whose work lives on a blockchain are people like any other; they carry their wallet and collections.
+ONCHAIN.forEach(a => { if (a.ens) ensListed[a.address] = a.ens; });
 ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: a.role || 'Artist', pic: a.pic || a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: a.credits || [], occ: [], chain: a, imdb: a.imdb }; });
 // Any wallet has a page: artist.html?wallet=0x… shows it even if no index lists the wallet yet, so its holder can claim it.
 const walletParam = (param('wallet') || '').trim();
@@ -592,7 +593,8 @@ if (page === 'artist' || page === 'creator') {
     const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0] || '—';
     set('line', chain.line ? `${chain.line} · ${ensTag(chain.address)}` : `Artist · ${ensTag(chain.address)} · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
     if (chain.banner) $('.profile').insertAdjacentHTML('beforebegin', `<div class="pbanner" style="background-image:url('${chain.banner}')"></div>`);
-    if (chain.listed === false) resolveEns(chain.address).then(n => { if (n) { set('name', esc(n)); document.title = `${n} — dein.art`; } });
+    if (chain.listed === false && !edits.name) resolveEns(chain.address).then(n => { if (n) { set('name', esc(n)); document.title = `${n} — dein.art`; } });
+    showNameEns();
     if (chain.bio) set('bio', esc(chain.bio)); else if (chain.listed === false) set('bio', 'A wallet page. Whoever holds this wallet can claim it and start publishing here.'); else
     set('bio', `Has released work on-chain since ${first}${chain.collections.length <= 3 ? ': ' + chain.collections.map(c => c.name).join(', ') : `, across ${chain.collections.length} collections`}. This page is built from public records${chain.site ? ' and the list of work on the artist\'s own site' : ''}.`);
     set('links', (chain.links || []).map(([l, u]) => ext(u, l)).join('') + ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
@@ -637,6 +639,15 @@ if (page === 'collection') {
     : `<div class="box" style="margin-top:28px"><b>No images here yet</b><p>Images are shown only for collections whose licence is confirmed as CC0. This one's licence is not stated, so the work stays on the artist's own pages${c.page ? `: ${ext(c.page, host(c.page))}` : ''}. When the artist claims this page, they decide what appears here.</p></div>`);
   const others = a.collections.filter(x => x !== c);
   set('more', others.length ? `<div class="sec"><h2>More by ${a.name}</h2><a href="${artistUrl(a.name)}#collections">All ${a.collections.length}</a></div><div class="grid shelf colls">${others.slice(0, 6).map(x => collCard(a, x)).join('')}</div>` : '');
+}
+
+// A page that goes by another name than its wallet's ENS name keeps the ENS name next to it.
+function showNameEns() {
+  const h = $('[data-p="name"]'), address = subject.chain && subject.chain.address; if (!h || !address) return;
+  resolveEns(address).then(n => {
+    $('.enschip', h)?.remove();
+    if (n && h.textContent.trim().toLowerCase() !== n.toLowerCase()) h.insertAdjacentHTML('beforeend', ` <a class="enschip" href="https://app.ens.domains/${encodeURIComponent(n)}" target="_blank" rel="noopener" title="ENS name of ${address}">${esc(n)}</a>`);
+  });
 }
 
 /* ---------- a profile's assets: one section per type; each asset opens its own page ---------- */

@@ -10,7 +10,7 @@
   const $p = key => $(`[data-p="${key}"]`);
 
   /* ---------- what the creator changed, shown on the page ---------- */
-  if (edits.name) { $p('name').textContent = edits.name; document.title = `${edits.name} — dein.art`; }
+  if (edits.name) { $p('name').textContent = edits.name; document.title = `${edits.name} — dein.art`; showNameEns(); }
   if (edits.line) $p('line').textContent = edits.line;
   if (edits.bio) $p('bio').textContent = edits.bio;
   if (edits.avatar) $p('avatar').innerHTML = `<img class="avatar lg" src="${edits.avatar}" alt="">`;
@@ -47,7 +47,7 @@
       profile: `
         <div class="edrow"><div class="edavatar">${draft.avatar ? `<img class="avatar lg" src="${draft.avatar}" alt="">` : $p('avatar').innerHTML}</div>
           <div><label class="btn">Change picture<input type="file" accept="image/*" data-ed-avatar hidden></label>${draft.avatar ? ' <button class="btn" data-ed-avatar-clear>Remove</button>' : ''}</div></div>
-        ${field('name', 'Name', draft.name ?? $p('name').textContent)}
+        ${field('name', 'Name', draft.name ?? $p('name').firstChild.textContent.trim())}
         ${field('line', 'What you do, where', draft.line ?? $p('line').textContent)}
         <label>About you<textarea class="field" rows="4" data-ed="bio">${esc(draft.bio ?? $p('bio').textContent)}</textarea></label>
         <div class="edgrid3">${field('links.website', 'Website', draft.links?.website, 'placeholder="yoursite.com"')}${field('links.x', 'X', draft.links?.x, 'placeholder="@handle"')}${field('links.instagram', 'Instagram', draft.links?.instagram, 'placeholder="@handle"')}</div>`,

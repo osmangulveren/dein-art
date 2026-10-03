@@ -172,10 +172,13 @@ function fileUpload(zone, { accept = '', onAll } = {}) {
 /* ---------- ENS names: a wallet is shown by its name when it has one ---------- */
 // Names are read from Blockscout's public index of Ethereum and remembered for a day.
 const ensKnown = (() => { try { return JSON.parse(localStorage.getItem('ens')) || {}; } catch { return {}; } })();
-const ensTag = (address, cls = 'mono') => { const a = String(address).toLowerCase(), hit = ensKnown[a]; return `<span class="${cls}" data-ens="${a}" title="${a}">${hit && hit.n ? uiEsc(hit.n) : a.slice(0, 6) + '…' + a.slice(-4)}</span>`; };
+// names a profile lists itself (the wallet may have no reverse record set)
+const ensListed = {};
+const ensTag = (address, cls = 'mono') => { const a = String(address).toLowerCase(), hit = ensListed[a] ? { n: ensListed[a] } : ensKnown[a]; return `<span class="${cls}" data-ens="${a}" title="${a}">${hit && hit.n ? uiEsc(hit.n) : a.slice(0, 6) + '…' + a.slice(-4)}</span>`; };
 const ensAsk = {};
 function resolveEns(address) {
   const a = String(address).toLowerCase(), hit = ensKnown[a];
+  if (ensListed[a]) return Promise.resolve(ensListed[a]);
   if (hit && Date.now() - hit.t < 864e5) return Promise.resolve(hit.n);
   return ensAsk[a] ||= fetch('https://eth.blockscout.com/api/v2/addresses/' + a).then(r => r.ok ? r.json() : null).then(d => {
     const n = d && d.ens_domain_name || null;
