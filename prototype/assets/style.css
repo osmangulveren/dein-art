@@ -598,3 +598,25 @@ dialog.assetbox[open] { display: grid; grid-template-columns: minmax(0, 1.25fr) 
 .traits { display: flex; flex-wrap: wrap; gap: 6px; }
 .traits span { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 10px; background: var(--soft); font-size: 13px; font-weight: 600; line-height: 1.25; }
 .traits small { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+/* ---------- logging in ---------- */
+.logins { display: grid; gap: 8px; }
+.loginbtn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--text); text-align: left; cursor: pointer; font: inherit; transition: border-color .15s, background .15s; }
+.loginbtn:hover { border-color: var(--accent); }
+.loginbtn[aria-disabled="true"] { opacity: .62; }
+.loginbtn i { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--soft); flex: none; }
+.loginbtn i svg { width: 19px; height: 19px; }
+.loginbtn .li-wallet { background: var(--dot); color: #101216; }
+.loginbtn .li-x { background: #000; color: #fff; }
+.loginbtn .li-farcaster { background: #855dcd; color: #fff; }
+.loginbtn span { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.loginbtn small { color: var(--muted); font-size: 12px; }
+.loginbtn em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.walletface { border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--line); }
+.acct { position: relative; }
+.acct summary { list-style: none; cursor: pointer; }
+.acct summary::-webkit-details-marker { display: none; }
+.acctmenu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; min-width: 220px; display: flex; flex-direction: column; padding: 8px; border-radius: 16px; background: var(--glass-strong, var(--bg)); backdrop-filter: blur(30px); border: 1px solid var(--line); box-shadow: 0 20px 50px -20px rgba(0,0,0,.4); }
+.acctmenu > div { display: flex; flex-direction: column; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.acctmenu a, .acctmenu button { padding: 9px 10px; border-radius: 10px; font: inherit; font-size: 14px; text-align: left; background: none; border: 0; color: var(--text); cursor: pointer; }
+.acctmenu a:hover, .acctmenu button:hover { background: var(--soft); }
