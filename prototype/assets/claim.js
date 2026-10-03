@@ -38,6 +38,17 @@ const messageFor = () => [
   'Signing this message is free. It does not send a transaction and gives no access to your funds.',
 ].join('\n');
 
+/* ---------- the claim kept by dein.art's server, so everyone sees it ---------- */
+
+let server = null;   // the stored claim, once read and checked here
+const checked = c => { try { return c && c.claimed && c.message.toLowerCase().includes(artist.address.toLowerCase()) && ethers.verifyMessage(c.message, c.signature).toLowerCase() === artist.address.toLowerCase() ? c : null; } catch { return null; } };
+async function readServer() {
+  try { const r = await fetch('/api/claims?address=' + artist.address); if (r.ok) server = checked(await r.json()); } catch {}
+}
+async function sendServer(c) {
+  try { const r = await fetch('/api/claims', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: c.message, signature: c.signature }) }); if (r.ok) server = checked(await r.json()); } catch {}
+}
+
 /* ---------- the claim as a transaction on Sepolia ---------- */
 
 // localStorage 'claimsRpc' points reads at another node, e.g. a local test chain during development
@@ -63,7 +74,7 @@ async function sepolia() {
 /* ---------- drawing the box ---------- */
 
 function draw(note = '', tone = '') {
-  const signed = !onchain && proven(), done = onchain ? record : signed;
+  const signed = !onchain && (server || proven()), done = onchain ? record : signed;
   put('status', done ? '<b class="ok">✓ Claimed</b>' : '<b>Unclaimed</b>');
   const noteHtml = note ? `<p class="claimnote ${tone}">${note}</p>` : '';
   if (done && onchain) return put('claim', `
@@ -77,9 +88,9 @@ function draw(note = '', tone = '') {
   if (done) return put('claim', `
     <div class="claimbox claimed">
       <div><h2>This page is claimed</h2>
-      <p>The message below was signed by <span class="mono">${short(artist.address)}</span>, the wallet on record. The signature was checked in this browser.</p>
-      <p class="muted small">From here the artist would edit the page, publish new work and set how earnings are shared. Until the claims contract is deployed, a claim is remembered on this device only.</p></div>
-      <div class="claimacts"><a class="btn primary" href="upload.html">Publish something</a><button class="btn" data-release>Release the claim</button></div>
+      <p>The message below was signed by <span class="mono">${short(artist.address)}</span>, the wallet on record${server ? `, and is kept by dein.art, so everyone sees this page as claimed${server.at ? ' since ' + new Date(server.at).toISOString().slice(0, 10) : ''}` : ''}. Anyone can check the signature against the message.</p>
+      <p class="muted small">From here the artist edits the page, publishes new work and sets how earnings are shared.</p></div>
+      <div class="claimacts"><a class="btn primary" href="upload.html">Publish something</a>${server ? '' : '<button class="btn" data-release>Release the claim</button>'}</div>
       <details class="fold" style="margin-top:14px"><summary><span><b>Proof</b><span class="muted small">The signed message and its signature</span></span></summary>
         <pre class="proofbox">${esc(signed.message)}\n\nSignature: ${signed.signature}</pre></details>
     </div>`);
@@ -115,6 +126,8 @@ async function claim() {
     const signature = await window.ethereum.request({ method: 'personal_sign', params: [ethers.hexlify(ethers.toUtf8Bytes(message)), account] });
     if (!same(ethers.verifyMessage(message, signature), artist.address)) return draw('The signature does not match the wallet on record, so the page stays unclaimed.', 'bad');
     save({ ...claims(), [artist.address]: { message, signature } });
+    draw('Saving the claim so everyone can see it…');
+    await sendServer({ message, signature });
     draw();
   } catch (e) {
     const code = e?.code ?? e?.info?.error?.code;
@@ -139,4 +152,6 @@ document.addEventListener('click', e => {
 });
 draw();
 if (onchain) readChain().then(() => draw());
+// a claim signed earlier in this browser is shared with everyone the next time the page opens
+else readServer().then(async () => { const mine = proven(); if (!server && mine) await sendServer(mine); draw(); });
 }

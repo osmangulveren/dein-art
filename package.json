@@ -1,0 +1,8 @@
+{
+  "name": "dein-art",
+  "private": true,
+  "description": "dein.art prototype: static pages in prototype/ and a small Cloudflare worker in worker/",
+  "dependencies": {
+    "ethers": "6.13.4"
+  }
+}
