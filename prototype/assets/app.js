@@ -268,13 +268,13 @@ $$('.close', dialog).forEach(b => b.addEventListener('click', () => dialog.close
 
 const byline = f => f.by.join(' and ');
 const cards = {
-  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}</p></div></div></a>`,
-  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a>`,
+  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}<span data-views="${f.key}"></span></p></div></div></a>`,
+  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the original"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
   merch: m => merchCard(m),
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
-  rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}</p></div><span class="up">▲ ${f.up}%</span></a>`,
+  rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div><span class="up">▲ ${f.up}%</span></a>`,
   castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
   artists: a => `<a class="rankrow" href="${artistUrl(a.name)}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${a.name}</h3><p class="muted small">${a.role} · known for ${a.known}</p></div><span class="up">▲ ${a.up}%</span></a>`,
   channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow">Follow</button></div>`,
@@ -335,7 +335,7 @@ $$('[data-list]').forEach(el => {
     setTimeout(() => {
       el.classList.remove('row');
       for (let i = 0; i < batch; i++) el.insertAdjacentHTML('beforeend', cards[name](pool[at++ % pool.length]));
-      btn.disabled = false; btn.textContent = 'Load more';
+      btn.disabled = false; btn.textContent = 'Load more'; fillViews();
       const chip = $('.chip.on'); if (chip) chip.click();
     }, 450);
   });
@@ -416,7 +416,7 @@ if (video) {
     <button class="btn primary" data-pay="${live ? 'tip' : 'support'}" data-split>♥ ${live ? 'Tip' : 'Support'}</button>`);
   fill('about', live
     ? `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`
-    : `<b>${[cur.year, cur.kind, cur.country[0], cur.company[0]].filter(Boolean).join(' · ')}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
+    : `<b><span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0], cur.company[0]].filter(Boolean).join(' · ')}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
   fill('related', related.every(f => f.by.some(n => cur.by.includes(n))) ? `More from ${byline(cur)}` : 'More to watch');
 
   // Moments of the film that viewers can collect, marked on the timeline. A click jumps the film there.
@@ -606,6 +606,22 @@ if (shelf) {
   box.addEventListener('keydown', e => { if (e.key === 'ArrowRight') show(Number(box.dataset.at) + 1); if (e.key === 'ArrowLeft') show(Number(box.dataset.at) - 1); });
   box.addEventListener('close', () => { box.innerHTML = ''; });   // stops a playing clip
 }
+
+/* ---------- view counts: shared by everyone, kept by the site's small API (worker/index.js) ---------- */
+
+const viewCount = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString('en-US');
+const showViews = (id, n) => $$(`[data-views="${id}"]`).forEach(el => { el.textContent = el.hasAttribute('data-views-lead') ? `${viewCount(n)} ${n === 1 ? 'view' : 'views'} · ` : ` · ${viewCount(n)} ${n === 1 ? 'view' : 'views'}`; });
+async function fillViews() {
+  const ids = [...new Set($$('[data-views]').filter(el => !el.textContent).map(el => el.dataset.views))];
+  for (let i = 0; i < ids.length; i += 60) {
+    try { const r = await fetch('/api/views?ids=' + ids.slice(i, i + 60).join(',')); if (!r.ok) return; Object.entries(await r.json()).forEach(([id, n]) => showViews(id, n)); } catch { return; }
+  }
+}
+fillViews();
+// a watch counts once per visit to the page, when the film starts playing
+if (video) video.addEventListener('play', async () => {
+  try { const r = await fetch('/api/views/' + cur.key, { method: 'POST' }); if (r.ok) showViews(cur.key, (await r.json()).views); } catch {}
+}, { once: true });
 
 /* ---------- rows that slide: arrows, or drag with the mouse ---------- */
 
