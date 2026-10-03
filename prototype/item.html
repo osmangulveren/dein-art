@@ -3,38 +3,39 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Live — dein.art</title>
+<title>Item — dein.art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
 </head>
-<body data-page="live">
+<body data-page="market">
 <main class="wrap">
-  <div class="watch">
-    <div>
-      <div class="stage"><img class="glow" alt="">
-      <div class="player">
-        <video data-f-video controls preload="none" playsinline></video>
-        <span class="pill live">● LIVE</span>
-      </div></div>
-      <h1 data-f="title"></h1>
-      <div class="byline" data-f="byline"></div>
-      <div class="box" data-f="about"></div>
-      <div class="cast" data-cast></div>
-    </div>
-
-    <aside class="chat">
-      <header>Live chat</header>
-      <div class="msgs"></div>
-      <form><input placeholder="Say something" aria-label="Chat message"><button class="btn dark">Send</button></form>
+  <p class="crumbs" data-i="crumbs"></p>
+  <section class="itempage">
+    <div class="itemmedia" data-i="media"></div>
+    <aside class="itemside">
+      <span class="pill tint" data-i="kind"></span>
+      <h1 data-i="title"></h1>
+      <div class="byline" data-i="by"></div>
+      <div class="itemprice" data-i="price"></div>
+      <div data-i="options"></div>
+      <div class="itemacts" data-i="acts"></div>
+      <p class="muted small" data-i="note"></p>
+      <dl class="facts" data-i="facts"></dl>
+      <div class="traits" data-i="works"></div>
     </aside>
-  </div>
-
-  <div class="sec"><h2>Also live</h2></div>
-  <div class="grid" data-list="live" data-skip="1"></div>
+  </section>
+  <section class="itembody">
+    <div>
+      <div data-i="desc"></div>
+      <div data-i="contents"></div>
+      <div data-i="files"></div>
+    </div>
+    <div data-i="film"></div>
+  </section>
+  <div data-i="more"></div>
 </main>
-<dialog id="crew" class="crewpop"><div data-crew></div></dialog>
 <script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
@@ -43,5 +44,6 @@
 <script src="assets/market.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/login.js"></script>
+<script src="assets/shop.js"></script>
 </body>
 </html>

@@ -40,27 +40,31 @@ const films = front.map(k => film[k]);
 const screening = (key, viewers) => ({ ...film[key], viewers });
 const streams = [screening('nosferatu', '2.4K'), screening('man-with-a-movie-camera', '1.1K'), screening('impossible-voyage', '860'), screening('the-general', '540')];
 
-const stillOf = (f, i) => ({ title: `${f.title}: ${f.scenes[i][1]}`, kind: 'Image', creator: f.creator, pic: frame(f, f.scenes[i][0]), lic: f.lic, page: f.page });
-const assets = [
-  ...CATALOG.footage.map(a => ({ ...a, kind: 'Footage', creator: a.by, pic: frame(a, Math.round(a.secs * .3)) })),
-  ...CATALOG.music.map(a => ({ ...a, kind: 'Music', creator: a.by, sub: a.perf })),
-  ...CATALOG.images.map(a => ({ ...a, kind: 'Image', creator: a.by, sub: a.year })),
-  stillOf(film['trip-to-the-moon'], 2), stillOf(film['impossible-voyage'], 2), stillOf(film['impossible-voyage'], 3),
-  ...ONCHAIN.flatMap(a => a.collections.filter(c => c.tokens.length).flatMap(c => c.tokens.slice(2, 4).map(t => ({ title: `${c.name} #${t.n}`, kind: 'Image', creator: a.name, sub: c.year, pic: t.img, lic: 'CC0', page: t.live })))),
-];
-// mix the kinds so the first row of the marketplace shows all three
-const mixed = [0, 5, 13, 1, 6, 14, 2, 7].map(i => assets[i]);
-assets.sort((a, b) => (mixed.indexOf(a) + 1 || 99) - (mixed.indexOf(b) + 1 || 99));
+// ---------- the marketplace: everything shared or offered on dein.art, each item with its own page ----------
+const slugify = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+const itemUrl = it => 'item.html?id=' + encodeURIComponent(it.id);
+const stillOf = (f, i) => {
+  const [t, name] = f.scenes[i];
+  return { id: `still-${f.key}-${t}`, cat: 'Photos & images', sub: 'Film stills', title: `${f.title}: ${name}`, by: f.creator, creator: f.creator, film: f.key, price: 0, lic: f.lic, kind: 'image',
+    pic: frame(f, t), big: frame(f, t, 1280), files: [{ name: `${f.key}-${slugify(name)}.jpg`, url: frame(f, t, 1280) }], specs: { From: `${f.title} (${f.year})`, At: clock(t) }, source: f.page,
+    desc: `A frame from ${f.title} (${f.year}), at ${clock(t)}.` };
+};
 
+const PRODUCTS = { tee: 'T-shirt', hoodie: 'Hoodie', poster: 'Poster', tote: 'Tote bag', cap: 'Cap' };
+const SUBS = { tee: 'T-shirts', hoodie: 'Hoodies', poster: 'Posters', tote: 'Tote bags', cap: 'Caps' };
+const asMerch = m => ({ ...m, id: m.id || 'merch-' + slugify(m.title), by: m.creator, cat: 'Merch', sub: SUBS[m.type] || 'Other', kind: 'merch', lic: 'Made to order',
+  desc: m.desc || `${PRODUCTS[m.type] || 'Merch'}, printed on demand and shipped to you. Whatever it earns is shared with the people behind the work.` });
 const merch = [
-  { title: 'A Trip to the Moon tee', creator: ME, price: 28, type: 'tee', colour: 'ink', pic: frame(film['trip-to-the-moon'], 376, 500) },
-  { title: 'The 1902 poster, reprinted', creator: ME, price: 35, type: 'poster', colour: 'paper', pic: (CATALOG.images.find(i => i.medium === 'Poster') || {}).pic },
-  { title: 'The Impossible Voyage tote', creator: ME, price: 18, type: 'tote', colour: 'sand', pic: frame(film['impossible-voyage'], 713, 500) },
+  { title: 'A Trip to the Moon tee', creator: ME, price: 28, type: 'tee', colour: 'ink', film: 'trip-to-the-moon', pic: frame(film['trip-to-the-moon'], 376, 500) },
+  { title: 'The 1902 poster, reprinted', creator: ME, price: 35, type: 'poster', colour: 'paper', film: 'trip-to-the-moon', pic: (CATALOG.images.find(i => i.medium === 'Poster') || {}).pic },
+  { title: 'The Impossible Voyage tote', creator: ME, price: 18, type: 'tote', colour: 'sand', film: 'impossible-voyage', pic: frame(film['impossible-voyage'], 713, 500) },
   { title: 'Star Film cap', creator: ME, price: 22, type: 'cap', colour: 'night', text: 'STAR FILM' },
-].map(m => ({ ...m, kind: 'Merch' }));
+  { title: 'dein.art tee', creator: 'dein.art Studio', price: 26, type: 'tee', colour: 'ink', text: 'DEIN.ART' },
+  { title: 'Own your narrative hoodie', creator: 'dein.art Studio', price: 48, type: 'hoodie', colour: 'night', text: 'OWN YOUR NARRATIVE' },
+  { title: 'dein.art tote', creator: 'dein.art Studio', price: 16, type: 'tote', colour: 'sand', text: 'DEIN.ART' },
+].map(asMerch);
 // A product drawn around the creator's own image: what it would look like printed.
 const COLOURS = { ink: ['#1b1d24', '#eceaf3'], paper: ['#f4efe6', '#2a2620'], sand: ['#e7dcc7', '#3a3226'], night: ['#24305e', '#f5a623'], white: ['#f7f7f9', '#1b1d24'], clay: ['#c8664a', '#fff4ea'] };
-const PRODUCTS = { tee: 'T-shirt', hoodie: 'Hoodie', poster: 'Poster', tote: 'Tote bag', cap: 'Cap' };
 let mockId = 0;
 function mockup(m) {
   const [body, ink] = COLOURS[m.colour] || COLOURS.ink, id = 'mk' + (mockId++);
@@ -75,7 +79,54 @@ function mockup(m) {
   };
   return `<svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(m.title)}">${art[m.type] || art.tee}</svg>`;
 }
-const merchCard = m => `<div class="merchbig"><div class="mthumb">${mockup(m)}</div><div class="minfo"><div><h3>${esc(m.title)}</h3><p class="muted small">${PRODUCTS[m.type] || 'Merch'} · printed on demand${m.added ? ' · added by you' : ''}</p></div><span class="price">$${m.price}</span><button class="btn dark" data-pay="merch" data-title="${esc(m.title)}" data-price="${m.price}" data-creator="${esc(m.creator)}" ${m.creator === ME ? 'data-split' : ''}>Get it</button></div></div>`;
+const merchCard = m => `<a class="merchbig" href="${itemUrl(m)}"><div class="mthumb">${mockup(m)}</div><div class="minfo"><div><h3>${esc(m.title)}</h3><p class="muted small">${PRODUCTS[m.type] || 'Merch'} · printed on demand${m.added ? ' · added by you' : ''}</p></div><span class="price">$${m.price}</span><span class="btn dark">View</span></div></a>`;
+
+// Everything in the marketplace, from every source, in one list.
+const MARKET = (() => {
+  const list = [], seen = new Set();
+  const add = it => { if (it && it.id && !seen.has(it.id)) { seen.add(it.id); list.push({ creator: it.by, ...it }); } };
+  const extra = typeof MARKET_EXTRA !== 'undefined' ? MARKET_EXTRA : [];
+  const first = id => add(extra.find(x => x.id === id));
+  // a mixed first row: one of each kind
+  ['tpl-film-looks', 'sfx-pack-weather-nature'].forEach(first);
+  CATALOG.footage.slice(0, 1).forEach(a => add(fromFootage(a)));
+  add(merch[0]);
+  CATALOG.music.slice(0, 1).forEach(m => add(fromMusic(m)));
+  CATALOG.images.slice(0, 1).forEach(i => add(fromImage(i)));
+  ['tpl-lower-thirds', 'ph-buzz-aldrin-on-the-moon'].forEach(first);
+  extra.filter(x => x.cat === 'Templates').forEach(add);
+  CATALOG.footage.forEach(a => add(fromFootage(a)));
+  extra.filter(x => x.cat === 'Footage').forEach(add);
+  CATALOG.music.forEach(m => add(fromMusic(m)));
+  extra.filter(x => x.cat === 'Sound effects' && x.sub === 'Packs').forEach(add);
+  extra.filter(x => x.cat === 'Sound effects').forEach(add);
+  merch.forEach(add);
+  try { (JSON.parse(localStorage.getItem('edits:me'))?.merch || []).forEach(m => add(asMerch({ ...m, creator: ME, added: true }))); } catch {}
+  CATALOG.images.forEach(i => add(fromImage(i)));
+  extra.filter(x => x.cat === 'Photos & images').forEach(add);
+  if (typeof ASSETS !== 'undefined') Object.entries(ASSETS).forEach(([name, groups]) => groups.forEach(g => g.items.forEach(i => add({
+    id: 'as-' + slugify(name) + '-' + slugify(i.title), cat: g.type === 'Footage' ? 'Footage' : 'Photos & images',
+    sub: { Posters: 'Posters & lobby cards', 'Lobby cards': 'Posters & lobby cards', 'Production stills': 'Film stills', Photographs: 'Photography', Footage: 'Archival film', Press: 'Press & magazines' }[g.type] || g.type,
+    shelf: g.type, title: i.title, by: name, film: i.film, price: 0, lic: i.lic, kind: i.dur ? 'video' : 'image', pic: i.pic, big: i.big, video: i.webm, mov: i.mov,
+    files: [{ name: i.url.split('/').pop(), size: i.mb * 1e6, url: i.url }], desc: i.note, source: i.page,
+    specs: { Year: i.year, Credit: i.credit, [i.dur ? 'Length' : 'Size']: i.dur ? `${i.dur} · ${i.w} × ${i.h}` : `${i.w.toLocaleString('en-US')} × ${i.h.toLocaleString('en-US')} px`, Format: i.format } }))));
+  CATALOG.films.forEach(f => f.scenes.slice(0, 2).forEach((sc, i) => { if (sc[1]) add(stillOf(f, i)); }));
+  ONCHAIN.forEach(a => a.collections.filter(c => c.cc0 && c.tokens.length).forEach(c => c.tokens.slice(2, 4).forEach(t => add({
+    id: `nft-${c.slug}-${t.n}`, cat: 'Photos & images', sub: 'Digital art', title: `${c.name} #${t.n}`, by: a.name, price: 0, lic: 'CC0', kind: 'image', pic: t.img, big: t.img.replace('/thumb/', '/'),
+    files: [{ name: `${c.slug}-${t.n}.png`, url: t.img.replace('/thumb/', '/'), direct: true }], collection: { name: c.name, url: `collection.html?artist=${encodeURIComponent(a.name)}&c=${c.slug}` },
+    specs: { Collection: c.name, Year: c.year, Chain: c.chain }, desc: `Piece #${t.n} of ${c.name} by ${a.name}, released under CC0.` }))));
+  return list;
+  function fromFootage(a) { return { id: 'ft-' + slugify(a.title), cat: 'Footage', sub: /NASA/.test(a.by) ? 'Space & science' : 'Archival film', title: a.title, by: a.by, price: 0, lic: a.lic, kind: 'video', pic: frame(a, Math.round(a.secs * .3)),
+    video: a.webm, mov: a.mov, files: [{ name: slugify(a.title) + '.webm', url: a.webm }], specs: { Length: a.dur, Format: 'WebM' }, source: a.page, desc: `${a.title}. ${a.dur} of public-domain footage, free to use.` }; }
+  function fromMusic(m) { return { id: 'mu-' + slugify(m.title), cat: 'Music', sub: /Symphony/.test(m.perf) ? 'Orchestral' : 'Piano', title: m.title, by: m.by, perf: m.perf, price: 0, lic: /cc0/i.test(m.lic) ? 'CC0' : 'Public domain', kind: 'audio', pic: m.pic, audio: m.src,
+    files: [{ name: slugify(m.title) + '.mp3', url: m.src }], specs: { Composer: m.by, Performer: m.perf, Length: m.dur, Format: 'MP3' }, source: m.page, desc: `${m.title} by ${m.by}${m.perf ? ', performed by ' + m.perf : ''}. A free recording you can use under your film.` }; }
+  function fromImage(i) { return { id: 'im-' + slugify(i.title), cat: 'Photos & images', sub: i.medium === 'Photograph' ? 'Photography' : i.medium === 'Poster' ? 'Posters & lobby cards' : 'Paintings & prints', title: i.title, by: i.by, film: i.medium === 'Poster' ? 'trip-to-the-moon' : undefined,
+    price: 0, lic: 'Public domain', kind: 'image', pic: i.pic, big: i.pic.replace(/\/(500|960)px-/, '/1280px-'), files: [{ name: slugify(i.title) + '.jpg', url: i.pic.replace(/\/(500|960)px-/, '/1280px-') }], specs: { Artist: i.by, Year: i.year, Medium: i.medium }, source: i.page,
+    desc: `${i.title} by ${i.by}, ${i.year}. Free to use.` }; }
+})();
+const assets = MARKET;
+const marketItem = id => MARKET.find(x => x.id === id);
+const priceTag = it => it.price ? `<span class="price">$${it.price}</span>` : '<span class="price free">Free</span>';
 
 const campaigns = [
   { title: 'The Conquest of the Pole', creator: ME, raised: 64200, goal: 90000, days: 18, pic: frame(film['conquest-of-the-pole']) },
@@ -274,7 +325,7 @@ const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}<span data-views="${f.key}"></span></p></div></div></a>`,
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
-  assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the original"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
+  assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave" aria-hidden="true">${'<i></i>'.repeat(18)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
   merch: m => merchCard(m),
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div><span class="up">▲ ${f.up}%</span></a>`,
@@ -319,6 +370,7 @@ $$('[data-list]').forEach(el => {
   // on a profile: what this person made, and the films they are credited on
   if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by));
   // someone with no assets of their own still has stills from the films they worked on
+  if (by && names[0] === 'assets') items = items.filter(x => x.item.kind !== 'merch');
   if (by && names[0] === 'assets' && !items.length) items = filmsOf(who[by]).flatMap(f => f.scenes.slice(0, 2).map((_, i) => ({ item: stillOf(f, i), name: 'assets' }))).slice(0, 8);
   if (!items.length && el.dataset.empty) { el.innerHTML = `<p class="muted empty">${el.dataset.empty}</p>`; return; }
   if (el.dataset.card === 'next') items = items.filter(x => x.item !== cur);
@@ -580,83 +632,22 @@ if (page === 'collection') {
   set('more', others.length ? `<div class="sec"><h2>More by ${a.name}</h2><a href="${artistUrl(a.name)}#collections">All ${a.collections.length}</a></div><div class="grid shelf colls">${others.slice(0, 6).map(x => collCard(a, x)).join('')}</div>` : '');
 }
 
-/* ---------- a profile's assets: one section per type, and a pop-up with the details of each ---------- */
+/* ---------- a profile's assets: one section per type; each asset opens its own page ---------- */
 
-const shelf = typeof ASSETS !== 'undefined' && (page === 'artist' || page === 'creator') && ASSETS[subject.name];
-if (shelf) {
-  const shape = { Posters: 'tall', Press: 'tall', Photographs: 'tall', Footage: 'wide' };
-  const all = shelf.flatMap(g => g.items.map(item => ({ ...item, type: g.type })));
-  const panel = $('[data-panel="assets"]');
-  panel.classList.remove('grid');
-  panel.innerHTML = `
-    <div class="chips" style="margin-bottom:8px">${shelf.map(g => `<a class="chip" href="#assets-${g.type.replace(/\W+/g, '-').toLowerCase()}">${g.type} <span class="muted">${g.items.length}</span></a>`).join('')}</div>` +
-    shelf.map(g => `
-    <div class="sec" id="assets-${g.type.replace(/\W+/g, '-').toLowerCase()}"><h2>${g.type}</h2><p>${g.items.length} ${g.items.length === 1 ? 'item' : 'items'} · free</p></div>
-    <div class="grid shelf ${shape[g.type] || 'std'}">${g.items.map(i => `<button class="card" data-asset="${all.findIndex(x => x.url === i.url)}"><div class="thumb"><img src="${i.pic}" alt="" loading="lazy">${i.dur ? `<span class="badge dur">${i.dur}</span>` : ''}</div><h3>${i.title}</h3><p>${i.year || 'Undated'} · <span class="price free">Free</span></p></button>`).join('')}</div>`).join('');
-
-  document.body.insertAdjacentHTML('beforeend', '<dialog id="asset" class="assetbox"></dialog>');
-  const box = $('#asset');
-  const show = n => {
-    const i = all[(n + all.length) % all.length], f = film[i.film];
-    const facts = [['Type', i.type], ['Year', i.year], ['From', f ? `<a class="link" href="${watchUrl(f)}">${f.title} (${f.year})</a>` : ''], ['Credit', i.credit],
-      [i.dur ? 'Length' : 'Size', i.dur ? `${i.dur} · ${i.w} × ${i.h}` : `${i.w.toLocaleString('en-US')} × ${i.h.toLocaleString('en-US')} px`], ['File', `${i.format} · ${i.mb} MB`], ['Licence', i.lic], ['Shared by', subject.name]];
-    box.dataset.at = all.indexOf(i);
-    box.innerHTML = `
-      <div class="assetmedia">${i.dur ? `<video controls playsinline preload="none" poster="${i.pic}">${sources(i)}</video>` : `<img src="${i.big}" alt="">`}
-        <button class="btn icon nav prev" data-step="-1" aria-label="Previous asset">‹</button><button class="btn icon nav next" data-step="1" aria-label="Next asset">›</button></div>
-      <div class="assetinfo">
-        <span class="pill tint">${i.type}</span>
-        <h2>${i.title}</h2>
-        <p class="muted">${i.note}</p>
-        <dl class="facts">${facts.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-        <div class="assetacts"><a class="btn primary" href="${i.url}" target="_blank" rel="noopener">Get the original · Free</a><a class="btn" href="${i.page}" target="_blank" rel="noopener">Source</a></div>
-        <p class="muted small">Public-domain file from Wikimedia Commons. Free to use, no payment and no account.</p>
-        <button class="btn wide" data-close>Close</button>
-      </div>`;
-    if (!box.open) box.showModal();
-  };
-  document.addEventListener('click', e => {
-    const card = e.target.closest('[data-asset]'), step = e.target.closest('#asset [data-step]');
-    if (card) show(Number(card.dataset.asset));
-    if (step) show(Number(box.dataset.at) + Number(step.dataset.step));
-  });
-  box.addEventListener('keydown', e => { if (e.key === 'ArrowRight') show(Number(box.dataset.at) + 1); if (e.key === 'ArrowLeft') show(Number(box.dataset.at) - 1); });
-  box.addEventListener('close', () => { box.innerHTML = ''; });   // stops a playing clip
-}
-
-/* ---------- view counts: shared by everyone, kept by the site's small API (worker/index.js) ---------- */
-
-const viewCount = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString('en-US');
-const showViews = (id, n) => $$(`[data-views="${id}"]`).forEach(el => { el.textContent = el.hasAttribute('data-views-lead') ? `${viewCount(n)} ${n === 1 ? 'view' : 'views'} · ` : ` · ${viewCount(n)} ${n === 1 ? 'view' : 'views'}`; });
-async function fillViews() {
-  const ids = [...new Set($$('[data-views]').filter(el => !el.textContent).map(el => el.dataset.views))];
-  for (let i = 0; i < ids.length; i += 60) {
-    try { const r = await fetch('/api/views?ids=' + ids.slice(i, i + 60).join(',')); if (!r.ok) return; Object.entries(await r.json()).forEach(([id, n]) => showViews(id, n)); } catch { return; }
+if (page === 'artist' || page === 'creator') {
+  const mine = MARKET.filter(x => x.creator === subject.name && x.kind !== 'merch');
+  const types = [...new Set(mine.map(x => x.shelf || x.sub))];
+  if (types.length > 1) {
+    const shape = { Posters: 'tall', Press: 'tall', Photographs: 'tall', Footage: 'wide' };
+    const anchor = t => 'assets-' + slugify(t);
+    const panel = $('[data-panel="assets"]');
+    panel.classList.remove('grid');
+    panel.innerHTML = `<div class="chips" style="margin-bottom:8px">${types.map(t => `<a class="chip" href="#${anchor(t)}">${t} <span class="muted">${mine.filter(x => (x.shelf || x.sub) === t).length}</span></a>`).join('')}</div>` +
+      types.map(t => { const items = mine.filter(x => (x.shelf || x.sub) === t); return `
+      <div class="sec" id="${anchor(t)}"><h2>${t}</h2><p>${items.length} ${items.length === 1 ? 'item' : 'items'}</p></div>
+      <div class="grid shelf ${shape[t] || 'std'}">${items.map(i => `<a class="card" href="${itemUrl(i)}"><div class="thumb"><img src="${i.pic}" alt="" loading="lazy">${i.kind === 'video' ? `<span class="badge dur">${String(i.specs?.Length || '').split(' ')[0]}</span>` : ''}</div><h3>${i.title}</h3><p>${i.specs?.Year || 'Undated'} · ${priceTag(i)}</p></a>`).join('')}</div>`; }).join('');
   }
 }
-fillViews();
-// a watch counts once per visit to the page, when the film starts playing
-if (video) video.addEventListener('play', async () => {
-  try { const r = await fetch('/api/views/' + cur.key, { method: 'POST' }); if (r.ok) showViews(cur.key, (await r.json()).views); } catch {}
-}, { once: true });
-
-/* ---------- rows that slide: arrows, or drag with the mouse ---------- */
-
-$$('[data-slider]').forEach(row => {
-  row.classList.add('slider');
-  row.insertAdjacentHTML('beforebegin', '<div class="slidenav"><button class="btn icon" data-slide="-1" aria-label="Scroll left">‹</button><button class="btn icon" data-slide="1" aria-label="Scroll right">›</button></div>');
-  const nav = row.previousElementSibling;
-  const sync = () => { const max = row.scrollWidth - row.clientWidth - 2; nav.children[0].disabled = row.scrollLeft <= 2; nav.children[1].disabled = row.scrollLeft >= max; nav.hidden = max <= 0; };
-  nav.addEventListener('click', e => { const b = e.target.closest('[data-slide]'); if (b) row.scrollBy({ left: Number(b.dataset.slide) * row.clientWidth * .85, behavior: 'smooth' }); });
-  row.addEventListener('scroll', sync, { passive: true }); new ResizeObserver(sync).observe(row); sync();   // also when a pop-up holding the row opens
-  // dragging with the mouse; a drag does not count as a click on the card under it
-  let down = null, moved = false;
-  row.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; down = { x: e.clientX, left: row.scrollLeft }; moved = false; });
-  addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > 4) { moved = true; row.classList.add('dragging'); } row.scrollLeft = down.left - dx; });
-  addEventListener('pointerup', () => { down = null; setTimeout(() => row.classList.remove('dragging'), 0); });
-  row.addEventListener('click', e => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
-  row.addEventListener('dragstart', e => e.preventDefault());
-});
 
 initCharts(); initHeat();
 

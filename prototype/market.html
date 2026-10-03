@@ -13,21 +13,31 @@
 <main class="wrap">
   <div class="page-head">
     <h1>Marketplace</h1>
-    <p>Footage, music and images. Everything here is public domain or CC0, so it is free: each card opens the original file. When creators share their own work, what you pay goes to them, minus a flat $1.</p>
+    <p>Everything creators share and offer, in one place: footage, music, sound effects, photos, templates for your editor, and merch. Free things download straight away; what you pay for goes to the people who made it, minus a flat $1.</p>
   </div>
-  <div class="chips">
-    <button class="chip on" data-kind="all">All</button>
-    <button class="chip" data-kind="Footage">Footage</button>
-    <button class="chip" data-kind="Music">Music</button>
-    <button class="chip" data-kind="Image">Images</button>
+  <div class="shopbar">
+    <form class="search" onsubmit="return false"><input data-shop="q" placeholder="Search the marketplace" aria-label="Search the marketplace"></form>
+    <div class="chips" data-shop="price"></div>
+    <label class="shopcheck"><input type="checkbox" data-shop="film"> Linked to a film</label>
+    <select class="field" data-shop="sort" aria-label="Sort"><option value="featured">Featured</option><option value="az">A to Z</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select>
   </div>
-  <div class="grid" data-list="assets"></div>
+  <div class="shop">
+    <nav class="shopcats" data-shop="cats" aria-label="Categories"></nav>
+    <div>
+      <p class="muted small" data-shop="count"></p>
+      <div class="grid" data-shop="grid"></div>
+      <div class="more" data-shop="more" hidden><button class="btn">Show more</button></div>
+    </div>
+  </div>
 </main>
 <script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/founder.js"></script>
+<script src="assets/assets.js"></script>
+<script src="assets/market.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/login.js"></script>
+<script src="assets/shop.js"></script>
 </body>
 </html>

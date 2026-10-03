@@ -18,6 +18,7 @@ python3 5_build.py        # write ../../prototype/assets/catalog.js
 python3 6_onchain.py      # write ../../prototype/assets/onchain.js
 python3 7_person_assets.py  # write ../../prototype/assets/assets.js
 python3 8_studios.py      # write ../../prototype/assets/studios.js
+python3 10_market.py      # write ../../prototype/assets/market.js and the zipped sound packs in ../../prototype/files/sfx
 python3 9_founder.py      # write ../../prototype/assets/founder.js (data copied from IMDb and OpenSea in a browser)
 ```
 
