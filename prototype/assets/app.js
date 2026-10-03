@@ -41,7 +41,7 @@ const screening = (key, viewers) => ({ ...film[key], viewers });
 const streams = [screening('nosferatu', '2.4K'), screening('man-with-a-movie-camera', '1.1K'), screening('impossible-voyage', '860'), screening('the-general', '540')];
 
 // ---------- the marketplace: everything shared or offered on dein.art, each item with its own page ----------
-const slugify = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+const slugify = t => String(t).toLowerCase().replace(/ı/g, 'i').replace(/ß/g, 'ss').replace(/ø/g, 'o').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 const itemUrl = it => 'item.html?id=' + encodeURIComponent(it.id);
 const stillOf = (f, i) => {
   const [t, name] = f.scenes[i];
@@ -86,6 +86,8 @@ const MARKET = (() => {
   const list = [], seen = new Set();
   const add = it => { if (it && it.id && !seen.has(it.id)) { seen.add(it.id); list.push({ creator: it.by, ...it }); } };
   const extra = typeof MARKET_EXTRA !== 'undefined' ? MARKET_EXTRA : [];
+  // what the creator shared from this browser comes first
+  try { (JSON.parse(localStorage.getItem('shared')) || []).forEach(add); } catch {}
   const first = id => add(extra.find(x => x.id === id));
   // a mixed first row: one of each kind
   ['tpl-film-looks', 'sfx-pack-weather-nature'].forEach(first);
@@ -346,11 +348,12 @@ const subject = page === 'artist' ? who[param('name')] || who[(ONCHAIN.find(a =>
 const filmsOf = p => p.films.map(k => film[k]);
 const editKey = page === 'creator' ? 'me' : subject.chain ? subject.chain.address : null;
 const edits = (() => { try { return (editKey && JSON.parse(localStorage.getItem('edits:' + editKey))) || {}; } catch { return {}; } })();
+const addedTitles = (() => { try { return JSON.parse(localStorage.getItem('titles')) || {}; } catch { return {}; } })();
 // credits the creator added sit at the top of their role
 (edits.credits || []).forEach(c => {
   let g = subject.credits.find(x => x.role === c.role);
   if (!g) subject.credits.push(g = { role: c.role, total: 0, list: [] });
-  g.list.unshift({ title: c.title, year: c.year, key: null, added: true }); g.total++;
+  g.list.unshift({ title: c.title, year: c.year, key: null, added: true, id: c.id, img: c.id && addedTitles[c.id]?.poster }); g.total++;
 });
 
 // Next to a film: the director's other films, then films of the same kind.
@@ -552,7 +555,7 @@ const creditsHtml = p => p.credits.map((c, i) => `
     <div class="rows">${c.list.map(x => {
       const f = film[x.key];
       const note = f ? `${f.kind} · ${f.dur}` : x.added ? 'Added by you' : x.kind ? [x.kind, x.credited, x.eps && `${x.eps} episodes`, x.upcoming && 'in post-production'].filter(Boolean).join(' · ') : 'Not on dein.art yet';
-      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
+      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.id && addedTitles[x.id] ? `<a class="btn" href="title.html?id=${encodeURIComponent(x.id)}">Open</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
     }).join('')}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
   </details>`).join('');
 const totalCredits = p => p.credits.reduce((a, c) => a + c.total, 0);

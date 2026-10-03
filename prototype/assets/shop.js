@@ -2,7 +2,7 @@
    One catalogue (MARKET in app.js) holds everything shared or offered: footage, music, sound effects, photos,
    templates and merch. Each item has its own page; free items download from dein.art itself. */
 
-const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Merch'];
+const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents', 'Merch'].filter(c => MARKET.some(it => it.cat === c));
 const bytes = n => !n ? '' : n > 1e9 ? (n / 1e9).toFixed(2) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
 // a free file is fetched through dein.art when it lives on Wikimedia Commons, so the visitor never leaves the site
 const downloadUrl = f => /^https:\/\/upload\.wikimedia\.org\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
@@ -71,22 +71,24 @@ if ($('[data-i="title"]')) {
     <p class="edlabel">Colour</p><div class="swatches">${Object.entries(COLOURS).map(([k, [b]]) => `<button class="swatch${it.colour === k ? ' on' : ''}" data-colour="${k}" style="background:${b}" aria-label="${k}"></button>`).join('')}</div>`);
 
   put('acts', free
-    ? (files.length === 1 ? `<a class="btn primary big" data-magnetic href="${downloadUrl(files[0])}" download="${esc(files[0].name)}"><span class="mag-in">↓ Download${files[0].size ? ' · ' + bytes(files[0].size) : ''}</span></a>` : `<a class="btn primary big" href="#files">↓ Download · ${files.length} files</a>`)
+    ? (files.length === 1 && !files[0].url ? `<button class="btn primary big" disabled>↓ Download · ${bytes(files[0].size)}</button>` : files.length === 1 ? `<a class="btn primary big" data-magnetic href="${downloadUrl(files[0])}" download="${esc(files[0].name)}"><span class="mag-in">↓ Download${files[0].size ? ' · ' + bytes(files[0].size) : ''}</span></a>` : `<a class="btn primary big" href="#files">↓ Download · ${files.length} files</a>`)
       + `<button class="btn" data-pay="support" data-title="Thank ${esc(it.by)}" data-creator="${esc(it.by)}">♥ Say thanks</button>`
     : `<button class="btn primary big" data-pay="${it.kind === 'merch' ? 'merch' : 'buy'}" data-title="${esc(it.title)}" data-price="${it.price}" data-creator="${esc(it.by)}" ${it.creator === ME ? 'data-split' : ''}>${it.kind === 'merch' ? 'Order' : 'Buy'} · $${it.price}</button>`);
-  put('note', free ? 'Free to download and use. No account needed.' : it.kind === 'merch' ? 'Printed on demand and shipped to you. Prototype: nothing is charged.' : 'Yours right after payment. Prototype: nothing is charged.');
+  put('note', it.mine && files.some(x => !x.url) ? 'Prototype: this file stayed on your computer, so it cannot be downloaded here yet.' : free ? 'Free to download and use. No account needed.' : it.kind === 'merch' ? 'Printed on demand and shipped to you. Prototype: nothing is charged.' : 'Yours right after payment. Prototype: nothing is charged.');
   put('facts', Object.entries({ Category: `${it.cat} · ${it.sub}`, ...(it.specs || {}), Licence: it.lic }).filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')
     + (it.collection ? `<dt>Collection</dt><dd><a class="link" href="${it.collection.url}">${esc(it.collection.name)}</a></dd>` : ''));
   put('works', (it.works || []).length ? `<p class="edlabel" style="flex-basis:100%;margin:0">Works with</p>${it.works.map(w => `<span>${w}</span>`).join('')}` : '');
   put('desc', `<div class="sec" style="margin-top:0"><h2>About this ${it.cat === 'Merch' ? 'product' : it.sub === 'Packs' ? 'pack' : 'item'}</h2></div><p class="lead">${esc(it.desc || '')}</p>${it.source ? `<p class="muted small" style="margin-top:10px">Original file from <a class="link" href="${it.source}" target="_blank" rel="noopener">Wikimedia Commons</a>, ${esc(it.lic).toLowerCase()}.</p>` : ''}`);
   put('contents', it.contents ? `<div class="sec"><h2>In this pack</h2><p>${it.contents.length} sounds</p></div><div class="rows">${it.contents.map(c => `<div class="row"><button class="btn icon" data-audio="${c.audio}" aria-label="Play ${esc(c.title)}">▶</button><div class="info"><b>${esc(c.title)}</b><span class="muted small">${c.length}</span></div><a class="btn" href="item.html?id=${c.id}">Open</a></div>`).join('')}</div>` : '');
-  put('files', free && files.length ? `<div class="sec" id="files"><h2>${files.length === 1 ? 'File' : 'Files'}</h2></div><div class="rows">${files.map(x => `<div class="row"><div class="info"><b>${esc(x.name)}</b><span class="muted small">${[bytes(x.size), x.note].filter(Boolean).join(' · ')}</span></div><a class="btn dark" href="${downloadUrl(x)}" download="${esc(x.name)}">↓ Download</a></div>`).join('')}</div>` : '');
+  put('files', files.length && (free || it.mine) ? `<div class="sec" id="files"><h2>${files.length === 1 ? 'File' : 'Files'}</h2></div><div class="rows">${files.map(x => `<div class="row"><div class="info"><b>${esc(x.name)}</b><span class="muted small">${[bytes(x.size), x.note].filter(Boolean).map(esc).join(' · ')}</span></div>${!free ? '' : x.url ? `<a class="btn dark" href="${downloadUrl(x)}" download="${esc(x.name)}">↓ Download</a>` : '<span class="muted small">Not uploaded</span>'}</div>`).join('')}</div>` : '');
+  if (it.mine) put('own', `<div class="box tp-own"><span><b>You shared this on ${it.added}</b><br><span class="muted small">Prototype: it is kept in this browser.</span></span><button class="btn" data-own-x>Remove</button></div>`);
   // only when the item really belongs to a film
   put('film', f ? `<div class="panel filmlink"><h3>From the film</h3><a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt=""><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a><a class="btn wide" href="${watchUrl(f)}" style="margin-top:12px">▶ Watch the film</a></div>` : '');
   const same = MARKET.filter(x => x !== it && x.creator === it.creator).slice(0, 8), like = MARKET.filter(x => x !== it && x.sub === it.sub && x.creator !== it.creator).concat(MARKET.filter(x => x !== it && x.cat === it.cat && x.sub !== it.sub)).slice(0, 8);
   put('more', (same.length ? `<div class="sec"><h2>More from ${esc(it.by)}</h2></div><div class="grid">${same.slice(0, 4).map(cards.assets).join('')}</div>` : '') + (like.length ? `<div class="sec"><h2>More ${it.cat.toLowerCase()}</h2><a href="market.html?cat=${encodeURIComponent(it.cat)}">See all</a></div><div class="grid">${like.slice(0, 4).map(cards.assets).join('')}</div>` : ''));
 
   document.addEventListener('click', e => {
+    if (e.target.closest('[data-own-x]') && confirm(`Remove “${it.title}” from the marketplace?`)) { try { localStorage.setItem('shared', JSON.stringify((JSON.parse(localStorage.getItem('shared')) || []).filter(x => x.id !== it.id))); } catch {} location.href = 'market.html'; }
     const g = e.target.closest('[data-g]'), sz = e.target.closest('[data-size]'), col = e.target.closest('[data-colour]');
     if (g) { $('[data-i-main]').src = g.dataset.g; $$('.ithumb').forEach(b => b.classList.toggle('on', b === g)); }
     if (sz) $$('[data-size]').forEach(b => b.classList.toggle('on', b === sz));
