@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="studio">
+<main class="wrap">
+  <section class="profile">
+    <div data-s="logo"></div>
+    <div class="about">
+      <p class="muted small" data-s="type"></p>
+      <h1 data-s="name"></h1>
+      <p class="muted" data-s="line"></p>
+      <p class="bio" data-s="about"></p>
+      <p style="margin-top:14px;display:flex;gap:8px"><button class="btn follow">Follow</button><button class="btn">Share</button></p>
+      <p class="links" data-s="links"></p>
+    </div>
+    <div data-s="side"></div>
+  </section>
+  <section class="details">
+    <div class="panel"><h3>Studio record</h3><dl class="facts" data-s="facts"></dl></div>
+    <div class="panel" data-s="peoplepanel"><h3 data-s="peopletitle">People</h3><div class="withrow" data-s="people"></div></div>
+  </section>
+  <div data-s="note"></div>
+  <div class="tabs">
+    <button class="tab on" data-tab="releases">Releases</button>
+    <button class="tab" data-tab="members">Members</button>
+    <button class="tab" data-tab="live">Live</button>
+    <button class="tab" data-tab="assets">Assets</button>
+    <button class="tab" data-tab="collections" data-s-chain hidden>NFT collections</button>
+    <button class="tab" data-tab="merch">Merch</button>
+    <button class="tab" data-tab="funding">Funding</button>
+  </div>
+  <div data-panel="releases" data-s="releases"></div>
+  <div data-panel="members" data-s="members" hidden></div>
+  <div class="grid" data-panel="live" data-s="live" hidden></div>
+  <div class="grid" data-panel="assets" data-s="assets" hidden></div>
+  <div data-panel="collections" data-s="collections" hidden></div>
+  <div data-panel="merch" hidden><p class="muted empty">No merch yet.</p></div>
+  <div data-panel="funding" hidden><p class="muted empty">No project is funding right now.</p></div>
+</main>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/studios.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/login.js"></script>
+<script src="assets/studio.js"></script>
+</body>
+</html>

@@ -693,3 +693,12 @@ dialog.editor[open] { display: flex; flex-direction: column; }
 .slidenav { position: absolute; top: 0; right: 0; display: flex; gap: 6px; }
 .slidenav .btn { width: 36px; height: 36px; font-size: 20px; line-height: 1; }
 .slidenav .btn:disabled { opacity: .35; cursor: default; }
+
+/* ---------- studios ---------- */
+.slogo { display: grid; place-items: center; color: #fff; font-weight: 700; border-radius: 22px; object-fit: cover; flex: none; }
+.slogo.lg { width: 104px; height: 104px; font-size: 32px; border-radius: 28px; }
+.slogo.sm { width: 48px; height: 48px; font-size: 15px; border-radius: 14px; }
+img.slogo { background: #d5d7e0; image-rendering: pixelated; }
+a.channel { color: inherit; }
+a.channel .btn.follow { pointer-events: none; }
+.bio + p, .profile .about > .muted.small:first-child { margin-bottom: 2px; }

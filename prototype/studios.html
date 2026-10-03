@@ -3,31 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trending — dein.art</title>
+<title>Studios — dein.art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
 </head>
-<body data-page="trending">
+<body data-page="studios">
 <main class="wrap">
   <div class="page-head">
-    <h1>Trending</h1>
-    <p>What people are watching, and who is making it, this week.</p>
+    <h1>Studios</h1>
+    <p>Film studios, music studios, DAOs, art studios and galleries. A studio page gathers its releases and the people who made them, and shares what it earns with them.</p>
   </div>
-  <div class="tabs" style="margin-top:20px">
-    <button class="tab on" data-tab="videos">Videos</button>
-    <button class="tab" data-tab="artists">Artists</button>
-    <button class="tab" data-tab="channels">Studios</button>
-  </div>
-  <div class="ranks" data-panel="videos" data-list="trending" data-card="rankrow"></div>
-  <div class="ranks" data-panel="artists" data-list="artists" hidden></div>
-  <div class="grid c3" data-panel="channels" data-list="channels" hidden></div>
+  <div class="chips" data-s="chips"></div>
+  <div class="grid c3" data-s="list"></div>
 </main>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/studios.js"></script>
 <script src="assets/app.js"></script>
 <script src="assets/login.js"></script>
+<script src="assets/studio.js"></script>
 </body>
 </html>

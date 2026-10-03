@@ -17,6 +17,7 @@ python3 4_assets.py       # music, images and footage for the marketplace
 python3 5_build.py        # write ../../prototype/assets/catalog.js
 python3 6_onchain.py      # write ../../prototype/assets/onchain.js
 python3 7_person_assets.py  # write ../../prototype/assets/assets.js
+python3 8_studios.py      # write ../../prototype/assets/studios.js
 ```
 
 `7_person_assets.py` lists the assets on an artist's page by type (posters, lobby cards, stills, photographs, footage, press) with the details shown in the pop-up. It covers Buster Keaton so far.

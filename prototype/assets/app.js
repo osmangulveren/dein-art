@@ -127,7 +127,7 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
-  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1]],
+  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
   you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
         ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
   explore: [['', 'Documentaries', 'watch.html?f=man-with-a-movie-camera', 'film'], ['', 'Short films', 'watch.html?f=great-train-robbery', 'film'], ['', 'Animation', 'watch.html?f=gertie-the-dinosaur', 'film'],
@@ -305,7 +305,7 @@ const artists = [['Max Schreck', 64], ['XCOPY', 58], ['Buster Keaton', 51], ['Ja
   .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: who[name].chain ? who[name].chain.collections.find(c => c.cc0).name : film[who[name].films[0]].title, rank: i + 1 }));
 const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukrainian Photo-Cinema Administration', 'Metro Pictures', 'Hal Roach Studios']
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
-  .map(c => ({ name: c.name, tone: tone(c.name), href: c.name === 'Star Film Company' ? 'creator.html' : watchUrl(film[c.films[0]]),
+  .map(c => ({ name: c.name, tone: tone(c.name), href: (() => { const st = typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === c.name); return st ? 'studio.html?s=' + st.slug : watchUrl(film[c.films[0]]); })(),
                about: `${c.films.length} ${c.films.length === 1 ? 'film' : 'films'} here · founded ${c.founded}${c.place ? ', ' + c.place : ''}` }));
 const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels };
 $$('[data-list]').forEach(el => {
@@ -416,7 +416,7 @@ if (video) {
     <button class="btn primary" data-pay="${live ? 'tip' : 'support'}" data-split>♥ ${live ? 'Tip' : 'Support'}</button>`);
   fill('about', live
     ? `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`
-    : `<b><span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0], cur.company[0]].filter(Boolean).join(' · ')}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
+    : `<b><span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0]].filter(Boolean).join(' · ')}${cur.company[0] ? ' · ' + ((st => st ? `<a href="studio.html?s=${st.slug}">${st.name}</a>` : cur.company[0])(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === cur.company[0]))) : ''}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
   fill('related', related.every(f => f.by.some(n => cur.by.includes(n))) ? `More from ${byline(cur)}` : 'More to watch');
 
   // Moments of the film that viewers can collect, marked on the timeline. A click jumps the film there.
