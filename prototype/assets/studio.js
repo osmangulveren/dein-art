@@ -42,7 +42,7 @@ if (page === 'studio') {
   put('facts', [['Type', s.type], ['Based in', s.place], ['Founded', s.founded], ['Closed', s.until],
     ['On dein.art', films.length ? `${films.length} ${films.length === 1 ? 'film' : 'films'}` : tracks.length ? `${tracks.length} recordings` : artist ? `${artist.collections.length} collections` : s.chain ? '1 collection' : ''],
     ['Members', s.chain ? `${s.chain.holders.toLocaleString('en-US')} holders of ${s.chain.supply.toLocaleString('en-US')} Nouns` : members.length || ''],
-    ['Treasury', s.chain && `${s.chain.treasuryEth.toLocaleString('en-US')} ETH · ${ext(`https://etherscan.io/address/${s.chain.treasury}`, s.chain.treasuryName)}`]]
+    ['Treasury', s.chain && `${s.chain.treasuryEth.toLocaleString('en-US')} ETH · ${ext(`https://etherscan.io/address/${s.chain.treasury}`, s.chain.treasuryName)} ${copyBtn(s.chain.treasury)}`]]
     .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   const people = members.slice(0, 6).map(n => cards.castp({ name: n, role: who[n]?.role || 'Member' })).join('');
   put('people', people || (s.chain ? `<p class="muted small">Anyone who holds a Noun is a member and has a vote. ${ext(`https://eth.blockscout.com/token/${s.chain.token}?tab=holders`, 'See the holders')}</p>` : '<p class="muted small">No members listed yet.</p>'));

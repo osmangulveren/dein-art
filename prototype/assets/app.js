@@ -201,6 +201,7 @@ document.body.insertAdjacentHTML('beforeend', `
     <h2></h2>
     <p class="lead muted small"></p>
     <div class="amounts">${[5, 10, 25].map(n => `<button class="pick" data-amount="${n}">$${n}</button>`).join('')}</div>
+    <div class="amountslide"><span class="muted small">Or choose an amount</span>${heatSlider({ name: 'amount', min: 2, max: 100, value: 10, prefix: '$', label: 'Amount in dollars' })}</div>
     <div class="pay"><button class="pick on">Card</button><button class="pick">Crypto wallet</button></div>
     <div class="sum"></div>
     <p class="muted small src" style="margin:10px 0"></p>
@@ -241,7 +242,8 @@ document.addEventListener('click', e => {
   order = { mode: btn.dataset.pay, amount: Number(btn.dataset.price) || 10, split: 'split' in btn.dataset, creator: btn.dataset.creator };
   $('h2', dialog).textContent = btn.dataset.title || mode.title;
   $('.lead', dialog).textContent = mode.lead;
-  $('.amounts', dialog).hidden = !mode.pick;
+  $('.amounts', dialog).hidden = !mode.pick; $('.amountslide', dialog).hidden = !mode.pick;
+  const slide = $('[data-heat="amount"]', dialog); if (slide) heatSet(slide, order.amount, false);
   $('.confirm', dialog).textContent = mode.confirm;
   $('.src', dialog).textContent = 'Prototype: nothing is charged.';
   $$('.amounts .pick', dialog).forEach(p => p.classList.toggle('on', p.dataset.amount === '10'));
@@ -251,8 +253,9 @@ document.addEventListener('click', e => {
 });
 $$('.amounts .pick', dialog).forEach(p => p.addEventListener('click', () => {
   $$('.amounts .pick', dialog).forEach(x => x.classList.toggle('on', x === p));
-  order.amount = Number(p.dataset.amount); drawSum();
+  order.amount = Number(p.dataset.amount); heatSet($('[data-heat="amount"]', dialog), order.amount, false); drawSum();
 }));
+dialog.addEventListener('heat', e => { order.amount = e.detail.value; $$('.amounts .pick', dialog).forEach(x => x.classList.toggle('on', Number(x.dataset.amount) === order.amount)); drawSum(); });
 $$('.pay .pick', dialog).forEach(p => p.addEventListener('click', () => $$('.pay .pick', dialog).forEach(x => x.classList.toggle('on', x === p))));
 $('.confirm', dialog).addEventListener('click', () => {
   const net = money(order.amount - FEE);
@@ -399,18 +402,18 @@ if (video) {
   video.innerHTML = sources(cur);
   $('.stage .glow').src = frame(cur, live ? cur.scenes[1][0] : cur.at, 330);
   // Viewing modes: Normal keeps the page around the film; Cinematic dims everything else and gives the film the screen.
-  $('.player').insertAdjacentHTML('beforeend', '<div class="viewmodes" role="group" aria-label="Viewing mode"><button data-mode="normal">Normal</button><button data-mode="cinema">Cinematic</button></div>');
+  $('.player').insertAdjacentHTML('beforeend', `<label class="viewmodes"><span>Cinematic</span>${gooSwitch('cinema', false, 'Cinematic mode')}</label>`);
   const savedTheme = root.dataset.theme, savedSide = root.dataset.side;
   const setMode = (mode, remember = true) => {
     const cinema = mode === 'cinema';
     root.dataset.cinema = cinema ? 'on' : '';
     root.dataset.theme = cinema ? 'dark' : (() => { try { return localStorage.getItem('theme') || savedTheme; } catch { return savedTheme; } })();
     root.dataset.side = cinema ? 'closed' : savedSide;
-    $$('.viewmodes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    $$('[data-goo="cinema"]').forEach(sw => setGoo(sw, cinema, true));
     if (remember) try { localStorage.setItem('viewmode', mode); } catch {}
     if (cinema && remember) scrollTo({ top: $('.stage').getBoundingClientRect().top + scrollY - 92, behavior: 'smooth' });
   };
-  document.addEventListener('click', e => { const b = e.target.closest('.viewmodes [data-mode]'); if (b) setMode(b.dataset.mode); });
+  document.addEventListener('goo', e => { if (e.detail.name === 'cinema') setMode(e.detail.on ? 'cinema' : 'normal'); });
   document.addEventListener('keydown', e => {
     if (e.target.closest('input, textarea, select')) return;
     if (e.key === 'c' || e.key === 'C') setMode(root.dataset.cinema === 'on' ? 'normal' : 'cinema');
@@ -485,6 +488,7 @@ if (hero) {
   hero.href = watchUrl(f);
   $('img', hero).src = frame(f, f.at, 1280);
   $('h1', hero).textContent = f.title;
+  $('.cta .btn.white', hero).outerHTML = '<span class="btn white" data-magnetic><span class="mag-in">▶ Watch free</span></span>';
   $('[data-hero-meta]', hero).textContent = `${f.kind} · ${f.year} · ${Math.round(f.secs / 60)} min`;
   $('p', hero).textContent = `${f.blurb} Free to watch. Whatever it earns is shared across its cast and crew.`;
 }
@@ -541,18 +545,16 @@ if (page === 'artist' || page === 'creator') {
     set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
     set('side', '<span class="pop" data-w="status"></span>');
     set('factstitle', 'On-chain record');
-    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`)], ['Since', first], ['Collections', chain.collections.length], ['Pieces counted', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`) + ' ' + copyBtn(chain.address)], ['Since', first], ['Collections', chain.collections.length], ['Pieces counted', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   } else {
     const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
     const lead = `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`;
     set('line', [a.role, ...a.occ.filter(o => o.toLowerCase() !== a.role.toLowerCase()).slice(0, 2).map(o => o[0].toUpperCase() + o.slice(1)), a.bornIn, years(a)].filter(Boolean).join(' · '));
     set('bio', me ? 'Stage magician and owner of the Théâtre Robert-Houdin in Paris, who began making films in 1896. He built one of the first film studios, at Montreuil, and made more than five hundred films, writing, designing, directing and acting in most of them.' : lead);
     set('links', [ext(`https://www.wikidata.org/wiki/${a.wd}`, 'Wikidata'), a.imdb && ext(`https://www.imdb.com/name/${a.imdb}/`, 'IMDb'), a.wiki && ext(`https://en.wikipedia.org/wiki/${encodeURIComponent(a.wiki.replace(/ /g, '_'))}`, 'Wikipedia')].filter(Boolean).join(''));
-    set('side', me ? `<div class="earn">
-      <span class="muted small">Your share of earnings · only you see this · example figures</span>
-      <div class="total">$63,790</div>
-      <dl><dt>Marketplace</dt><dd>$42,000</dd><dt>Merch</dt><dd>$9,540</dd><dt>Support and live tips</dt><dd>$12,250</dd></dl>
-      <p class="muted small" style="margin-top:10px">Another $123,285 went to your cast and crew.</p></div>`
+    set('side', me ? chartCard({ title: 'Your share of earnings', caption: 'last 7 months', total: '$63,790',
+        data: [['May', 4120], ['Jun', 6380], ['Jul', 5240], ['Aug', 9810], ['Sep', 8460], ['Oct', 12900], ['Nov', 16880]].map(([label, value]) => ({ label, value, text: '$' + value.toLocaleString('en-US') })),
+        note: 'Only you see this · example figures. Another $123,285 went to your cast and crew.' })
       : ranked ? `<a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#${ranked.rank}</b><span class="up">▲ ${ranked.up}%</span></a>` : '');
     set('factstitle', 'Personal details');
     set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
@@ -574,7 +576,7 @@ if (page === 'collection') {
   set('by', `<a href="${artistUrl(a.name)}">${avatar(a.name)}</a><a class="who" href="${artistUrl(a.name)}"><b>${a.name}</b><span class="muted small">Artist · <span class="mono">${short(a.address)}</span></span></a>`);
   set('about', c.about || `A collection by ${a.name}, minted on ${c.chain || 'a blockchain'} in ${c.year}.`);
   set('acts', [c.page && ext(c.page, `See it on ${host(c.page)} ↗`, 'btn primary'), c.market && ext(c.market, `${host(c.market)} ↗`, 'btn'), c.contract && ext(`${scan}/address/${c.contract}`, 'Contract ↗', 'btn')].filter(Boolean).join(''));
-  set('facts', [['Year', c.year], ['Pieces', c.minted && `${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted`], ['Chain', c.chain], ['Contract', c.contract && ext(`${scan}/address/${c.contract}`, `<span class="mono">${short(c.contract)}</span>`)],
+  set('facts', [['Year', c.year], ['Pieces', c.minted && `${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted`], ['Chain', c.chain], ['Contract', c.contract && ext(`${scan}/address/${c.contract}`, `<span class="mono">${short(c.contract)}</span>`) + ' ' + copyBtn(c.contract)],
     ['Licence', c.cc0 ? 'CC0' : 'Not stated'], ['Source', c.minted ? 'On-chain record, as indexed by Art Blocks' : `Listed on ${host(c.page || a.site || '')}`]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   set('pieces', c.tokens.length ? `<div class="sec"><h2>Pieces</h2><p>${c.tokens.length} of ${c.minted.toLocaleString('en-US')} shown</p></div><div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
     : `<div class="box" style="margin-top:28px"><b>No images here yet</b><p>Images are shown only for collections whose licence is confirmed as CC0. This one's licence is not stated, so the work stays on the artist's own pages${c.page ? `: ${ext(c.page, host(c.page))}` : ''}. When the artist claims this page, they decide what appears here.</p></div>`);
@@ -660,6 +662,8 @@ $$('[data-slider]').forEach(row => {
   row.addEventListener('dragstart', e => e.preventDefault());
 });
 
+initCharts(); initHeat();
+
 /* ---------- chips and tabs ---------- */
 
 const chips = $$('.chip');
@@ -720,6 +724,13 @@ if (msgs) {
 }
 
 /* ---------- create flow ---------- */
+
+const uploadZone = $('[data-upload]');
+if (uploadZone) fileUpload(uploadZone, { onAll: files => {
+  const next = $('[data-upload-next]'); next.disabled = false;
+  const film = files.find(f => f.type.startsWith('video')) || files[0];
+  const line = $('[data-step="2"] .muted.small'); if (line) line.textContent = `${film.name} · ${fileSize(film.size)} · uploaded`;
+} });
 
 const steps = $$('[data-step]');
 if (steps.length) {

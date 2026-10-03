@@ -52,7 +52,7 @@
         <label>About you<textarea class="field" rows="4" data-ed="bio">${esc(draft.bio ?? $p('bio').textContent)}</textarea></label>
         <div class="edgrid3">${field('links.website', 'Website', draft.links?.website, 'placeholder="yoursite.com"')}${field('links.x', 'X', draft.links?.x, 'placeholder="@handle"')}${field('links.instagram', 'Instagram', draft.links?.instagram, 'placeholder="@handle"')}</div>`,
       merch: `
-        ${(draft.merch || []).length ? `<div class="edlist">${draft.merch.map((m, i) => `<div class="edline"><span class="edthumb">${mockup(m)}</span><span><b>${esc(m.title)}</b><small>${PRODUCTS[m.type]} · $${m.price}</small></span><button class="btn" data-ed-del="merch:${i}">Remove</button></div>`).join('')}</div>` : ''}
+        ${(draft.merch || []).length ? `<div class="edlist">${draft.merch.map((m, i) => `<div class="edline"><span class="edthumb">${mockup(m)}</span><span><b>${esc(m.title)}</b><small>${PRODUCTS[m.type]} · $${m.price}</small></span>${deleteBtn('merch:' + i)}</div>`).join('')}</div>` : ''}
         <h3 class="edhead">Add merch</h3>
         <div class="edmerch">
           <div class="mthumb" data-ed-preview>${mockup({ ...newMerch, title: newMerch.title || 'Preview' })}</div>
@@ -66,7 +66,7 @@
           </div>
         </div>`,
       credits: `
-        ${(draft.credits || []).length ? `<div class="edlist">${draft.credits.map((c, i) => `<div class="edline"><span><b>${esc(c.title)}</b><small>${esc(c.role)}${c.year ? ' · ' + c.year : ''}</small></span><button class="btn" data-ed-del="credits:${i}">Remove</button></div>`).join('')}</div>` : ''}
+        ${(draft.credits || []).length ? `<div class="edlist">${draft.credits.map((c, i) => `<div class="edline"><span><b>${esc(c.title)}</b><small>${esc(c.role)}${c.year ? ' · ' + c.year : ''}</small></span>${deleteBtn('credits:' + i)}</div>`).join('')}</div>` : ''}
         <h3 class="edhead">Add a credit</h3>
         <div class="edgrid3"><label>Title<input class="field" data-nc="title" value="${esc(newCredit.title)}" placeholder="Film, series or work"></label>
           <label>Year<input class="field" type="number" min="1880" max="2100" data-nc="year" value="${esc(newCredit.year)}"></label>
@@ -82,6 +82,9 @@
   }
 
   const setPath = (o, path, v) => { const [a, b] = path.split('.'); if (b) (o[a] ||= {})[b] = v; else o[a] = v; };
+  // removing with the Delete Button: it asks, then the row goes once the tick shows
+  dlg.addEventListener('delete', e => e.detail.wait(new Promise(r => setTimeout(r, 450))));
+  dlg.addEventListener('deleted', e => { const [list, i] = e.detail.key.split(':'); setTimeout(() => { draft[list].splice(Number(i), 1); view(); }, 650); });
   dlg.addEventListener('input', e => {
     const t = e.target;
     if (t.dataset.ed) setPath(draft, t.dataset.ed, t.value);
@@ -108,7 +111,6 @@
       if (!newCredit.title.trim()) { $('[data-nc="title"]', dlg).focus(); return; }
       (draft.credits ||= []).push({ title: newCredit.title.trim(), year: Number(newCredit.year) || null, role: newCredit.role }); newCredit = { title: '', year: '', role: newCredit.role }; view();
     }
-    if (t.dataset.edDel) { const [list, i] = t.dataset.edDel.split(':'); draft[list].splice(Number(i), 1); view(); }
     if (t.hasAttribute('data-ed-save')) {
       try { localStorage.setItem('edits:' + editKey, JSON.stringify(draft)); }
       catch { alert('This browser has no room left to keep the changes. Try a smaller picture.'); return; }

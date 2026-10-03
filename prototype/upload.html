@@ -26,12 +26,8 @@
   <div data-step="1" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
     <h1>Upload your film</h1>
     <p class="muted">Uploading is free and unlimited. Viewers watch for free.</p>
-    <div class="drop">
-      <b>Drag a video here</b>
-      <p class="muted small">MP4, MOV or ProRes, any length</p>
-      <button class="btn primary" data-go="2">Choose file</button>
-    </div>
-    <div class="actions"><button class="btn" data-go="0">Back</button><span></span></div>
+    <div data-upload></div>
+    <div class="actions"><button class="btn" data-go="0">Back</button><button class="btn primary" data-go="2" data-upload-next disabled>Next</button></div>
   </div>
 
   <div data-step="2" hidden><div class="steps"><span></span><span></span><span></span><span></span></div>
@@ -81,6 +77,7 @@
     <a class="btn primary" href="watch.html">View it</a> <a class="btn" href="creator.html">Go to your profile</a>
   </section>
 </main>
+<script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/app.js"></script>

@@ -23,6 +23,7 @@
   <div class="claimbox" data-d="box"></div>
   <p class="muted small" style="margin-top:14px">The contract's source is <a class="link" href="https://github.com/osmangulveren/dein-art/blob/main/contracts/DeinArtClaims.sol" target="_blank" rel="noopener">contracts/DeinArtClaims.sol</a>. A wallet can only claim its own page, so nobody can claim or block a page for someone else.</p>
 </main>
+<script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>
 <script src="assets/onchain.js"></script>
 <script src="assets/app.js"></script>
@@ -36,7 +37,7 @@
   let me = '';
   const show = (title, text, acts = '', tone = '') => { box.className = 'claimbox' + (tone === 'ok' ? ' claimed' : ''); box.innerHTML = `<div><h2>${title}</h2><p>${text}</p></div><div class="claimacts">${acts}</div>`; };
   const ready = () => saved
-    ? show('The contract is on Sepolia', `Address <span class="mono">${saved}</span>. Claims made on artist pages are now recorded there. <a class="link" href="${CLAIMS.explorer}/address/${saved}" target="_blank" rel="noopener">See it on Etherscan</a>`,
+    ? show('The contract is on Sepolia', `Address <span class="mono">${saved}</span> ${copyBtn(saved)}. Claims made on artist pages are now recorded there. <a class="link" href="${CLAIMS.explorer}/address/${saved}" target="_blank" rel="noopener">See it on Etherscan</a>`,
         `<button class="btn primary" data-mine>Open my wallet's page</button>`, 'ok')
     : show('Ready to deploy', 'Connect your wallet; it will switch to Sepolia and ask you to confirm.', '<button class="btn primary" data-deploy>Connect and deploy</button>');
   async function sepolia() {
@@ -58,7 +59,7 @@
       await c.waitForDeployment();
       const at = await c.getAddress();
       try { localStorage.setItem('claimsAddress', at); } catch {}
-      show('Deployed', `The contract is at <span class="mono">${at}</span>. It already works in this browser. Send this address to Claude to make it the address for everyone.`, `<button class="btn primary" data-mine>Open my wallet's page</button><a class="btn" href="${CLAIMS.explorer}/address/${at}" target="_blank" rel="noopener">Etherscan</a>`, 'ok');
+      show('Deployed', `The contract is at <span class="mono">${at}</span> ${copyBtn(at)}. It already works in this browser. Send this address to Claude to make it the address for everyone.`, `<button class="btn primary" data-mine>Open my wallet's page</button><a class="btn" href="${CLAIMS.explorer}/address/${at}" target="_blank" rel="noopener">Etherscan</a>`, 'ok');
     } catch (e) {
       show('Not deployed', (e?.code === 4001 || e?.code === 'ACTION_REJECTED') ? 'You cancelled in your wallet. Nothing was sent.' : 'The wallet did not complete the request. Nothing was deployed.', '<button class="btn primary" data-deploy>Try again</button>');
     }

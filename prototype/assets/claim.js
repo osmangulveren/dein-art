@@ -87,10 +87,10 @@ function draw(note = '', tone = '') {
     <div class="claimbox">
       <div><h2>Is this you? Claim this page</h2>
       <p>This page was built from public blockchain records and belongs to nobody yet. ${onchain
-        ? `Claim it from <span class="mono">${short(artist.address)}</span> and the claim is recorded on the Sepolia testnet, where anyone can see it. It costs a little test ETH, which is free.`
-        : `Sign one message with <span class="mono">${short(artist.address)}</span> and it is yours. It is free and it is not a transaction.`}</p>
+        ? `Claim it from <span class="mono">${short(artist.address)}</span> ${copyBtn(artist.address)} and the claim is recorded on the Sepolia testnet, where anyone can see it. It costs a little test ETH, which is free.`
+        : `Sign one message with <span class="mono">${short(artist.address)}</span> ${copyBtn(artist.address)} and it is yours. It is free and it is not a transaction.`}</p>
       ${noteHtml}</div>
-      <div class="claimacts"><button class="btn primary" data-claim>Claim with wallet</button></div>
+      <div class="claimacts"><button class="btn primary" data-claim data-magnetic><span class="mag-in">Claim with wallet</span></button></div>
     </div>`);
 }
 
