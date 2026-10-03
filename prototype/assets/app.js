@@ -359,10 +359,29 @@ document.addEventListener('click', e => {
 /* ---------- cast and crew split ---------- */
 
 $$('[data-crew]').forEach(el => {
+  const big = n => who[n]?.pic ? who[n].pic.replace('/120px-', '/500px-') : '';
   el.innerHTML = `
-    <div class="splitbar">${crew.map((c, i) => `<span style="width:${c.pct}%;opacity:${Math.max(.2, 1 - i * .12)}" title="${c.name} ${c.pct}%"></span>`).join('')}</div>
-    <div class="crew">${crew.map(c => `<div class="person">${mug(c)}<span class="info"><b>${c.name}</b><span class="muted small">${c.role}</span></span><span class="pct">${c.pct}%</span></div>`).join('')}</div>
-    <p class="muted small" style="margin-top:12px">The names and roles are this film's real credits, from Wikidata. The percentages are an example of a split.</p>`;
+    <button class="btn icon crewclose" data-close aria-label="Close">✕</button>
+    <div class="crewhead">
+      <span class="pilltag">Cast &amp; crew</span>
+      <h2>Meet the <em>people</em> behind ${esc(cur.title)}.</h2>
+      <p>${crew.length} people made this film. Whatever it earns is theirs, shared the moment it comes in.</p>
+    </div>
+    <div class="crewbody">
+      <div class="crewstat">
+        <b>100<sup>%</sup></b>
+        <p>of everything ${esc(cur.title)} earns, from support, the marketplace and merch, goes to its cast and crew, split automatically on-chain.</p>
+        <div class="splitbar">${crew.map((c, i) => `<span style="width:${c.pct}%;opacity:${Math.max(.25, 1 - i * .12)}" title="${esc(c.name)} ${c.pct}%"></span>`).join('')}</div>
+        <p class="crewnote">Names and roles are the film's real credits, from Wikidata. The percentages are an example of a split.</p>
+      </div>
+      <div class="crewcol"><div class="grid crewcards" data-slider>${crew.map(c => `
+        <a class="crewcard" href="${artistUrl(c.name)}">
+          ${big(c.name) ? `<img src="${big(c.name)}" alt="" loading="lazy">` : `<span class="crewinit" style="--t:${tone(c.name)}">${initials(c.name)}</span>`}
+          <span class="notch"><i>↗</i></span>
+          <span class="crewname"><b>${esc(c.name)}</b><span>${esc(c.role)}</span></span>
+          <span class="crewpct">${c.pct}%</span>
+        </a>`).join('')}</div></div>
+    </div>`;
 });
 
 /* ---------- pages about one film: watch and live ---------- */
@@ -631,7 +650,7 @@ $$('[data-slider]').forEach(row => {
   const nav = row.previousElementSibling;
   const sync = () => { const max = row.scrollWidth - row.clientWidth - 2; nav.children[0].disabled = row.scrollLeft <= 2; nav.children[1].disabled = row.scrollLeft >= max; nav.hidden = max <= 0; };
   nav.addEventListener('click', e => { const b = e.target.closest('[data-slide]'); if (b) row.scrollBy({ left: Number(b.dataset.slide) * row.clientWidth * .85, behavior: 'smooth' }); });
-  row.addEventListener('scroll', sync, { passive: true }); addEventListener('resize', sync); sync();
+  row.addEventListener('scroll', sync, { passive: true }); new ResizeObserver(sync).observe(row); sync();   // also when a pop-up holding the row opens
   // dragging with the mouse; a drag does not count as a click on the card under it
   let down = null, moved = false;
   row.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; down = { x: e.clientX, left: row.scrollLeft }; moved = false; });
