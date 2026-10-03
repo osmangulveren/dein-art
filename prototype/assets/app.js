@@ -52,19 +52,30 @@ const assets = [
 const mixed = [0, 5, 13, 1, 6, 14, 2, 7].map(i => assets[i]);
 assets.sort((a, b) => (mixed.indexOf(a) + 1 || 99) - (mixed.indexOf(b) + 1 || 99));
 
-const merchArt = {
-  tee: '<path d="M35 12 10 26l9 18 11-5v49h40V39l11 5 9-18-25-14c-2 8-8 12-15 12s-13-4-15-12z"/>',
-  poster: '<rect x="24" y="10" width="52" height="78" rx="3"/><rect x="31" y="18" width="38" height="40" fill="rgba(255,255,255,.4)"/><rect x="31" y="64" width="26" height="4" fill="rgba(255,255,255,.65)"/><rect x="31" y="72" width="18" height="4" fill="rgba(255,255,255,.45)"/>',
-  tote: '<path d="M26 38h48l4 50H22z"/><path d="M38 38V26a12 12 0 0 1 24 0v12" fill="none" stroke="currentColor" stroke-width="5"/>',
-  cap: '<path d="M18 62a32 32 0 0 1 64 0z"/><path d="M50 62h42c0 6-10 9-22 9s-20-3-20-9z" opacity=".65"/>',
-  vinyl: '<circle cx="50" cy="50" r="38"/><circle cx="50" cy="50" r="13" fill="rgba(255,255,255,.55)"/><circle cx="50" cy="50" r="2.5" fill="#fff"/>',
-};
 const merch = [
-  { title: 'A Trip to the Moon tee', creator: ME, price: 28, art: 'tee', bg: '#efedff', ink: '#5b4bff' },
-  { title: 'A Trip to the Moon poster, 1902 reprint', creator: ME, price: 35, art: 'poster', bg: '#fff1e0', ink: '#e0812a' },
-  { title: 'Star Film tote bag', creator: ME, price: 18, art: 'tote', bg: '#e6f4ee', ink: '#0d8a4f' },
-  { title: 'The Impossible Voyage cap', creator: ME, price: 22, art: 'cap', bg: '#e8f1ff', ink: '#2f6fed' },
+  { title: 'A Trip to the Moon tee', creator: ME, price: 28, type: 'tee', colour: 'ink', pic: frame(film['trip-to-the-moon'], 376, 500) },
+  { title: 'The 1902 poster, reprinted', creator: ME, price: 35, type: 'poster', colour: 'paper', pic: (CATALOG.images.find(i => i.medium === 'Poster') || {}).pic },
+  { title: 'The Impossible Voyage tote', creator: ME, price: 18, type: 'tote', colour: 'sand', pic: frame(film['impossible-voyage'], 713, 500) },
+  { title: 'Star Film cap', creator: ME, price: 22, type: 'cap', colour: 'night', text: 'STAR FILM' },
 ].map(m => ({ ...m, kind: 'Merch' }));
+// A product drawn around the creator's own image: what it would look like printed.
+const COLOURS = { ink: ['#1b1d24', '#eceaf3'], paper: ['#f4efe6', '#2a2620'], sand: ['#e7dcc7', '#3a3226'], night: ['#24305e', '#f5a623'], white: ['#f7f7f9', '#1b1d24'], clay: ['#c8664a', '#fff4ea'] };
+const PRODUCTS = { tee: 'T-shirt', hoodie: 'Hoodie', poster: 'Poster', tote: 'Tote bag', cap: 'Cap' };
+let mockId = 0;
+function mockup(m) {
+  const [body, ink] = COLOURS[m.colour] || COLOURS.ink, id = 'mk' + (mockId++);
+  const img = (x, y, w, h) => m.pic ? `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.2"/></clipPath><image href="${esc(m.pic)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>` : `<text x="${x + w / 2}" y="${y + h / 2 + 2}" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="5" fill="${ink}">${esc((m.text || m.title).slice(0, 14).toUpperCase())}</text>`;
+  const shade = `<ellipse cx="80" cy="84" rx="34" ry="3" fill="rgba(0,0,0,.12)"/>`;
+  const art = {
+    tee: `${shade}<g transform="translate(33,0) scale(.94)"><path d="M35 12 10 26l9 18 11-5v49h40V39l11 5 9-18-25-14c-2 8-8 12-15 12s-13-4-15-12z" fill="${body}"/>${img(38, 30, 24, 24)}</g>`,
+    hoodie: `${shade}<g transform="translate(33,0) scale(.94)"><path d="M33 15c5-5 29-5 34 0l19 9 7 41-11 2-6-29v50H24V38l-6 29-11-2 7-41z" fill="${body}"/><path d="M36 15c0-9 28-9 28 0-4 7-24 7-28 0z" fill="rgba(0,0,0,.2)"/><path d="M38 66h24l3 13H35z" fill="rgba(0,0,0,.1)"/><path d="M46 21v9M54 21v9" stroke="rgba(255,255,255,.55)" stroke-width="1" stroke-linecap="round"/>${img(39, 33, 22, 20)}</g>`,
+    poster: `<rect x="60" y="9" width="40" height="60" fill="rgba(0,0,0,.14)" transform="translate(1.6 2)"/><rect x="60" y="9" width="40" height="60" fill="${body}"/>${img(62.5, 11.5, 35, 55)}`,
+    tote: `${shade}<path d="M66 34V26a14 14 0 0 1 28 0v8" fill="none" stroke="${body}" stroke-width="2.4"/><path d="M54 34h52l4 48H50z" fill="${body}"/>${img(64, 45, 32, 28)}`,
+    cap: `${shade}<path d="M50 60a30 30 0 0 1 60 0z" fill="${body}"/><path d="M80 60h38c0 6-9 9-20 9s-18-3-18-9z" fill="${body}" opacity=".8"/>${m.pic ? img(70, 44, 20, 12) : `<text x="80" y="54" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="4.6" fill="${ink}">${esc((m.text || 'dein.art').slice(0, 12).toUpperCase())}</text>`}`,
+  };
+  return `<svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(m.title)}">${art[m.type] || art.tee}</svg>`;
+}
+const merchCard = m => `<div class="merchbig"><div class="mthumb">${mockup(m)}</div><div class="minfo"><div><h3>${esc(m.title)}</h3><p class="muted small">${PRODUCTS[m.type] || 'Merch'} · printed on demand${m.added ? ' · added by you' : ''}</p></div><span class="price">$${m.price}</span><button class="btn dark" data-pay="merch" data-title="${esc(m.title)}" data-price="${m.price}" data-creator="${esc(m.creator)}" ${m.creator === ME ? 'data-split' : ''}>Get it</button></div></div>`;
 
 const campaigns = [
   { title: 'The Conquest of the Pole', creator: ME, raised: 64200, goal: 90000, days: 18, pic: frame(film['conquest-of-the-pole']) },
@@ -261,7 +272,7 @@ const cards = {
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.kind}" href="${a.page}" target="_blank" rel="noopener" title="Free: opens the original"><div class="thumb${a.pic ? '' : ' blank'}">${a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : ''}<span class="badge kind">${a.kind}</span>${a.src ? `<span class="badge dur listen" data-audio="${a.src}">▶ ${a.dur}</span>` : a.dur ? `<span class="badge dur">${a.dur}</span>` : ''}</div><h3>${a.title}</h3><p>${a.creator}${a.sub ? ' · ' + a.sub : ''} · <span class="price free">Free</span> · ${a.lic.replace(/^cc0.*/i, 'CC0')}</p></a>`,
-  merch: m => `<button class="card" data-kind="Merch" data-pay="merch" data-title="${esc(m.title)}" data-price="${m.price}" data-creator="${esc(m.creator)}" ${m.creator === ME ? 'data-split' : ''}><div class="thumb merch" style="background:${m.bg};color:${m.ink}"><svg viewBox="0 0 100 100" fill="currentColor">${merchArt[m.art]}</svg></div><h3>${m.title}</h3><p>${m.creator} · <span class="price">$${m.price}</span></p></button>`,
+  merch: m => merchCard(m),
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}</p></div><span class="up">▲ ${f.up}%</span></a>`,
   castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
@@ -276,9 +287,17 @@ const cards = {
 // The person an artist page or a profile is about.
 const subject = page === 'artist' ? who[param('name')] || who[(ONCHAIN.find(a => a.address === walletParam.toLowerCase()) || {}).name] || who['F. W. Murnau'] : who[ME];
 const filmsOf = p => p.films.map(k => film[k]);
+const editKey = page === 'creator' ? 'me' : subject.chain ? subject.chain.address : null;
+const edits = (() => { try { return (editKey && JSON.parse(localStorage.getItem('edits:' + editKey))) || {}; } catch { return {}; } })();
+// credits the creator added sit at the top of their role
+(edits.credits || []).forEach(c => {
+  let g = subject.credits.find(x => x.role === c.role);
+  if (!g) subject.credits.push(g = { role: c.role, total: 0, list: [] });
+  g.list.unshift({ title: c.title, year: c.year, key: null, added: true }); g.total++;
+});
 
 // Next to a film: the director's other films, then films of the same kind.
-const related = [...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by.includes(n))), ...CATALOG.films.filter(f => f !== cur && f.kind === cur.kind && !f.by.some(n => cur.by.includes(n)))].slice(0, 4);
+const related = [...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by.includes(n))), ...CATALOG.films.filter(f => f !== cur && f.kind === cur.kind && !f.by.some(n => cur.by.includes(n)))].slice(0, 12);
 // What is rising this week: films, the people behind them, and the companies that made them.
 const trending = ['nosferatu', 'sherlock-jr', 'man-with-a-movie-camera', 'trip-to-the-moon', 'the-general', 'cabinet-of-dr-caligari', 'impossible-voyage', 'nanook-of-the-north', 'within-our-gates', 'suspense']
   .map((k, i) => ({ ...film[k], rank: i + 1, up: [212, 148, 96, 81, 77, 64, 52, 40, 33, 21][i] }));
@@ -360,6 +379,25 @@ if (video) {
   video.poster = frame(cur, live ? cur.scenes[1][0] : cur.at, 1280);
   video.innerHTML = sources(cur);
   $('.stage .glow').src = frame(cur, live ? cur.scenes[1][0] : cur.at, 330);
+  // Viewing modes: Normal keeps the page around the film; Cinematic dims everything else and gives the film the screen.
+  $('.player').insertAdjacentHTML('beforeend', '<div class="viewmodes" role="group" aria-label="Viewing mode"><button data-mode="normal">Normal</button><button data-mode="cinema">Cinematic</button></div>');
+  const savedTheme = root.dataset.theme, savedSide = root.dataset.side;
+  const setMode = (mode, remember = true) => {
+    const cinema = mode === 'cinema';
+    root.dataset.cinema = cinema ? 'on' : '';
+    root.dataset.theme = cinema ? 'dark' : (() => { try { return localStorage.getItem('theme') || savedTheme; } catch { return savedTheme; } })();
+    root.dataset.side = cinema ? 'closed' : savedSide;
+    $$('.viewmodes button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    if (remember) try { localStorage.setItem('viewmode', mode); } catch {}
+    if (cinema && remember) scrollTo({ top: $('.stage').getBoundingClientRect().top + scrollY - 92, behavior: 'smooth' });
+  };
+  document.addEventListener('click', e => { const b = e.target.closest('.viewmodes [data-mode]'); if (b) setMode(b.dataset.mode); });
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select')) return;
+    if (e.key === 'c' || e.key === 'C') setMode(root.dataset.cinema === 'on' ? 'normal' : 'cinema');
+    if (e.key === 'Escape' && root.dataset.cinema === 'on' && !$('dialog[open]')) setMode('normal');
+  });
+  setMode((() => { try { return localStorage.getItem('viewmode'); } catch { return null; } })() === 'cinema' ? 'cinema' : 'normal', false);
   const play = $('.player .play');
   if (play) {
     play.addEventListener('click', () => video.play());
@@ -379,7 +417,7 @@ if (video) {
   fill('about', live
     ? `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`
     : `<b>${[cur.year, cur.kind, cur.country[0], cur.company[0]].filter(Boolean).join(' · ')}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
-  fill('related', cur.by.some(n => related[0]?.by.includes(n)) ? `More from ${byline(cur)}` : `More ${cur.kind.toLowerCase()}`);
+  fill('related', related.every(f => f.by.some(n => cur.by.includes(n))) ? `More from ${byline(cur)}` : 'More to watch');
 
   // Moments of the film that viewers can collect, marked on the timeline. A click jumps the film there.
   const marks = $('[data-marks]'), sceneBox = $('[data-scene]');
@@ -443,7 +481,7 @@ const creditsHtml = p => p.credits.map((c, i) => `
     <summary><span><b>${c.role}</b><span class="muted small">${c.total} ${c.total === 1 ? 'title' : 'titles'}</span></span>${chev}</summary>
     <div class="rows">${c.list.map(x => {
       const f = film[x.key];
-      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${f ? `${f.kind} · ${f.dur}` : 'Not on dein.art yet'}</span></div><span class="year">${x.year || ''}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : ''}</div>`;
+      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${f ? `${f.kind} · ${f.dur}` : x.added ? 'Added by you' : 'Not on dein.art yet'}</span></div><span class="year">${x.year || ''}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : ''}</div>`;
     }).join('')}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
   </details>`).join('');
 const totalCredits = p => p.credits.reduce((a, c) => a + c.total, 0);
@@ -466,6 +504,8 @@ if (page === 'artist' || page === 'creator') {
   set('name', a.name);
   set('acts', `<button class="btn follow">Follow</button><button class="btn">Share</button>${me ? `<button class="btn primary" data-pay="support" data-title="Support ${esc(a.name)}" data-creator="${esc(a.name)}">♥ Support</button>` : ''}`);
   $$('[data-chain-only]').forEach(el => { el.hidden = !chain; });
+  const myMerch = [...merch.filter(m => m.creator === a.name), ...(edits.merch || []).map(m => ({ ...m, creator: a.name, added: true }))];
+  $$('[data-merch]').forEach(el => { el.innerHTML = myMerch.length ? myMerch.map(merchCard).join('') : '<p class="muted empty">No merch yet.</p>'; });
   $$('[data-has-credits]').forEach(el => { el.hidden = !a.credits.length; });
   set('creditnote', a.credits.length ? 'Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from Wikidata.'
     : 'No credits yet. Credits are added when a work is published and the people who made it are listed.');
@@ -566,6 +606,24 @@ if (shelf) {
   box.addEventListener('keydown', e => { if (e.key === 'ArrowRight') show(Number(box.dataset.at) + 1); if (e.key === 'ArrowLeft') show(Number(box.dataset.at) - 1); });
   box.addEventListener('close', () => { box.innerHTML = ''; });   // stops a playing clip
 }
+
+/* ---------- rows that slide: arrows, or drag with the mouse ---------- */
+
+$$('[data-slider]').forEach(row => {
+  row.classList.add('slider');
+  row.insertAdjacentHTML('beforebegin', '<div class="slidenav"><button class="btn icon" data-slide="-1" aria-label="Scroll left">‹</button><button class="btn icon" data-slide="1" aria-label="Scroll right">›</button></div>');
+  const nav = row.previousElementSibling;
+  const sync = () => { const max = row.scrollWidth - row.clientWidth - 2; nav.children[0].disabled = row.scrollLeft <= 2; nav.children[1].disabled = row.scrollLeft >= max; nav.hidden = max <= 0; };
+  nav.addEventListener('click', e => { const b = e.target.closest('[data-slide]'); if (b) row.scrollBy({ left: Number(b.dataset.slide) * row.clientWidth * .85, behavior: 'smooth' }); });
+  row.addEventListener('scroll', sync, { passive: true }); addEventListener('resize', sync); sync();
+  // dragging with the mouse; a drag does not count as a click on the card under it
+  let down = null, moved = false;
+  row.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; down = { x: e.clientX, left: row.scrollLeft }; moved = false; });
+  addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > 4) { moved = true; row.classList.add('dragging'); } row.scrollLeft = down.left - dx; });
+  addEventListener('pointerup', () => { down = null; setTimeout(() => row.classList.remove('dragging'), 0); });
+  row.addEventListener('click', e => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+  row.addEventListener('dragstart', e => e.preventDefault());
+});
 
 /* ---------- chips and tabs ---------- */
 

@@ -620,3 +620,76 @@ dialog.assetbox[open] { display: grid; grid-template-columns: minmax(0, 1.25fr) 
 .acctmenu > div { display: flex; flex-direction: column; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 .acctmenu a, .acctmenu button { padding: 9px 10px; border-radius: 10px; font: inherit; font-size: 14px; text-align: left; background: none; border: 0; color: var(--text); cursor: pointer; }
 .acctmenu a:hover, .acctmenu button:hover { background: var(--soft); }
+
+/* ---------- merch, large like the original design ---------- */
+.merchgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.merchgrid > .empty { grid-column: 1 / -1; }
+.merchbig { display: flex; flex-direction: column; gap: 12px; }
+.mthumb { aspect-ratio: 16/9; border-radius: 22px; overflow: hidden; background: radial-gradient(120% 90% at 50% 30%, #ffffff, #e9e7f1); box-shadow: 0 0 0 1px var(--glass-line, var(--line)), var(--glass-shadow, none); }
+[data-theme="dark"] .mthumb { background: radial-gradient(120% 90% at 50% 30%, #2b2d38, #15161c); }
+.mthumb svg { width: 100%; height: 100%; display: block; transition: transform .4s ease; }
+.merchbig:hover .mthumb svg { transform: scale(1.04); }
+.minfo { display: flex; align-items: center; gap: 14px; }
+.minfo > div { flex: 1; min-width: 0; }
+.minfo h3 { font-size: 17px; font-weight: 600; }
+.minfo .price { font-size: 18px; font-weight: 700; }
+@media (max-width: 760px) { .merchgrid { grid-template-columns: 1fr; } }
+
+/* ---------- the page editor ---------- */
+dialog.editor { width: min(860px, calc(100vw - 32px)); max-height: min(860px, calc(100vh - 32px)); padding: 22px 24px 18px; }
+dialog.editor[open] { display: flex; flex-direction: column; }
+.edtop { display: flex; justify-content: space-between; align-items: center; }
+.edtop h2 { font: 400 30px var(--serif); }
+.edbody { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+.edbody label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.edbody .field { color: var(--text); }
+.edgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.edgrid3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+.edrow { display: flex; align-items: center; gap: 18px; }
+.edrow label.btn { display: inline-flex; flex-direction: row; color: var(--text); cursor: pointer; }
+.edhead { font: 400 22px var(--serif); margin-top: 6px; }
+.edlabel { font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+.edmerch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.edmerch .mthumb { position: sticky; top: 0; }
+.swatches { display: flex; gap: 8px; margin-top: 6px; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+.swatch.on { box-shadow: 0 0 0 2px var(--accent); }
+.picks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+.picks .ppick { aspect-ratio: 1; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: var(--soft); }
+.picks .ppick.on { border-color: var(--accent); }
+.picks .ppick.up { display: grid; place-items: center; font-size: 22px; color: var(--muted); border: 1px dashed var(--line); }
+.edlist { display: flex; flex-direction: column; gap: 8px; }
+.edline { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 14px; background: var(--soft); }
+.edline > span:not(.edthumb) { flex: 1; display: flex; flex-direction: column; line-height: 1.3; }
+.edline small { color: var(--muted); }
+.edthumb { width: 96px; flex: none; border-radius: 10px; overflow: hidden; background: var(--bg); }
+.edthumb svg { display: block; width: 100%; }
+.edfoot { display: flex; align-items: center; gap: 8px; padding-top: 14px; margin-top: 12px; border-top: 1px solid var(--line); }
+.edfoot > span { flex: 1; }
+@media (max-width: 700px) { .edmerch, .edgrid2, .edgrid3 { grid-template-columns: 1fr; } }
+
+/* ---------- the player's viewing modes ---------- */
+.viewmodes { position: absolute; top: 14px; right: 14px; z-index: 3; display: flex; padding: 3px; border-radius: 999px; background: rgba(10,11,15,.55); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.18); opacity: .8; transition: opacity .25s; }
+.player:hover .viewmodes, .viewmodes:focus-within, :root[data-cinema="on"] .viewmodes { opacity: 1; }
+.viewmodes button { border: 0; background: none; color: rgba(255,255,255,.8); font: 600 12px/1 inherit; font-family: inherit; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+.viewmodes button.on { background: #fff; color: #101216; }
+:root[data-cinema="on"] body { background: #050507; }
+:root[data-cinema="on"] .top { background: rgba(5,5,7,.6); }
+:root[data-cinema="on"] .watch { grid-template-columns: minmax(0, 1fr); max-width: none; }
+:root[data-cinema="on"] .stage { width: min(100%, calc((100vh - 190px) * 16 / 9)); margin: 0 auto; }
+:root[data-cinema="on"] .track, :root[data-cinema="on"] .scenecard { width: min(100%, calc((100vh - 190px) * 16 / 9)); margin-left: auto; margin-right: auto; }
+:root[data-cinema="on"] .stage .glow { opacity: 1; filter: blur(90px) saturate(1.8); transform: scale(1.14); }
+:root[data-cinema="on"] .player { border-radius: 14px; }
+:root[data-cinema="on"] .watch > div > :not(.stage), :root[data-cinema="on"] .watch > aside { opacity: .9; }
+:root[data-cinema="on"] .page-glow, :root[data-cinema="on"] body::before { opacity: 0; }
+
+/* ---------- a row that slides ---------- */
+.slideblock { position: relative; }
+.grid.slider { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, calc((100% - 44px) / 3)); grid-template-columns: none; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 8px; cursor: grab; }
+.grid.slider::-webkit-scrollbar { display: none; }
+.grid.slider > * { scroll-snap-align: start; }
+.grid.slider.dragging { cursor: grabbing; scroll-snap-type: none; }
+.grid.slider.dragging * { pointer-events: none; user-select: none; }
+.slidenav { position: absolute; top: 0; right: 0; display: flex; gap: 6px; }
+.slidenav .btn { width: 36px; height: 36px; font-size: 20px; line-height: 1; }
+.slidenav .btn:disabled { opacity: .35; cursor: default; }
