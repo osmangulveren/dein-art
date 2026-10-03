@@ -590,3 +590,11 @@ dialog.assetbox[open] { display: grid; grid-template-columns: minmax(0, 1.25fr) 
 .deploysteps li::before { content: counter(s); font: 400 26px var(--serif); color: var(--dot); }
 .deploysteps span { color: var(--muted); line-height: 1.4; }
 @media (max-width: 700px) { .deploysteps { grid-template-columns: 1fr; } }
+
+/* ---------- a wallet's NFTs and their metadata ---------- */
+.grid.tokens video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.tokendesc { max-height: 9.5em; overflow: auto; white-space: pre-line; line-height: 1.5; }
+.traits { display: flex; flex-wrap: wrap; gap: 6px; }
+.traits span { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 10px; background: var(--soft); font-size: 13px; font-weight: 600; line-height: 1.25; }
+.traits small { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }

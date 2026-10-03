@@ -36,6 +36,7 @@
     <button class="tab" data-tab="live">Live</button>
     <button class="tab" data-tab="assets">Assets</button>
     <button class="tab" data-tab="collections" data-chain-only hidden>NFT collections</button>
+    <button class="tab" data-tab="wallet" data-chain-only hidden>In wallet</button>
     <button class="tab" data-tab="merch">Merch</button>
     <button class="tab" data-tab="funding">Funding</button>
   </div>
@@ -55,6 +56,12 @@
   <div data-panel="collections" hidden>
     <div class="sec" style="margin-top:0"><h2>NFT collections</h2><p data-w="count"></p></div>
     <div data-w="collections"></div>
+  </div>
+  <div data-panel="wallet" hidden>
+    <div class="sec" style="margin-top:0"><h2>In this wallet</h2><p data-nft="count"></p></div>
+    <p class="muted small" data-nft="note"></p>
+    <div data-nft="list"></div>
+    <div class="more" data-nft="more" hidden><button class="btn">Load more</button></div>
   </div>
   <div class="grid" data-panel="merch" data-list="merch" data-by="@subject" data-empty="No merch yet." hidden></div>
   <div class="grid c3" data-panel="funding" data-list="campaigns" data-by="@subject" data-empty="No project is funding right now." hidden></div>
