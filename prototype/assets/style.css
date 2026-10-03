@@ -860,3 +860,9 @@ dialog.crewpop::backdrop { background: rgba(4,6,20,.72); backdrop-filter: blur(8
 .crewpop .crewcard .notch { color: #fff; }
 .peoplecards .crewcard .notch { color: var(--text); }
 .crewcard .cc-media { border-top-right-radius: 0; }
+
+/* a profile banner, when the artist has one */
+.pbanner { height: 220px; margin-top: 24px; border-radius: 24px; background-size: cover; background-position: center; box-shadow: 0 0 0 1px var(--line); }
+.pbanner + .profile { padding-top: 18px; align-items: flex-start; }
+.pbanner + .profile [data-p="avatar"] { margin-top: -84px; }
+.pbanner + .profile [data-p="avatar"] .avatar.lg { border: 5px solid var(--bg); width: 128px; height: 128px; }

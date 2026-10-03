@@ -15,7 +15,7 @@ const film = Object.fromEntries(CATALOG.films.map(f => [f.key, f]));
 const who = CATALOG.people;
 CATALOG.films.forEach(f => { f.creator = f.by[0]; });
 // Artists whose work lives on a blockchain are people like any other; they carry their wallet and collections.
-ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: 'Artist', pic: a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: [], occ: [], chain: a }; });
+ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: a.role || 'Artist', pic: a.pic || a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: a.credits || [], occ: [], chain: a, imdb: a.imdb }; });
 // Any wallet has a page: artist.html?wallet=0x… shows it even if no index lists the wallet yet, so its holder can claim it.
 const walletParam = (param('wallet') || '').trim();
 if (/^0x[0-9a-fA-F]{40}$/.test(walletParam) && !ONCHAIN.some(a => a.address.toLowerCase() === walletParam.toLowerCase())) {
@@ -151,7 +151,7 @@ document.body.insertAdjacentHTML('afterbegin', `
   <hr><h4>You</h4>
   ${side.you.map(sideLink).join('')}
   <hr><h4>Following</h4>
-  ${['F. W. Murnau', 'XCOPY', 'Buster Keaton', 'Jack Butcher'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
+  ${['Osman Burak Gülveren', 'F. W. Murnau', 'XCOPY', 'Buster Keaton'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
   <hr><h4>Explore</h4>
   ${side.explore.map(sideLink).join('')}
   <hr><p class="side-foot">Own your narrative.</p>
@@ -304,8 +304,8 @@ const related = [...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by
 // What is rising this week: films, the people behind them, and the companies that made them.
 const trending = ['nosferatu', 'sherlock-jr', 'man-with-a-movie-camera', 'trip-to-the-moon', 'the-general', 'cabinet-of-dr-caligari', 'impossible-voyage', 'nanook-of-the-north', 'within-our-gates', 'suspense']
   .map((k, i) => ({ ...film[k], rank: i + 1, up: [212, 148, 96, 81, 77, 64, 52, 40, 33, 21][i] }));
-const artists = [['Max Schreck', 64], ['XCOPY', 58], ['Buster Keaton', 51], ['Jack Butcher', 47], ['Yelizaveta Ignatevna Svilova', 43], ['F. W. Murnau', 38], ['Rosenlykke', 34], ['Lois Weber', 31], ['Dziga Vertov', 27], ['Han x Nicolas Daniel', 24], ['Oscar Micheaux', 22], ['Robert J. Flaherty', 15]]
-  .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: who[name].chain ? who[name].chain.collections.find(c => c.cc0).name : film[who[name].films[0]].title, rank: i + 1 }));
+const artists = [['Osman Burak Gülveren', 88], ['Max Schreck', 64], ['XCOPY', 58], ['Buster Keaton', 51], ['Jack Butcher', 47], ['Yelizaveta Ignatevna Svilova', 43], ['F. W. Murnau', 38], ['Rosenlykke', 34], ['Lois Weber', 31], ['Dziga Vertov', 27], ['Han x Nicolas Daniel', 24], ['Oscar Micheaux', 22], ['Robert J. Flaherty', 15]]
+  .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: who[name].chain ? (who[name].credits[0]?.list[0]?.title || who[name].chain.collections.find(c => c.cc0)?.name || who[name].chain.collections[0]?.name) : film[who[name].films[0]].title, rank: i + 1 }));
 const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukrainian Photo-Cinema Administration', 'Metro Pictures', 'Hal Roach Studios']
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
   .map(c => ({ name: c.name, tone: tone(c.name), href: (() => { const st = typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === c.name); return st ? 'studio.html?s=' + st.slug : watchUrl(film[c.films[0]]); })(),
@@ -488,13 +488,16 @@ $$('[data-campaign-pic]').forEach(i => { i.src = frame(film['conquest-of-the-pol
 /* ---------- people: artist pages and the Credits tab of a profile ---------- */
 
 const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
-const knownHtml = p => filmsOf(p).slice(0, 4).map(f => `<a class="poster" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"></div><b>${f.title}</b><span class="muted small">${f.crew.find(c => c.name === p.name)?.role || p.role} · ${f.year}</span><span class="muted small">${f.kind}</span></a>`).join('');
+const knownExternal = p => { const seen = new Set(); return p.credits.flatMap(c => c.list).filter(x => x.img && !seen.has(x.title) && seen.add(x.title)).slice(0, 4)
+  .map(x => `<a class="poster" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener"><div class="thumb"><img src="${x.img}" alt="" loading="lazy"></div><b>${x.title}</b><span class="muted small">${x.year || 'Upcoming'}</span><span class="muted small">${x.kind}</span></a>`).join(''); };
+const knownHtml = p => !p.films.length && p.credits.length ? knownExternal(p) : filmsOf(p).slice(0, 4).map(f => `<a class="poster" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"></div><b>${f.title}</b><span class="muted small">${f.crew.find(c => c.name === p.name)?.role || p.role} · ${f.year}</span><span class="muted small">${f.kind}</span></a>`).join('');
 const creditsHtml = p => p.credits.map((c, i) => `
   <details class="fold"${i ? '' : ' open'}>
     <summary><span><b>${c.role}</b><span class="muted small">${c.total} ${c.total === 1 ? 'title' : 'titles'}</span></span>${chev}</summary>
     <div class="rows">${c.list.map(x => {
       const f = film[x.key];
-      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${f ? `${f.kind} · ${f.dur}` : x.added ? 'Added by you' : 'Not on dein.art yet'}</span></div><span class="year">${x.year || ''}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : ''}</div>`;
+      const note = f ? `${f.kind} · ${f.dur}` : x.added ? 'Added by you' : x.kind ? [x.kind, x.credited, x.eps && `${x.eps} episodes`, x.upcoming && 'in post-production'].filter(Boolean).join(' · ') : 'Not on dein.art yet';
+      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
     }).join('')}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
   </details>`).join('');
 const totalCredits = p => p.credits.reduce((a, c) => a + c.total, 0);
@@ -505,7 +508,7 @@ $$('[data-credit-count]').forEach(el => { el.textContent = `${totalCredits(subje
 // One tile per NFT collection; it opens the collection's own page.
 const collUrl = (a, c) => `collection.html?artist=${encodeURIComponent(a.name)}&c=${c.slug}`;
 const tile = (c, cls = '') => c.tokens.length ? `<div class="thumb sq ${cls}"><img src="${c.tokens[0].img}" alt="" loading="lazy"></div>` : `<div class="thumb sq typo ${cls}"><span>${c.name}</span></div>`;
-const collCard = (a, c) => `<a class="card" href="${collUrl(a, c)}">${tile(c)}<h3>${c.name}</h3><p>${c.year}${c.minted ? ` · ${c.minted.toLocaleString('en-US')} pieces` : ''}${c.cc0 ? ' · CC0' : ''}</p></a>`;
+const collCard = (a, c) => `<a class="card" href="${collUrl(a, c)}">${tile(c)}<h3>${c.name}</h3><p>${[c.year, c.minted && `${c.minted.toLocaleString('en-US')} pieces`, c.own && c.chain, c.cc0 && 'CC0'].filter(Boolean).join(' · ')}</p></a>`;
 
 // A profile: the same page for every artist, and for the signed-in account.
 if (page === 'artist' || page === 'creator') {
@@ -520,7 +523,7 @@ if (page === 'artist' || page === 'creator') {
   const myMerch = [...merch.filter(m => m.creator === a.name), ...(edits.merch || []).map(m => ({ ...m, creator: a.name, added: true }))];
   $$('[data-merch]').forEach(el => { el.innerHTML = myMerch.length ? myMerch.map(merchCard).join('') : '<p class="muted empty">No merch yet.</p>'; });
   $$('[data-has-credits]').forEach(el => { el.hidden = !a.credits.length; });
-  set('creditnote', a.credits.length ? 'Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from Wikidata.'
+  set('creditnote', a.credits.length ? `Credits are added when a film is published and its crew is listed, so every cast and crew member builds a page like this one. These come from ${a.imdb && chain ? 'IMDb' : 'Wikidata'}.`
     : 'No credits yet. Credits are added when a work is published and the people who made it are listed.');
   const with_ = [...new Set(mine.flatMap(f => f.crew.map(c => c.name)))].filter(n => n !== a.name && who[n]).slice(0, 6);
   set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join(''));
@@ -529,13 +532,14 @@ if (page === 'artist' || page === 'creator') {
   if (chain) {
     if (chain.film) $('[data-panel="videos"]').innerHTML = `<a class="card" href="${chain.film.page}" target="_blank" rel="noopener"><div class="thumb typo"><span>${chain.film.title}</span><span class="badge dur">On the artist's site ↗</span></div><div class="meta">${face(a.name)}<div><h3>${chain.film.title}</h3><p>${a.name} · plays on ${chain.film.page.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p></div></div></a>`;
     const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0] || '—';
-    set('line', `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
-    if (chain.listed === false) set('bio', 'A wallet page. Whoever holds this wallet can claim it and start publishing here.'); else
+    set('line', chain.line ? `${chain.line} · <span class="mono">${chain.ens || short(chain.address)}</span>` : `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
+    if (chain.banner) $('.profile').insertAdjacentHTML('beforebegin', `<div class="pbanner" style="background-image:url('${chain.banner}')"></div>`);
+    if (chain.bio) set('bio', esc(chain.bio)); else if (chain.listed === false) set('bio', 'A wallet page. Whoever holds this wallet can claim it and start publishing here.'); else
     set('bio', `Has released work on-chain since ${first}${chain.collections.length <= 3 ? ': ' + chain.collections.map(c => c.name).join(', ') : `, across ${chain.collections.length} collections`}. This page is built from public records${chain.site ? ' and the list of work on the artist\'s own site' : ''}.`);
-    set('links', ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
+    set('links', (chain.links || []).map(([l, u]) => ext(u, l)).join('') + ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
     set('side', '<span class="pop" data-w="status"></span>');
     set('factstitle', 'On-chain record');
-    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`) + ' ' + copyBtn(chain.address)], ['Since', first], ['Collections', chain.collections.length], ['Pieces counted', pieces.toLocaleString('en-US')]].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`) + ' ' + copyBtn(chain.address)], ['ENS', chain.ens], ['Since', first !== '—' && first], ['Collections', chain.collections.length], ['Pieces counted', pieces && pieces.toLocaleString('en-US')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   } else {
     const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
     const lead = `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`;
@@ -568,7 +572,9 @@ if (page === 'collection') {
   set('acts', [c.page && ext(c.page, `See it on ${host(c.page)} ↗`, 'btn primary'), c.market && ext(c.market, `${host(c.market)} ↗`, 'btn'), c.contract && ext(`${scan}/address/${c.contract}`, 'Contract ↗', 'btn')].filter(Boolean).join(''));
   set('facts', [['Year', c.year], ['Pieces', c.minted && `${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted`], ['Chain', c.chain], ['Contract', c.contract && ext(`${scan}/address/${c.contract}`, `<span class="mono">${short(c.contract)}</span>`) + ' ' + copyBtn(c.contract)],
     ['Licence', c.cc0 ? 'CC0' : 'Not stated'], ['Source', c.minted ? 'On-chain record, as indexed by Art Blocks' : `Listed on ${host(c.page || a.site || '')}`]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
-  set('pieces', c.tokens.length ? `<div class="sec"><h2>Pieces</h2><p>${c.tokens.length} of ${c.minted.toLocaleString('en-US')} shown</p></div><div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
+  if (c.own) set('facts', [['Created by', `${a.name} · <span class="mono">${short(a.address)}</span>`], ['Chain', c.chain], ['Source', 'Listed on the artist\'s OpenSea profile']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+  if (c.own) set('acts', ext(c.market, 'See the pieces on OpenSea ↗', 'btn primary'));
+  set('pieces', c.own ? `<div class="box" style="margin-top:28px"><b>Made by ${a.name}</b><p>Shown here from its cover. Every piece in the collection is on OpenSea.</p></div>` : c.tokens.length ? `<div class="sec"><h2>Pieces</h2><p>${c.tokens.length} of ${c.minted.toLocaleString('en-US')} shown</p></div><div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
     : `<div class="box" style="margin-top:28px"><b>No images here yet</b><p>Images are shown only for collections whose licence is confirmed as CC0. This one's licence is not stated, so the work stays on the artist's own pages${c.page ? `: ${ext(c.page, host(c.page))}` : ''}. When the artist claims this page, they decide what appears here.</p></div>`);
   const others = a.collections.filter(x => x !== c);
   set('more', others.length ? `<div class="sec"><h2>More by ${a.name}</h2><a href="${artistUrl(a.name)}#collections">All ${a.collections.length}</a></div><div class="grid shelf colls">${others.slice(0, 6).map(x => collCard(a, x)).join('')}</div>` : '');
