@@ -57,6 +57,7 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 | Home | `index.html` |
 | Watch a film | `watch.html?f=…` |
 | Live | `live.html` |
+| Search results | `search.html` |
 | Marketplace | `market.html` |
 | Marketplace item | `item.html` |
 | Content category | `category.html` |
