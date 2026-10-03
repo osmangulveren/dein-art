@@ -9,12 +9,32 @@
   const index = [
     ...CATALOG.films.map(f => ({ g: 'Films', title: f.title, more: [f.by.join(' '), f.year, f.kind, f.country, f.company, (f.crew || []).map(c => c.name).join(' ')].join(' '), sub: `${byline(f)} · ${f.year} · ${f.kind}`, href: watchUrl(f), pic: frame(f, f.at, 250), ref: f })),
     ...added.map(t => ({ g: 'Films', title: t.title, more: [t.directors.map(d => d.name).join(' '), t.year, t.type, t.genres.join(' '), t.desc].join(' '), sub: `${t.directors.map(d => d.name).join(', ')} · ${t.year} · ${t.type}`, href: 'title.html?id=' + encodeURIComponent(t.id), pic: t.poster, added: t })),
-    ...Object.values(who).map(p => ({ g: 'People', title: p.name, more: [p.role, p.chain && p.chain.ens, p.chain && p.chain.address].join(' '), sub: p.role, href: artistUrl(p.name), person: p.name })),
+    ...Object.values(who).map(p => { const ens = p.chain && (p.chain.ens || ensListed[p.chain.address] || (ensKnown[p.chain.address] || {}).n); return { g: 'People', title: p.name, more: [p.role, ens, p.chain && p.chain.address].join(' '), sub: [p.role, ens].filter(Boolean).join(' · '), href: artistUrl(p.name), person: p.name, address: p.chain && p.chain.listed !== false && !ens ? p.chain.address : null }; }),
     ...studios.map(s => ({ g: 'Studios', title: s.name, more: [s.type, s.place, s.about].join(' '), sub: [s.type, s.place].filter(Boolean).join(' · '), href: 'studio.html?s=' + s.slug, studio: s })),
     ...CATEGORIES.map(([slug, label]) => ({ g: 'Categories', title: label, more: '', sub: 'Category', href: 'category.html?c=' + slug })),
     ...MARKET.map(it => ({ g: 'Marketplace', title: it.title, more: [it.by, it.cat, it.sub, it.desc, it.specs && it.specs.Tags, it.film && film[it.film] && film[it.film].title].join(' '), sub: `${it.sub || it.cat} · ${it.price ? '$' + it.price : 'Free'}`, href: itemUrl(it), pic: it.kind === 'merch' ? '' : it.pic, ref: it })),
   ].map(x => ({ ...x, t: fold(x.title), m: fold(x.more) }));
-  const GROUPS = ['Films', 'People', 'Studios', 'Categories', 'Marketplace'];
+  const GROUPS = ['Wallets', 'Films', 'People', 'Studios', 'Categories', 'Marketplace'];
+  // artists whose ENS name is not written down yet: ask once, then they are found by it
+  index.filter(x => x.address).forEach(x => resolveEns(x.address).then(n => { if (n) { x.m += ' ' + fold(n); x.sub += ' · ' + n; } }));
+
+  /* ---------- ENS: any name on Ethereum leads to its wallet's page ---------- */
+  const ensAsked = {};
+  const ensName = q => { const t = q.trim().toLowerCase(); return /^[a-z0-9-]{3,}(\.[a-z0-9-]{2,})*$/.test(t) && !/^0x[0-9a-f]{40}$/.test(t) ? (t.includes('.') ? t : t + '.eth') : null; };
+  const ensLookup = name => ensAsked[name] ||= fetch('https://bens.services.blockscout.com/api/v1/1/domains/' + encodeURIComponent(name)).then(r => (r.ok ? r.json() : null))
+    .then(d => { const a = d && d.resolved_address && d.resolved_address.hash; return a ? { name: d.name || name, address: a.toLowerCase() } : null; }).catch(() => null);
+  const walletEntry = (name, address) => {
+    const a = ONCHAIN.find(x => x.address === address && x.listed !== false), short = address.slice(0, 6) + '…' + address.slice(-4);
+    return a ? { g: 'Wallets', title: a.name, sub: `${name || short} · ${who[a.name].role}`, href: artistUrl(a.name), person: a.name }
+      : { g: 'Wallets', title: name || short, sub: `Wallet · ${short}`, href: 'artist.html?wallet=' + address, wallet: address };
+  };
+  // a wallet address, an ENS name, or a single word that is someone's .eth name
+  const walletHit = async q => {
+    const t = q.trim();
+    if (/^0x[0-9a-fA-F]{40}$/.test(t)) return walletEntry(null, t.toLowerCase());
+    const name = ensName(t), r = name && await ensLookup(name);
+    return r ? walletEntry(r.name, r.address) : null;
+  };
 
   function find(q) {
     const words = fold(q).split(/\s+/).filter(Boolean); if (!words.length) return [];
@@ -29,23 +49,33 @@
     }).filter(Boolean).sort((a, b) => b.score - a.score).map(r => r.x);
   }
   const mark = (text, q) => { const w = q.trim().split(/\s+/).filter(Boolean).map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); return w.length ? esc(text).replace(new RegExp(`(${w.join('|')})`, 'gi'), '<mark>$1</mark>') : esc(text); };
-  const thumb = x => x.person ? avatar(x.person) : x.studio ? `<span class="clogo" style="background:${tone(x.title)}">${initials(x.title)}</span>` : x.pic ? `<img class="sthumb" src="${x.pic}" alt="">` : `<span class="sthumb blank">${x.g === 'Categories' ? '#' : x.ref && x.ref.kind === 'merch' ? '◆' : '♪'}</span>`;
+  const thumb = x => x.wallet ? `<span class="avatar" style="background:${tone(x.wallet)}">◈</span>` : x.person ? avatar(x.person) : x.studio ? `<span class="clogo" style="background:${tone(x.title)}">${initials(x.title)}</span>` : x.pic ? `<img class="sthumb" src="${x.pic}" alt="">` : `<span class="sthumb blank">${x.g === 'Categories' ? '#' : x.ref && x.ref.kind === 'merch' ? '◆' : '♪'}</span>`;
 
   /* ---------- suggestions under the box ---------- */
   const form = $('.search'), input = form && $('input', form);
   if (form) {
-    input.placeholder = 'Search films, people, studios, footage, music';
+    input.placeholder = 'Search films, people, ENS names, footage, music';
     input.setAttribute('autocomplete', 'off');
     if (page === 'search') input.value = param('q') || '';
     form.insertAdjacentHTML('beforeend', '<div class="suggest" hidden></div>');
-    const box = $('.suggest', form); let at = -1;
+    const box = $('.suggest', form); let at = -1, asked = 0, timer;
+    const row = (x, q) => `<a class="sg" href="${x.href}">${thumb(x)}<span><b>${mark(x.title, q)}</b><small>${mark(x.sub, q)}</small></span></a>`;
     const go = q => { if (q.trim()) location.href = 'search.html?q=' + encodeURIComponent(q.trim()); };
     const draw = () => {
       const q = input.value, hits = find(q); at = -1;
       if (!q.trim()) { box.hidden = true; return; }
-      const rows = GROUPS.flatMap(g => { const list = hits.filter(x => x.g === g).slice(0, g === 'Marketplace' ? 4 : 3); return list.length ? [`<p class="sg-h">${g}</p>`, ...list.map(x => `<a class="sg" href="${x.href}">${thumb(x)}<span><b>${mark(x.title, q)}</b><small>${esc(x.sub)}</small></span></a>`)] : []; });
+      const rows = GROUPS.flatMap(g => { const list = hits.filter(x => x.g === g).slice(0, g === 'Marketplace' ? 4 : 3); return list.length ? [`<p class="sg-h">${g}</p>`, ...list.map(x => row(x, q))] : []; });
       box.innerHTML = (rows.join('') || `<p class="sg-none">Nothing found for “${esc(q)}”</p>`) + (hits.length ? `<a class="sg all" href="search.html?q=${encodeURIComponent(q.trim())}">${hits.length === 1 ? 'See the result' : `See all ${hits.length} results`} <span>↵</span></a>` : '');
       box.hidden = false;
+      // the wallet behind an ENS name arrives a moment later
+      const mine = ++asked; clearTimeout(timer);
+      // a bare word is tried as a .eth name only when nothing on dein.art matches it
+      if ((ensName(q) && (q.includes('.') || !hits.length)) || /^0x[0-9a-fA-F]{40}$/.test(q.trim())) timer = setTimeout(() => walletHit(q).then(x => {
+        if (mine !== asked || !x || $(`a.sg[href="${x.href}"]`, box)) return;
+        $('.sg-none', box)?.remove();
+        const html = `<p class="sg-h">Wallets</p>${row(x, q)}`;
+        q.includes('.') || q.trim().startsWith('0x') || !$('.sg.all', box) ? box.insertAdjacentHTML('afterbegin', html) : $('.sg.all', box).insertAdjacentHTML('beforebegin', html);
+      }), 250);
     };
     input.addEventListener('input', draw);
     input.addEventListener('focus', draw);
@@ -69,12 +99,13 @@
     const count = g => hits.filter(x => x.g === g).length;
     const card = {
       Films: x => x.ref ? cards.films(x.ref) : `<a class="card" href="${x.href}"><div class="thumb${x.pic ? '' : ' blank'}">${x.pic ? `<img src="${x.pic}" alt="">` : ''}<span class="badge kind">Added by you</span></div><div class="meta"><div><h3>${esc(x.title)}</h3><p>${esc(x.sub)}</p></div></div></a>`,
+      Wallets: x => `<a class="castp" href="${x.href}">${thumb(x)}<span><b>${esc(x.title)}</b><span class="muted small">${esc(x.sub)}</span></span></a>`,
       People: x => `<a class="castp" href="${x.href}">${thumb(x)}<span><b>${esc(x.title)}</b><span class="muted small">${esc(x.sub)}</span></span></a>`,
       Studios: x => `<a class="castp" href="${x.href}">${thumb(x)}<span><b>${esc(x.title)}</b><span class="muted small">${esc(x.sub)}</span></span></a>`,
       Categories: x => `<a class="chip" href="${x.href}">${esc(x.title)}</a>`,
       Marketplace: x => cards.assets(x.ref),
     };
-    const wrap = { Films: 'grid', People: 'cf-people', Studios: 'cf-people', Categories: 'cf-chips', Marketplace: 'grid' };
+    const wrap = { Wallets: 'cf-people', Films: 'grid', People: 'cf-people', Studios: 'cf-people', Categories: 'cf-chips', Marketplace: 'grid' };
     const draw = () => {
       const groups = GROUPS.filter(g => count(g) && (tab === 'All' || tab === g));
       out.innerHTML = `<div class="page-head"><h1>${q ? `Results for “${esc(q)}”` : 'Search'}</h1><p>${!q ? 'Type in the box above to search films, people, studios and the marketplace.' : hits.length ? `${hits.length} ${hits.length === 1 ? 'result' : 'results'}` : ''}</p></div>
@@ -86,5 +117,6 @@
     };
     out.addEventListener('click', e => { const b = e.target.closest('[data-in]'); if (!b) return; tab = b.dataset.in; const u = new URL(location.href); tab === 'All' ? u.searchParams.delete('in') : u.searchParams.set('in', tab); history.replaceState(null, '', u); draw(); window.scrollTo(0, 0); });
     draw();
+    if (q.includes('.') || q.startsWith('0x') || !hits.length) walletHit(q).then(x => { if (x && !hits.some(h => h.href === x.href)) { hits.unshift(x); draw(); } });
   }
 })();
