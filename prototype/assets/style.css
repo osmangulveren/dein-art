@@ -829,3 +829,34 @@ dialog.crewpop::backdrop { background: rgba(4,6,20,.72); backdrop-filter: blur(8
 .amountslide { margin-top: 12px; }
 .amountslide .heat { margin-top: 8px; }
 .claimbox .copybtn, .facts .copybtn, .acctmenu .copybtn { margin-left: 4px; }
+
+/* cast and crew: just the title and the cards; members on a studio page use the same cards */
+.crewpop [data-crew] { padding: 26px 30px 30px; }
+.crewtop { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+.crewtop h2 { font: 400 clamp(30px, 3.4vw, 44px)/1.1 var(--serif); }
+.crewtop .crewclose { position: static; }
+.crewpop .crewcol .slidenav { margin: -46px 62px 18px 0; }
+.crewpop .grid.crewcards { grid-auto-columns: calc((100% - 44px) / 3); }
+.crewcard .notch, .crewcard .notch::before, .crewcard .notch::after { --notch: #050507; }
+.crewcard .notch { background: var(--notch); }
+.crewcard .notch::before, .crewcard .notch::after { background: radial-gradient(circle at 0 100%, transparent 19.5px, var(--notch) 20px); }
+.grid.peoplecards { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.peoplecards .crewcard .notch, .peoplecards .crewcard .notch::before, .peoplecards .crewcard .notch::after { --notch: var(--bg); }
+.peoplecards .crewcard .notch i { border-color: rgba(127,127,140,.45); color: var(--text); }
+@media (max-width: 760px) { .crewpop .grid.crewcards { grid-auto-columns: 78%; } }
+
+/* the card's corner is cut out with a mask, so whatever is behind the card shows through the notch */
+.crewcard { background: none !important; overflow: visible; }
+.crewcard .cc-media { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, #2d3a8c, #0d0f1d);
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2074%2074%27%3E%3Cpath%20d=%27M0%200H74V74A20%2020%200%200%200%2054%2054H40A20%2020%200%200%201%2020%2034V20A20%2020%200%200%200%200%200Z%27/%3E%3C/svg%3E") right -1px top -1px / 75px 75px no-repeat, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: url("data:image/svg+xml;utf8,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2074%2074%27%3E%3Cpath%20d=%27M0%200H74V74A20%2020%200%200%200%2054%2054H40A20%2020%200%200%201%2020%2034V20A20%2020%200%200%200%200%200Z%27/%3E%3C/svg%3E") right -1px top -1px / 75px 75px no-repeat exclude, linear-gradient(#000 0 0); }
+.crewcard .cc-media::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(to top, rgba(5,5,7,.92), transparent); pointer-events: none; }
+.crewcard::after { content: none !important; }
+.crewcard:hover .cc-media img { transform: scale(1.05); }
+.crewcard .notch, .peoplecards .crewcard .notch { background: none !important; width: 54px; height: 54px; }
+.crewcard .notch::before, .crewcard .notch::after { content: none !important; }
+.crewcard .notch i { border-color: currentColor; opacity: .7; transition: opacity .2s, transform .2s; }
+.crewcard:hover .notch i { opacity: 1; transform: translate(1px, -1px); }
+.crewpop .crewcard .notch { color: #fff; }
+.peoplecards .crewcard .notch { color: var(--text); }
+.crewcard .cc-media { border-top-right-radius: 0; }

@@ -55,7 +55,7 @@ if (page === 'studio') {
     : artist ? sec('Collections', `<div class="grid shelf colls">${artist.collections.map(c => collCard(artist, c)).join('')}</div>`)
     : s.chain ? sec('Nouns', `<div class="grid tokens">${s.chain.pieces.map(p => `<a class="card" href="https://etherscan.io/nft/${s.chain.token}/${p.id}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${p.img}" alt=""></div><p>${esc(p.name || 'Noun ' + p.id)}</p></a>`).join('')}</div>`)
     : '<p class="muted empty">Nothing released here yet.</p>');
-  put('members', members.length ? `<div class="grid c3">${members.map(n => `<div class="channel">${avatar(n)}<a class="info" href="${artistUrl(n)}"><b>${esc(n)}</b><span class="muted small">${who[n]?.role || 'Member'}</span></a></div>`).join('')}</div>`
+  put('members', members.length ? `<div class="grid peoplecards">${members.map(n => personCard(n, who[n]?.role || 'Member')).join('')}</div>`
     : s.chain ? `<p class="muted empty">${s.chain.holders.toLocaleString('en-US')} wallets hold a Noun; each one is a member. ${ext(`https://eth.blockscout.com/token/${s.chain.token}?tab=holders`, 'See them on Blockscout')}</p>` : '<p class="muted empty">No members listed yet.</p>');
   const live = [...streams, ...more.live].filter(x => films.includes(film[x.key]));
   put('live', live.length ? live.map(cards.live).join('') : '<p class="muted empty">Not live right now.</p>');

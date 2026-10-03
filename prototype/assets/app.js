@@ -361,30 +361,20 @@ document.addEventListener('click', e => {
 
 /* ---------- cast and crew split ---------- */
 
+// A person as a large portrait card; the whole card opens their page.
+const personCard = (name, role, pct) => {
+  const pic = who[name]?.pic ? who[name].pic.replace('/120px-', '/500px-') : '';
+  return `<a class="crewcard" href="${artistUrl(name)}" aria-label="${esc(name)}, ${esc(role)}">
+    <span class="cc-media">${pic ? `<img src="${pic}" alt="" loading="lazy">` : `<span class="crewinit" style="--t:${tone(name)}">${initials(name)}</span>`}
+      <span class="crewname"><b>${esc(name)}</b><span>${esc(role)}</span></span>
+      ${pct ? `<span class="crewpct">${pct}%</span>` : ''}</span>
+    <span class="notch"><i>↗</i></span>
+  </a>`;
+};
 $$('[data-crew]').forEach(el => {
-  const big = n => who[n]?.pic ? who[n].pic.replace('/120px-', '/500px-') : '';
   el.innerHTML = `
-    <button class="btn icon crewclose" data-close aria-label="Close">✕</button>
-    <div class="crewhead">
-      <span class="pilltag">Cast &amp; crew</span>
-      <h2>Meet the <em>people</em> behind ${esc(cur.title)}.</h2>
-      <p>${crew.length} people made this film. Whatever it earns is theirs, shared the moment it comes in.</p>
-    </div>
-    <div class="crewbody">
-      <div class="crewstat">
-        <b>100<sup>%</sup></b>
-        <p>of everything ${esc(cur.title)} earns, from support, the marketplace and merch, goes to its cast and crew, split automatically on-chain.</p>
-        <div class="splitbar">${crew.map((c, i) => `<span style="width:${c.pct}%;opacity:${Math.max(.25, 1 - i * .12)}" title="${esc(c.name)} ${c.pct}%"></span>`).join('')}</div>
-        <p class="crewnote">Names and roles are the film's real credits, from Wikidata. The percentages are an example of a split.</p>
-      </div>
-      <div class="crewcol"><div class="grid crewcards" data-slider>${crew.map(c => `
-        <a class="crewcard" href="${artistUrl(c.name)}">
-          ${big(c.name) ? `<img src="${big(c.name)}" alt="" loading="lazy">` : `<span class="crewinit" style="--t:${tone(c.name)}">${initials(c.name)}</span>`}
-          <span class="notch"><i>↗</i></span>
-          <span class="crewname"><b>${esc(c.name)}</b><span>${esc(c.role)}</span></span>
-          <span class="crewpct">${c.pct}%</span>
-        </a>`).join('')}</div></div>
-    </div>`;
+    <div class="crewtop"><h2>Cast and crew</h2><button class="btn icon crewclose" data-close aria-label="Close">✕</button></div>
+    <div class="crewcol"><div class="grid crewcards" data-slider>${crew.map(c => personCard(c.name, c.role, c.pct)).join('')}</div></div>`;
 });
 
 /* ---------- pages about one film: watch and live ---------- */
