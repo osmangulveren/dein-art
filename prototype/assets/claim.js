@@ -16,7 +16,7 @@ const onchain = !!contractAt;
 const pageUrl = `${location.origin}${location.pathname}?${artist.listed === false ? 'wallet=' + artist.address : 'name=' + encodeURIComponent(artist.name)}`;
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 const noWallet = 'No wallet was found in this browser. Open this page in a browser with a wallet such as MetaMask or Rabby, or in your wallet app\'s browser.';
-const wrongWallet = account => `The connected wallet is <span class="mono">${short(account)}</span>. This page can only be claimed by <span class="mono">${short(artist.address)}</span>, the wallet on record.`;
+const wrongWallet = account => `The connected wallet is ${ensTag(account)}. This page can only be claimed by ${ensTag(artist.address)}, the wallet on record.`;
 const scanTx = h => `${CLAIMS.explorer}/tx/${h}`;
 
 /* ---------- the claim as a signed message, kept on this device (before the contract is deployed) ---------- */
@@ -80,7 +80,7 @@ function draw(note = '', tone = '') {
   if (done && onchain) return put('claim', `
     <div class="claimbox claimed">
       <div><h2>This page is claimed</h2>
-      <p>Claimed on ${record.at.toISOString().slice(0, 10)} by <span class="mono">${short(artist.address)}</span>, recorded on the Sepolia testnet. Anyone, on any device, sees the same record.</p>
+      <p>Claimed on ${record.at.toISOString().slice(0, 10)} by ${ensTag(artist.address)}, recorded on the Sepolia testnet. Anyone, on any device, sees the same record.</p>
       <p class="muted small">Test network: the record is real and public, the ETH used is not. ${record.tx ? `<a class="link" href="${scanTx(record.tx)}" target="_blank" rel="noopener">See the transaction</a> · ` : ''}<a class="link" href="${CLAIMS.explorer}/address/${contractAt}" target="_blank" rel="noopener">See the contract</a></p>
       ${noteHtml}</div>
       <div class="claimacts"><a class="btn primary" href="upload.html">Publish something</a><button class="btn" data-release>Release the claim</button></div>
@@ -88,7 +88,7 @@ function draw(note = '', tone = '') {
   if (done) return put('claim', `
     <div class="claimbox claimed">
       <div><h2>This page is claimed</h2>
-      <p>The message below was signed by <span class="mono">${short(artist.address)}</span>, the wallet on record${server ? `, and is kept by dein.art, so everyone sees this page as claimed${server.at ? ' since ' + new Date(server.at).toISOString().slice(0, 10) : ''}` : ''}. Anyone can check the signature against the message.</p>
+      <p>The message below was signed by ${ensTag(artist.address)}, the wallet on record${server ? `, and is kept by dein.art, so everyone sees this page as claimed${server.at ? ' since ' + new Date(server.at).toISOString().slice(0, 10) : ''}` : ''}. Anyone can check the signature against the message.</p>
       <p class="muted small">From here the artist edits the page, publishes new work and sets how earnings are shared.</p></div>
       <div class="claimacts"><a class="btn primary" href="upload.html">Publish something</a>${server ? '' : '<button class="btn" data-release>Release the claim</button>'}</div>
       <details class="fold" style="margin-top:14px"><summary><span><b>Proof</b><span class="muted small">The signed message and its signature</span></span></summary>
@@ -98,8 +98,8 @@ function draw(note = '', tone = '') {
     <div class="claimbox">
       <div><h2>Is this you? Claim this page</h2>
       <p>This page was built from public blockchain records and belongs to nobody yet. ${onchain
-        ? `Claim it from <span class="mono">${short(artist.address)}</span> ${copyBtn(artist.address)} and the claim is recorded on the Sepolia testnet, where anyone can see it. It costs a little test ETH, which is free.`
-        : `Sign one message with <span class="mono">${short(artist.address)}</span> ${copyBtn(artist.address)} and it is yours. It is free and it is not a transaction.`}</p>
+        ? `Claim it from ${ensTag(artist.address)} ${copyBtn(artist.address)} and the claim is recorded on the Sepolia testnet, where anyone can see it. It costs a little test ETH, which is free.`
+        : `Sign one message with ${ensTag(artist.address)} ${copyBtn(artist.address)} and it is yours. It is free and it is not a transaction.`}</p>
       ${noteHtml}</div>
       <div class="claimacts"><button class="btn primary" data-claim data-magnetic><span class="mag-in">Claim with wallet</span></button></div>
     </div>`);

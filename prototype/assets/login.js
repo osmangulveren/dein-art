@@ -46,7 +46,7 @@ const PRIVY_APP_ID = '';   // public app id from the Privy dashboard; empty unti
     const s = read();
     if (!s) { account.innerHTML = '<button class="btn" data-open-login>Log in</button>'; return; }
     account.innerHTML = `<details class="acct"><summary aria-label="Your account">${walletFace(s.address)}</summary>
-      <div class="acctmenu"><div><b>Signed in</b><span class="mono muted small">${short(s.address)} ${copyBtn(s.address)}</span></div>
+      <div class="acctmenu"><div><b>Signed in</b><span class="muted small">${ensTag(s.address)} ${copyBtn(s.address)}</span></div>
         <a href="artist.html?wallet=${s.address}">Your wallet page</a><a href="artist.html?wallet=${s.address}#wallet">Your NFTs</a><a href="creator.html">Sample creator page</a>
         <button data-logout>Log out</button></div></details>`;
   }

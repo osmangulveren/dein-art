@@ -168,3 +168,25 @@ function fileUpload(zone, { accept = '', onAll } = {}) {
   drop.addEventListener('dragleave', () => { drop.classList.remove('over'); badge.hidden = true; });
   drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); badge.hidden = true; add(e.dataTransfer.files); });
 }
+
+/* ---------- ENS names: a wallet is shown by its name when it has one ---------- */
+// Names are read from Blockscout's public index of Ethereum and remembered for a day.
+const ensKnown = (() => { try { return JSON.parse(localStorage.getItem('ens')) || {}; } catch { return {}; } })();
+const ensTag = (address, cls = 'mono') => { const a = String(address).toLowerCase(), hit = ensKnown[a]; return `<span class="${cls}" data-ens="${a}" title="${a}">${hit && hit.n ? uiEsc(hit.n) : a.slice(0, 6) + '…' + a.slice(-4)}</span>`; };
+const ensAsk = {};
+function resolveEns(address) {
+  const a = String(address).toLowerCase(), hit = ensKnown[a];
+  if (hit && Date.now() - hit.t < 864e5) return Promise.resolve(hit.n);
+  return ensAsk[a] ||= fetch('https://eth.blockscout.com/api/v2/addresses/' + a).then(r => r.ok ? r.json() : null).then(d => {
+    const n = d && d.ens_domain_name || null;
+    ensKnown[a] = { n, t: Date.now() }; try { localStorage.setItem('ens', JSON.stringify(ensKnown)); } catch {}
+    return n;
+  }).catch(() => null);
+}
+function fillEns() {
+  document.querySelectorAll('[data-ens]:not([data-ens-seen])').forEach(el => {
+    el.dataset.ensSeen = 1;
+    resolveEns(el.dataset.ens).then(n => { if (n && el.textContent !== n) el.textContent = n; });
+  });
+}
+new MutationObserver(fillEns).observe(document.documentElement, { childList: true, subtree: true });

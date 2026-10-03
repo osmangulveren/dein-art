@@ -176,13 +176,16 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 
 /* ---------- shared header and pay dialog ---------- */
 
+// What kind of thing a video is. The catalogue has films; the other kinds are ready for what creators publish.
+const CATEGORIES = [['feature-film', 'Feature film'], ['documentary', 'Documentary'], ['short-film', 'Short film'], ['animation', 'Animation'], ['series', 'Series'], ['vlog', 'Vlog'], ['entertainment', 'Entertainment'],
+  ['reality-show', 'Reality show'], ['podcast', 'Podcast'], ['course', 'Course'], ['tutorial', 'Tutorial'], ['music-video', 'Music video']];
+const categoryOf = f => f.kind === 'Documentary' ? 'documentary' : f.kind === 'Animation' ? 'animation' : f.kind === 'Short film' || f.secs < 2400 ? 'short-film' : 'feature-film';
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
   main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
   you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
         ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
-  explore: [['', 'Documentaries', 'watch.html?f=man-with-a-movie-camera', 'film'], ['', 'Short films', 'watch.html?f=great-train-robbery', 'film'], ['', 'Animation', 'watch.html?f=gertie-the-dinosaur', 'film'],
-            ['', 'Footage', 'market.html?kind=Footage', 'market'], ['', 'Music', 'market.html?kind=Music', 'market'], ['', 'Images', 'market.html?kind=Image', 'market']],
+  explore: CATEGORIES.map(([slug, label]) => ['cat-' + slug, label, 'category.html?c=' + slug, 'film']),
 };
 const sideLink = ([key, label, href, ic, rail]) => `<a class="sl${rail ? ' rail' : ''}" data-key="${key}" href="${href}">${icons[ic]}<span>${label}</span></a>`;
 document.body.insertAdjacentHTML('afterbegin', `
@@ -203,7 +206,7 @@ document.body.insertAdjacentHTML('afterbegin', `
   ${side.you.map(sideLink).join('')}
   <hr><h4>Following</h4>
   ${['Osman Burak Gülveren', 'F. W. Murnau', 'XCOPY', 'Buster Keaton'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
-  <hr><h4>Explore</h4>
+  <hr><h4>Categories</h4>
   ${side.explore.map(sideLink).join('')}
   <hr><p class="side-foot">Own your narrative.</p>
 </aside>
@@ -584,14 +587,15 @@ if (page === 'artist' || page === 'creator') {
   if (chain) {
     if (chain.film) $('[data-panel="videos"]').innerHTML = `<a class="card" href="${chain.film.page}" target="_blank" rel="noopener"><div class="thumb typo"><span>${chain.film.title}</span><span class="badge dur">On the artist's site ↗</span></div><div class="meta">${face(a.name)}<div><h3>${chain.film.title}</h3><p>${a.name} · plays on ${chain.film.page.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p></div></div></a>`;
     const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0] || '—';
-    set('line', chain.line ? `${chain.line} · <span class="mono">${chain.ens || short(chain.address)}</span>` : `Artist · <span class="mono">${short(chain.address)}</span> · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
+    set('line', chain.line ? `${chain.line} · ${ensTag(chain.address)}` : `Artist · ${ensTag(chain.address)} · ${chain.collections.length} ${chain.collections.length === 1 ? 'collection' : 'collections'} · ${pieces.toLocaleString('en-US')} pieces counted on-chain`);
     if (chain.banner) $('.profile').insertAdjacentHTML('beforebegin', `<div class="pbanner" style="background-image:url('${chain.banner}')"></div>`);
+    if (chain.listed === false) resolveEns(chain.address).then(n => { if (n) { set('name', esc(n)); document.title = `${n} — dein.art`; } });
     if (chain.bio) set('bio', esc(chain.bio)); else if (chain.listed === false) set('bio', 'A wallet page. Whoever holds this wallet can claim it and start publishing here.'); else
     set('bio', `Has released work on-chain since ${first}${chain.collections.length <= 3 ? ': ' + chain.collections.map(c => c.name).join(', ') : `, across ${chain.collections.length} collections`}. This page is built from public records${chain.site ? ' and the list of work on the artist\'s own site' : ''}.`);
     set('links', (chain.links || []).map(([l, u]) => ext(u, l)).join('') + ext(`https://etherscan.io/address/${chain.address}`, 'Wallet on Etherscan') + [chain.site, chain.website].filter(Boolean).map(u => ext(esc(u), esc(u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')))).join(''));
     set('side', '<span class="pop" data-w="status"></span>');
     set('factstitle', 'On-chain record');
-    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `<span class="mono">${short(chain.address)}</span>`) + ' ' + copyBtn(chain.address)], ['ENS', chain.ens], ['Since', first !== '—' && first], ['Collections', chain.collections.length], ['Pieces counted', pieces && pieces.toLocaleString('en-US')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+    set('facts', [['Wallet', ext(`https://etherscan.io/address/${chain.address}`, `${ensTag(chain.address)}`) + ' ' + copyBtn(chain.address)], ['ENS', chain.ens], ['Since', first !== '—' && first], ['Collections', chain.collections.length], ['Pieces counted', pieces && pieces.toLocaleString('en-US')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   } else {
     const born = a.born ? `Born in ${a.born}${a.bornIn ? ' in ' + a.bornIn : ''}${a.died ? `, died in ${a.died}${a.diedIn ? ' in ' + a.diedIn : ''}` : ''}.` : '';
     const lead = `${a.desc && a.desc.length < 60 ? a.desc[0].toUpperCase() + a.desc.slice(1) + '. ' : ''}${born} On dein.art as ${a.role.toLowerCase()} of ${mine.slice(0, 3).map(f => `"${f.title}" (${f.year})`).join(', ')}.`;
@@ -619,12 +623,12 @@ if (page === 'collection') {
   set('back', `<a class="muted small" href="${artistUrl(a.name)}#collections">← ${a.name}</a>`);
   set('cover', tile(c));
   set('name', c.name);
-  set('by', `<a href="${artistUrl(a.name)}">${avatar(a.name)}</a><a class="who" href="${artistUrl(a.name)}"><b>${a.name}</b><span class="muted small">Artist · <span class="mono">${short(a.address)}</span></span></a>`);
+  set('by', `<a href="${artistUrl(a.name)}">${avatar(a.name)}</a><a class="who" href="${artistUrl(a.name)}"><b>${a.name}</b><span class="muted small">Artist · ${ensTag(a.address)}</span></a>`);
   set('about', c.about || `A collection by ${a.name}, minted on ${c.chain || 'a blockchain'} in ${c.year}.`);
   set('acts', [c.page && ext(c.page, `See it on ${host(c.page)} ↗`, 'btn primary'), c.market && ext(c.market, `${host(c.market)} ↗`, 'btn'), c.contract && ext(`${scan}/address/${c.contract}`, 'Contract ↗', 'btn')].filter(Boolean).join(''));
   set('facts', [['Year', c.year], ['Pieces', c.minted && `${c.minted.toLocaleString('en-US')} of ${c.max.toLocaleString('en-US')} minted`], ['Chain', c.chain], ['Contract', c.contract && ext(`${scan}/address/${c.contract}`, `<span class="mono">${short(c.contract)}</span>`) + ' ' + copyBtn(c.contract)],
     ['Licence', c.cc0 ? 'CC0' : 'Not stated'], ['Source', c.minted ? 'On-chain record, as indexed by Art Blocks' : `Listed on ${host(c.page || a.site || '')}`]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
-  if (c.own) set('facts', [['Created by', `${a.name} · <span class="mono">${short(a.address)}</span>`], ['Chain', c.chain], ['Source', 'Listed on the artist\'s OpenSea profile']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
+  if (c.own) set('facts', [['Created by', `${a.name} · ${ensTag(a.address)}`], ['Chain', c.chain], ['Source', 'Listed on the artist\'s OpenSea profile']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   if (c.own) set('acts', ext(c.market, 'See the pieces on OpenSea ↗', 'btn primary'));
   set('pieces', c.own ? `<div class="box" style="margin-top:28px"><b>Made by ${a.name}</b><p>Shown here from its cover. Every piece in the collection is on OpenSea.</p></div>` : c.tokens.length ? `<div class="sec"><h2>Pieces</h2><p>${c.tokens.length} of ${c.minted.toLocaleString('en-US')} shown</p></div><div class="grid tokens">${c.tokens.map(t => `<a class="card" href="${t.live}" target="_blank" rel="noopener"><div class="thumb sq"><img src="${t.img}" alt="" loading="lazy"></div><p>#${t.n}</p></a>`).join('')}</div>`
     : `<div class="box" style="margin-top:28px"><b>No images here yet</b><p>Images are shown only for collections whose licence is confirmed as CC0. This one's licence is not stated, so the work stays on the artist's own pages${c.page ? `: ${ext(c.page, host(c.page))}` : ''}. When the artist claims this page, they decide what appears here.</p></div>`);
@@ -650,6 +654,21 @@ if (page === 'artist' || page === 'creator') {
 }
 
 initCharts(); initHeat();
+
+/* ---------- a content category ---------- */
+
+if (page === 'category') {
+  const [slug, label] = CATEGORIES.find(c => c[0] === param('c')) || CATEGORIES[0];
+  const list = CATALOG.films.filter(f => categoryOf(f) === slug);
+  document.title = `${label} — dein.art`;
+  const many = label.replace(/y$/, 'ie').replace(/s$/, '') + 's';
+  $('[data-cat="title"]').textContent = many;
+  $('[data-cat="count"]').textContent = list.length ? `${list.length} to watch, free` : '';
+  $('[data-cat="chips"]').innerHTML = CATEGORIES.map(([sl, l]) => `<a class="chip${sl === slug ? ' on' : ''}" href="category.html?c=${sl}">${l}</a>`).join('');
+  $('[data-cat="grid"]').innerHTML = list.map(cards.films).join('') || `<div class="box" style="grid-column:1/-1"><b>No ${many.toLowerCase()} here yet</b><p>This category is ready for the first one. <a class="link" href="upload.html">Publish yours</a>.</p></div>`;
+  $$('.sl').forEach(l => l.classList.toggle('on', l.dataset.key === 'cat-' + slug));
+  fillViews();
+}
 
 /* ---------- chips and tabs ---------- */
 
