@@ -3,7 +3,7 @@
 // POST /api/views/:id            -> { id, views }   (one watch)
 // GET  /api/claims?address=0x…   -> { claimed, at, message, signature }
 // POST /api/claims  { message, signature }  -> stores a page claim after checking the signature
-// GET  /api/download?url=…&name=…  -> a free Wikimedia Commons file, sent as a download
+// GET  /api/download?url=…&name=…  -> a free Wikimedia Commons or Freesound file, sent as a download
 // Everything lives in one Durable Object with SQLite storage, so every visitor sees the same data.
 import { DurableObject } from 'cloudflare:workers';
 import { verifyMessage } from 'ethers';
@@ -61,10 +61,10 @@ export default {
       if (!named || signer !== named.toLowerCase()) return json({ error: 'signature does not match the wallet' }, 403);
       return json(await counter.saveClaim(signer, message, signature));
     }
-    // Free files from Wikimedia Commons, served as a download from dein.art itself, so the visitor stays on the site.
+    // Free files from Wikimedia Commons and Freesound, served as a download from dein.art itself, so the visitor stays on the site.
     if (url.pathname === '/api/download' && request.method === 'GET') {
       let src; try { src = new URL(url.searchParams.get('url') || ''); } catch { return json({ error: 'bad url' }, 400); }
-      if (src.protocol !== 'https:' || src.hostname !== 'upload.wikimedia.org') return json({ error: 'not an allowed source' }, 403);
+      if (src.protocol !== 'https:' || !['upload.wikimedia.org', 'cdn.freesound.org'].includes(src.hostname)) return json({ error: 'not an allowed source' }, 403);
       const name = (url.searchParams.get('name') || src.pathname.split('/').pop()).replace(/[^\w.\- ()]+/g, '_').slice(0, 120);
       const r = await fetch(src.toString(), { headers: { 'User-Agent': 'dein-art/0.1 (https://github.com/osmangulveren/dein-art)' } });
       if (!r.ok) return json({ error: 'source answered ' + r.status }, 502);

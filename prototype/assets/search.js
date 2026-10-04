@@ -6,14 +6,23 @@
   const added = (() => { try { return Object.values(JSON.parse(localStorage.getItem('titles')) || {}); } catch { return []; } })();
   const studios = typeof STUDIOS !== 'undefined' ? STUDIOS : [];
   // every searchable thing: its group, what it is called, what else it can be found by, and where it lives
+  const marketEntry = it => ({ g: 'Marketplace', title: it.title, more: [it.by, it.cat, it.sub, it.desc, it.specs && it.specs.Tags, it.film && film[it.film] && film[it.film].title].join(' '), sub: `${it.sub || it.cat} · ${it.price ? '$' + it.price : 'Free'}`, href: itemUrl(it), pic: it.kind === 'merch' ? '' : it.pic, ref: it });
   const index = [
     ...CATALOG.films.map(f => ({ g: 'Films', title: f.title, more: [f.by.join(' '), f.year, f.kind, f.country, f.company, (f.crew || []).map(c => c.name).join(' ')].join(' '), sub: `${byline(f)} · ${f.year} · ${f.kind}`, href: watchUrl(f), pic: frame(f, f.at, 250), ref: f })),
     ...added.map(t => ({ g: 'Films', title: t.title, more: [t.directors.map(d => d.name).join(' '), t.year, t.type, t.genres.join(' '), t.desc].join(' '), sub: `${t.directors.map(d => d.name).join(', ')} · ${t.year} · ${t.type}`, href: 'title.html?id=' + encodeURIComponent(t.id), pic: t.poster, added: t })),
     ...Object.values(who).map(p => { const ens = p.chain && (p.chain.ens || ensListed[p.chain.address] || (ensKnown[p.chain.address] || {}).n); return { g: 'People', title: p.name, more: [p.role, ens, p.chain && p.chain.address].join(' '), sub: [p.role, ens].filter(Boolean).join(' · '), href: artistUrl(p.name), person: p.name, address: p.chain && p.chain.listed !== false && !ens ? p.chain.address : null }; }),
     ...studios.map(s => ({ g: 'Studios', title: s.name, more: [s.type, s.place, s.about].join(' '), sub: [s.type, s.place].filter(Boolean).join(' · '), href: 'studio.html?s=' + s.slug, studio: s })),
     ...CATEGORIES.map(([slug, label]) => ({ g: 'Categories', title: label, more: '', sub: 'Category', href: 'category.html?c=' + slug })),
-    ...MARKET.map(it => ({ g: 'Marketplace', title: it.title, more: [it.by, it.cat, it.sub, it.desc, it.specs && it.specs.Tags, it.film && film[it.film] && film[it.film].title].join(' '), sub: `${it.sub || it.cat} · ${it.price ? '$' + it.price : 'Free'}`, href: itemUrl(it), pic: it.kind === 'merch' ? '' : it.pic, ref: it })),
+    ...MARKET.map(marketEntry),
   ].map(x => ({ ...x, t: fold(x.title), m: fold(x.more) }));
+  // the big free library joins the search the first time the box is used (it is already there on the marketplace pages)
+  let libraryAsked = typeof LIBRARY !== 'undefined';
+  const withLibrary = then => {
+    if (libraryAsked) return; libraryAsked = true;
+    const sc = document.createElement('script'); sc.src = 'assets/library.js';
+    sc.onload = () => { addLibrary(MARKET, addLibrary.seen).forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }); then(); };
+    document.head.append(sc);
+  };
   const GROUPS = ['Wallets', 'Films', 'People', 'Studios', 'Categories', 'Marketplace'];
   // artists whose ENS name is not written down yet: ask once, then they are found by it
   index.filter(x => x.address).forEach(x => resolveEns(x.address).then(n => { if (n) { x.m += ' ' + fold(n); x.sub += ' · ' + n; } }));
@@ -78,7 +87,7 @@
       }), 250);
     };
     input.addEventListener('input', draw);
-    input.addEventListener('focus', draw);
+    input.addEventListener('focus', () => { withLibrary(() => { if (!box.hidden) draw(); }); draw(); });
     input.addEventListener('keydown', e => {
       const links = $$('a.sg', box);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!links.length) return; at = (at + (e.key === 'ArrowDown' ? 1 : -1) + links.length + (at < 0 && e.key === 'ArrowUp' ? 1 : 0)) % links.length; links.forEach((l, i) => l.classList.toggle('on', i === at)); links[at].scrollIntoView({ block: 'nearest' }); }

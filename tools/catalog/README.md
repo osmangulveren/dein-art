@@ -27,3 +27,10 @@ python3 9_founder.py      # write ../../prototype/assets/founder.js (data copied
 `6_onchain.py` stands alone. It reads Art Blocks' public index of its Ethereum contracts and lists artists who released at least one collection under CC0, with the wallet that created the work. Those artists have not joined dein.art; their pages on the demo are unclaimed until signed for with that wallet.
 
 `films.py` lists the films and their descriptions. `picks.py` holds the thumbnail frame and the scenes chosen for each film. Responses are cached in `cache/`, which is not committed.
+
+## The free library
+
+`11_library.py` builds `prototype/assets/library.js`: about 10,000 free files for the marketplace — footage, music,
+photos and images, scripts and documents from Wikimedia Commons (public domain or CC0 only, checked twice), and CC0
+sound effects from Freesound, found through the Openverse API. Nothing is copied: the site links the originals and
+downloads go through `/api/download`. Openverse allows 200 requests a day without a key; answers are cached in `cache/`.

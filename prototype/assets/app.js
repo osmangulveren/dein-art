@@ -83,8 +83,38 @@ function mockup(m) {
 const merchCard = m => `<a class="merchbig" href="${itemUrl(m)}"><div class="mthumb">${mockup(m)}</div><div class="minfo"><div><h3>${esc(m.title)}</h3><p class="muted small">${PRODUCTS[m.type] || 'Merch'} · printed on demand${m.added ? ' · added by you' : ''}</p></div><span class="price">$${m.price}</span><span class="btn dark">View</span></div></a>`;
 
 // Everything in the marketplace, from every source, in one list.
+// The big free library (assets/library.js): thousands of public-domain and CC0 files on Wikimedia Commons, linked, not copied.
+// The file is large, so only the marketplace pages load it up front; search fetches it when someone starts typing.
+function addLibrary(list, seen) {
+  if (typeof LIBRARY === 'undefined' || addLibrary.done) return [];
+  addLibrary.done = true;
+  const up = 'https://upload.wikimedia.org/wikipedia/commons/', added = [], clock = n => (n >= 3600 ? Math.floor(n / 3600) + ':' + String(Math.floor(n / 60) % 60).padStart(2, '0') : Math.floor(n / 60)) + ':' + String(n % 60).padStart(2, '0');
+  Object.entries(LIBRARY).forEach(([cat, rows]) => rows.forEach(([sub, title, path, w, h, secs, size, cc0, credit, page]) => {
+    if (/^https:/.test(path)) {                                    // a CC0 sound on Freesound: the address is the file itself
+      const id = 'fs-' + (path.match(/(\d+)_\d+-hq/) || [0, slugify(title)])[1];
+      if (seen.has(id)) return;
+      const it = { id, cat, sub, title, by: credit || 'Freesound', price: 0, lic: 'CC0', lib: true, kind: 'audio', pic: '', big: '', dur: clock(secs), audio: path,
+        files: [{ name: slugify(title) + '.mp3', size, url: path }], source: page, sourceName: 'Freesound', specs: { Length: clock(secs), Format: 'MP3' },
+        desc: `${title}. A sound by ${credit || 'a Freesound member'}, released under CC0: free to use in any project, no credit needed.` };
+      it.creator = it.by; seen.add(id); list.push(it); added.push(it); return;
+    }
+    const name = path.split('/').pop(), enc = path.split('/').map(encodeURIComponent).join('/'), file = encodeURIComponent(name), ext = name.split('.').pop().toLowerCase();
+    const id = 'lib-' + path.slice(2, 4) + '-' + slugify(name.replace(/\.[^.]+$/, ''));
+    if (seen.has(id)) return;
+    const thumb = n => `${up}thumb/${enc}/${cat === 'Footage' ? n + 'px--' + file + '.jpg' : cat === 'Scripts & documents' ? 'page1-' + n + 'px-' + file + '.jpg' : n + 'px-' + file}`;
+    const sound = cat === 'Music' || cat === 'Sound effects', film = cat === 'Footage';
+    const it = { id, cat, sub, title, by: credit || 'Wikimedia Commons', price: 0, lic: cc0 ? 'CC0' : 'Public domain', lib: true, kind: sound ? 'audio' : film ? 'video' : 'image',
+      pic: sound ? '' : thumb(500), big: sound ? '' : film ? thumb(960 > w ? 500 : 960) : cat === 'Scripts & documents' ? thumb(w >= 1000 ? 960 : 500) : thumb(1280), dur: secs ? clock(secs) : '',
+      video: film ? `${up}transcoded/${enc}/${file}.480p.vp9.webm` : undefined, audio: sound ? (ext === 'mp3' ? up + enc : `${up}transcoded/${enc}/${file}.mp3`) : undefined,
+      files: [{ name, size, url: up + enc }], source: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(name.replace(/ /g, '_')),
+      specs: { ...(secs ? { Length: clock(secs) } : {}), ...(w ? { Size: `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} px` } : {}), Format: ext.toUpperCase() },
+      desc: `${title}. ${cc0 ? 'Released under CC0' : 'In the public domain'}, free to use in any project.` };
+    it.creator = it.by; seen.add(id); list.push(it); added.push(it);
+  }));
+  return added;
+}
 const MARKET = (() => {
-  const list = [], seen = new Set();
+  const list = [], seen = addLibrary.seen = new Set();
   const add = it => { if (it && it.id && !seen.has(it.id)) { seen.add(it.id); list.push({ creator: it.by, ...it }); } };
   const extra = typeof MARKET_EXTRA !== 'undefined' ? MARKET_EXTRA : [];
   // what the creator shared from this browser comes first
@@ -118,6 +148,7 @@ const MARKET = (() => {
     id: `nft-${c.slug}-${t.n}`, cat: 'Photos & images', sub: 'Digital art', title: `${c.name} #${t.n}`, by: a.name, price: 0, lic: 'CC0', kind: 'image', pic: t.img, big: t.img.replace('/thumb/', '/'),
     files: [{ name: `${c.slug}-${t.n}.png`, url: t.img.replace('/thumb/', '/'), direct: true }], collection: { name: c.name, url: `collection.html?artist=${encodeURIComponent(a.name)}&c=${c.slug}` },
     specs: { Collection: c.name, Year: c.year, Chain: c.chain }, desc: `Piece #${t.n} of ${c.name} by ${a.name}, released under CC0.` }))));
+  addLibrary(list, seen);
   return list;
   function fromFootage(a) { return { id: 'ft-' + slugify(a.title), cat: 'Footage', sub: /NASA/.test(a.by) ? 'Space & science' : 'Archival film', title: a.title, by: a.by, price: 0, lic: a.lic, kind: 'video', pic: frame(a, Math.round(a.secs * .3)),
     video: a.webm, mov: a.mov, files: [{ name: slugify(a.title) + '.webm', url: a.webm }], specs: { Length: a.dur, Format: 'WebM' }, source: a.page, desc: `${a.title}. ${a.dur} of public-domain footage, free to use.` }; }

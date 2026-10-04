@@ -31,7 +31,7 @@ SFX = {
  'Weather & nature': [('Rain and thunder (1).ogg', 'Rain and thunder'), ('Rain against the window.ogg', 'Rain against a window'), ('Howling wind.ogg', 'Howling wind'), ('Birds chirping in a garden.ogg', 'Birds in a garden'), ('Rain thunder and birds.ogg', 'Rain, thunder and birds')],
  'Rooms & ambience': [('Restaurant ambience.ogg', 'Restaurant ambience'), ('Shopping mall less crowded.ogg', 'Shopping mall'), ('Indoor swimming pool hall.ogg', 'Indoor swimming pool'), ('1 minute at the alexa mall in berlin.ogg', 'A minute in a Berlin mall')],
  'Foley & objects': [('Door handle creaking.ogg', 'Door handle creak'), ('Metal cabinet door jarring.ogg', 'Metal cabinet door'), ('Rusty metal door clasp.ogg', 'Rusty door clasp'), ('Clock ticking.ogg', 'Clock ticking'), ('Alarm clock ticking.ogg', 'Alarm clock ticking'), ('406243 stubb typewriter-ding-near-mono.wav', 'Typewriter bell'), ('Car Horn.wav', 'Car horn'), ('Steam engine.ogg', 'Steam engine')],
- 'Applause & crowd': [('Clapping hurray.ogg', 'Clapping and cheering'), ('277021 sandermotions applause-2.wav', 'Applause'), ('619016 mrrap4food clapping-then-leaving.mp3', 'Clapping, then leaving')],
+ 'People': [('Clapping hurray.ogg', 'Clapping and cheering'), ('277021 sandermotions applause-2.wav', 'Applause'), ('619016 mrrap4food clapping-then-leaving.mp3', 'Clapping, then leaving')],
 }
 os.makedirs(f'{SITE}/files/sfx', exist_ok=True)
 for pack, sounds in SFX.items():
@@ -71,8 +71,8 @@ for f, title, by, year, sub in PHOTOS:
 # ---------- footage ----------
 FOOTAGE = [('Earth Illuminated- ISS Time-lapse Photography.webm', 'Earth at night from the Space Station', 'NASA', 'Space & science'), ('Artemis I Launch to ICPS (1222409007178).webm', 'Artemis I launch', 'NASA', 'Space & science'),
  ('Falcon 9 Flight 99 first stage landing (KSC-20201121-MH-MAT01-0001).webm', 'Falcon 9 booster landing', 'NASA', 'Space & science'), ('STS-132 Liftoff Space Shuttle Atlantis.ogv', 'Space Shuttle Atlantis lift-off', 'NASA', 'Space & science'),
- ('Jellyfish- 2016 Deepwater Exploration of the Marianas.webm', 'Deep-sea jellyfish', 'NOAA', 'Nature'), ('Underwater video of melon-headed whales at Palmyra Atoll.webm', 'Melon-headed whales underwater', 'U.S. Fish and Wildlife Service', 'Nature'),
- ('Sunrise high tide on the Oregon Coast (38715168302).webm', 'Sunrise at high tide, Oregon coast', 'Bureau of Land Management', 'Nature'), ('Kilauea volcano eruption- Watch incredible footage of lava lake.webm', 'Kilauea lava lake', 'USGS', 'Nature')]
+ ('Jellyfish- 2016 Deepwater Exploration of the Marianas.webm', 'Deep-sea jellyfish', 'NOAA', 'Nature & wildlife'), ('Underwater video of melon-headed whales at Palmyra Atoll.webm', 'Melon-headed whales underwater', 'U.S. Fish and Wildlife Service', 'Nature & wildlife'),
+ ('Sunrise high tide on the Oregon Coast (38715168302).webm', 'Sunrise at high tide, Oregon coast', 'Bureau of Land Management', 'Nature & wildlife'), ('Kilauea volcano eruption- Watch incredible footage of lava lake.webm', 'Kilauea lava lake', 'USGS', 'Nature & wildlife')]
 for f, title, by, sub in FOOTAGE:
     i = info(f)
     if not i: continue

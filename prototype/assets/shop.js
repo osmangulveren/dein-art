@@ -5,7 +5,7 @@
 const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents', 'Merch'].filter(c => MARKET.some(it => it.cat === c));
 const bytes = n => !n ? '' : n > 1e9 ? (n / 1e9).toFixed(2) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
 // a free file is fetched through dein.art when it lives on Wikimedia Commons, so the visitor never leaves the site
-const downloadUrl = f => /^https:\/\/upload\.wikimedia\.org\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
+const downloadUrl = f => /^https:\/\/(upload\.wikimedia\.org|cdn\.freesound\.org)\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
 
 /* ---------- the marketplace ---------- */
 if ($('[data-shop="grid"]')) {
@@ -55,7 +55,7 @@ if ($('[data-i="title"]')) {
   put('kind', it.sub === 'Packs' ? 'Sound pack' : it.cat === 'Merch' ? (PRODUCTS[it.type] || 'Merch') : it.sub);
   put('title', esc(it.title));
   const page = artistUrl(it.by), studio = it.by === 'dein.art Studio';
-  put('by', `${who[it.by] ? `<a href="${page}">${avatar(it.by)}</a>` : `<span class="avatar" style="background:${tone(it.by)}">${initials(it.by)}</span>`}<span class="who"><b>${who[it.by] ? `<a href="${page}">${esc(it.by)}</a>` : esc(it.by)}</b><span class="muted small">${it.perf ? 'Performed by ' + esc(it.perf) : studio ? 'Made by dein.art for creators' : it.cat === 'Merch' ? 'Offered by the creator' : 'Shared on dein.art'}</span></span>`);
+  put('by', `${who[it.by] ? `<a href="${page}">${avatar(it.by)}</a>` : `<span class="avatar" style="background:${tone(it.by)}">${initials(it.by)}</span>`}<span class="who"><b>${who[it.by] ? `<a href="${page}">${esc(it.by)}</a>` : esc(it.by)}</b><span class="muted small">${it.perf ? 'Performed by ' + esc(it.perf) : studio ? 'Made by dein.art for creators' : it.cat === 'Merch' ? 'Offered by the creator' : it.lib ? 'Free library · from ' + (it.sourceName || 'Wikimedia Commons') : 'Shared on dein.art'}</span></span>`);
   put('price', free ? '<b class="free">Free</b><span class="muted small">' + esc(it.lic) + '</span>' : `<b>$${it.price}</b><span class="muted small">${it.cat === 'Merch' ? 'plus shipping · made to order' : esc(it.lic)}</span>`);
 
   // the preview: a picture (with a gallery), a player, or the product itself
@@ -78,7 +78,7 @@ if ($('[data-i="title"]')) {
   put('facts', Object.entries({ Category: `${it.cat} · ${it.sub}`, ...(it.specs || {}), Licence: it.lic }).filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')
     + (it.collection ? `<dt>Collection</dt><dd><a class="link" href="${it.collection.url}">${esc(it.collection.name)}</a></dd>` : ''));
   put('works', (it.works || []).length ? `<p class="edlabel" style="flex-basis:100%;margin:0">Works with</p>${it.works.map(w => `<span>${w}</span>`).join('')}` : '');
-  put('desc', `<div class="sec" style="margin-top:0"><h2>About this ${it.cat === 'Merch' ? 'product' : it.sub === 'Packs' ? 'pack' : 'item'}</h2></div><p class="lead">${esc(it.desc || '')}</p>${it.source ? `<p class="muted small" style="margin-top:10px">Original file from <a class="link" href="${it.source}" target="_blank" rel="noopener">Wikimedia Commons</a>, ${esc(it.lic).toLowerCase()}.</p>` : ''}`);
+  put('desc', `<div class="sec" style="margin-top:0"><h2>About this ${it.cat === 'Merch' ? 'product' : it.sub === 'Packs' ? 'pack' : 'item'}</h2></div><p class="lead">${esc(it.desc || '')}</p>${it.source ? `<p class="muted small" style="margin-top:10px">Original file from <a class="link" href="${it.source}" target="_blank" rel="noopener">${it.sourceName || 'Wikimedia Commons'}</a>, ${it.lic === 'CC0' ? 'CC0' : esc(it.lic).toLowerCase()}.</p>` : ''}`);
   put('contents', it.contents ? `<div class="sec"><h2>In this pack</h2><p>${it.contents.length} sounds</p></div><div class="rows">${it.contents.map(c => `<div class="row"><button class="btn icon" data-audio="${c.audio}" aria-label="Play ${esc(c.title)}">▶</button><div class="info"><b>${esc(c.title)}</b><span class="muted small">${c.length}</span></div><a class="btn" href="item.html?id=${c.id}">Open</a></div>`).join('')}</div>` : '');
   put('files', files.length && (free || it.mine) ? `<div class="sec" id="files"><h2>${files.length === 1 ? 'File' : 'Files'}</h2></div><div class="rows">${files.map(x => `<div class="row"><div class="info"><b>${esc(x.name)}</b><span class="muted small">${[bytes(x.size), x.note].filter(Boolean).map(esc).join(' · ')}</span></div>${!free ? '' : x.url ? `<a class="btn dark" href="${downloadUrl(x)}" download="${esc(x.name)}">↓ Download</a>` : '<span class="muted small">Not uploaded</span>'}</div>`).join('')}</div>` : '');
   if (it.mine) put('own', `<div class="box tp-own"><span><b>You shared this on ${it.added}</b><br><span class="muted small">Prototype: it is kept in this browser.</span></span><button class="btn" data-own-x>Remove</button></div>`);
