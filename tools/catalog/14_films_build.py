@@ -21,6 +21,8 @@ cat = json.loads(open(os.path.join(HERE, '../../prototype/assets/catalog.js')).r
 curated_q = {f['wd'] for f in cat['films']}; taken = {f['key'] for f in cat['films']}
 curated_people = {p['wd']: name for name, p in cat['people'].items()}
 LINKS = json.load(open('wd_links.json')) if os.path.exists('wd_links.json') else {}      # how many Wikipedias write about a film
+MATCH = json.load(open('films_match.json')) if os.path.exists('films_match.json') else {}      # Archive item -> Wikidata id, found by title and year (12b_films_match.py)
+CRED = json.load(open('people_credits.json')) if os.path.exists('people_credits.json') else {}   # person -> everything Wikidata credits them with (16_people_credits.py)
 COLS = json.load(open('ia_cols.json')) if os.path.exists('ia_cols.json') else {}         # the Archive collections an item sits in
 fame = lambda q: round(1.6 * min(LINKS.get(q, 0), 50))
 
@@ -41,13 +43,36 @@ def new_key(title, year, fallback):
     n = 2
     while k in taken or not k: k = f'{base[:50]}-{year or "x"}-{n}'; n += 1
     taken.add(k); return k
+# A title as it is written at the Archive, down to the film's own name, and who it names as its maker:
+#   Charlie Chaplin's "The Rink" (1916) [silent]  ->  The Rink, by Charlie Chaplin
+POSSESSIVE = re.compile(r'''^(.+?)['’]s?\s+["“”](.+?)["“”]\s*$''')
+# what people add after a title when they put a film up: its format, that it is silent or complete (and, for telling two
+# copies of a film apart, its year)
+FORMAT = re.compile(r'\s*[\[(][^\])]*\b(?:silent|full|movie|film|restored|remastered|hd|public domain|b&w|black and white|colou?r|1080p?|720p?|480p?|dvd|vhs|complete|uncut|english|subtitles?|subs)\b[^\])]*[\])]\s*', re.I)
+YEARED = re.compile(r'\s*[\[(]\s*1[89]\d\d\s*[\])]\s*')
+MAKERS = set()          # names of people Wikidata knows as film people; filled once they are loaded
+def unwrap(title):
+    t = str(title or '').strip()
+    if t.startswith('[') and t.endswith(']') and t.count('[') == 1: t = t[1:-1].strip()          # a title given in brackets is still the title
+    t = (lambda cut: cut if len(cut) > 2 else t)(FORMAT.sub(' ', t).strip())
+    # The Rink (1916) Directed By Charlie Chaplin   ·   "What Drink Did" (1909) director D. W. Griffith, cinematographer …
+    m = re.match(r'''^["“]?(.+?)["”]?\s*(\(1[89]\d\d\))?\s+(?:directed by|director[:,]?)\s+([^,(]+)''', t, re.I)
+    if m and len(m.group(1)) > 1: return ((m.group(1).strip() + ' ' + (m.group(2) or '')).strip(), m.group(3).strip() if m.group(3).strip().lower() in MAKERS else '')
+    # Charlie Chaplin's "The Rink": only when the name is a film-maker's (not Popeye's, not Dr. Jekyll's)
+    m = POSSESSIVE.match(YEARED.sub(' ', t).strip())
+    return (m.group(2).strip(), m.group(1).strip()) if m and m.group(1).strip().lower() in MAKERS else (t, '')
+def flat(t):
+    t = str(t).lower().replace('ı', 'i').replace('ß', 'ss').replace('ø', 'o')
+    return re.sub(r'[^a-z0-9]+', ' ', ''.join(c for c in unicodedata.normalize('NFD', t) if not unicodedata.combining(c))).strip()
 def norm(title, year=None):
-    t = re.sub(r'^(the|a|an|le|la|les|der|die|das|el|il) ', '', slug(title).replace('-', ' ')).replace(' ', '')
+    t = YEARED.sub(' ', unwrap(title)[0])          # "Part II" and "Reel 3" stay: those are different films
+    t = re.sub(r'^(the|a|an|le|la|les|der|die|das|el|il) ', '', flat(t)).replace(' ', '')
     return t + (str(year) if year else '')
 def tidy(t):
     t = html.unescape(str(t or '')).replace('<', '').replace('>', '')
     return re.sub(r'\s+', ' ', t).strip()
 
+MAKERS.update(tidy(p['name']).lower() for p in P.values() if p.get('name') and 'Q5' in p.get('inst', []))
 OK = lambda lic: bool(lic) and (lic.lower().replace('-', ' ').strip() in ('public domain', 'cc0', 'pd', 'no restrictions', 'cc0 1.0', 'pdm owner') or lic.lower().startswith('pd') or lic.lower().startswith('cc0'))
 TRAILER = re.compile(r'trailer|teaser|bande.annonce|preview|\bclip\b|excerpt|extract|fragment|\bsample\b|отрывок|ausschnitt')
 WEIGHT = {'Director': 30, 'Writer': 12, 'Cinematographer': 15, 'Editor': 10, 'Composer': 8, 'Producer': 10, 'Production designer': 7, 'Cast': 6}
@@ -176,8 +201,10 @@ def secs_of(v):
 def first(v):
     if isinstance(v, list): v = next((x for x in v if x), None)
     return tidy(v) if v else ''
+NOT_MAKERS = re.compile(r'internet archive|filecoin|ffdw|prelinger|archive\.org|unknown|anonymous|n/a', re.I)          # whoever scanned or uploaded a film did not make it
 def maker(v):
     v = first(v)
+    if NOT_MAKERS.search(v): return ''
     v = re.sub(r"^([\w'.-]+) \(([^)]+)\) (.+)$", r'\2 \1 \3', v)          # "Handy (Jam) Organization" -> "Jam Handy Organization"
     v = re.sub(r"^([\w'.-]+) \(([^)]+)\)$", r'\2 \1', v)
     return v[:70].strip(' ,;')
@@ -224,15 +251,16 @@ def ia_kind(it, why, secs, year):
     return 'feature-film', label or 'Feature film'
 ia = []; ia_skip = collections.Counter()
 for i, it in items.items():
-    m = meta.get(i); f = F.get(it.get('wd')) if it.get('wd') else None
+    m = meta.get(i); f = F.get(it.get('wd') or MATCH.get(i))
     if f and (f['q'] in onsite or f['q'] in curated_q): ia_skip['already here from Commons'] += 1; continue
     if m and m.get('err') == 'gone': ia_skip['gone'] += 1; continue
     known = bool(m) and not m.get('err')
     if known and not m.get('file'): ia_skip['no film file'] += 1; continue
     if known and (m.get('parts') or 1) > 4: ia_skip['many films in one item'] += 1; continue
     if not known and not (MP4 & set(it.get('format') or [])): ia_skip['not read yet, no sign of a film file'] += 1; continue
-    title = tidy(f['title']) if f and f['title'] and not re.match(r'^Q\d+$', f['title']) else title_of(it.get('title'))
+    title, named = (tidy(f['title']), '') if f and f['title'] and not re.match(r'^Q\d+$', f['title']) else unwrap(title_of(it.get('title')))
     if len(title) < 2: ia_skip['no title'] += 1; continue
+    if not f and TRAILER.search(title.lower()): ia_skip['trailer or clip'] += 1; continue
     year = (f and f['year']) or 0
     if not year:
         y = str(it.get('year') or '')[:4] or str(it.get('date') or '')[:4]
@@ -250,7 +278,7 @@ for i, it in items.items():
     crew, dirs = credits_of(f, year) if f else ([], [])
     if f: c, kind = kind_of(f, secs)
     else: c, kind = ia_kind(it, why, secs, year)
-    by = dirs or (f and directors(f)) or [x for x in [maker(it.get('creator')) or maker(it.get('sponsor'))] if x] or (['Universal Newsreel'] if why == 'newsreel' else ['NASA'] if 'usgov-nasa' in it['why'] else ['Unknown maker'])
+    by = dirs or (f and directors(f)) or [x for x in [maker(it.get('creator')) or maker(it.get('sponsor')) or named] if x] or (['Universal Newsreel'] if why == 'newsreel' else ['NASA'] if 'usgov-nasa' in it['why'] else ['United States government'] if why == 'usgov' else ['Unknown maker'])
     down = it.get('downloads') or 0
     ia.append(dict(title=title, year=year, secs=secs, by=by, kind=kind, cat=c, src=1, id=i, file=known and m.get('file') or None, w=known and m.get('w') or None,
         blurb=blurb_of(f, crew) if f else '', country=[tidy(L[x]) for x in f['country'] if L.get(x)][:1] if f else [], company=[tidy(L[x]) for x in f['company'] if L.get(x)][:1] if f else [],
@@ -285,19 +313,41 @@ for i in range(0, len(imgs), 20):
             pics[back.get(p['title'], p['title'])[5:].replace('_', ' ')] = ii['thumburl'].split('?')[0]
     if i % 1000 == 0: print('   portraits', i, '/', len(imgs), flush=True)
 people = {}
+qkey = {**{f['wd']: f['key'] for f in cat['films']}, **{q: k for q, k in onsite.items() if isinstance(k, str)}}          # Wikidata id of a film -> its address here
 for q, lst in used.items():
     p = P[q]; name = name_of(q)
     groups = {}
     for f, roles in lst:
         for r in roles: groups.setdefault(r, []).append(f)
-    credits = [dict(role='Actor' if r == 'Cast' else r, total=len(groups[r]), list=[dict(title=f['title'], year=f['year'] or None, key=f['key']) for f in sorted(groups[r], key=lambda f: -(f['year'] or 0))]) for r in ORDER if r in groups]
+    # Their credits: everything Wikidata records, each as [title, year, the film's address here if it is on the site].
+    # Where Wikidata's list has not been read, only the films that are here.
+    full = CRED.get(q); credits = []
+    for r in ORDER:
+        rows = {}
+        for fq, t, y in (full or {}).get(r, []):
+            if fq not in rows and not re.match(r'^Q\d+$', t): rows[fq] = [tidy(t), y or 0] + ([qkey[fq]] if fq in qkey else [])
+        here = {x[2] for x in rows.values() if len(x) > 2}
+        for f in groups.get(r, []):
+            if f['key'] not in here: rows['on-site:' + f['key']] = [f['title'], f['year'] or 0, f['key']]; here.add(f['key'])
+        if rows: credits.append(dict(role='Actor' if r == 'Cast' else r, total=len(rows), list=sorted(rows.values(), key=lambda x: -x[1])))
     mine = sorted({f['key']: f for f, _ in lst}.values(), key=lambda f: -f['score'])
-    if q in curated_people: people[name] = dict(name=name, more=True, films=[f['key'] for f in mine], credits=credits)
+    if q in curated_people: people[name] = dict(name=name, more=True, full=full is not None, films=[f['key'] for f in mine], credits=credits)
     else:
         allroles = [r for _, roles in lst for r in roles]
         main = max(ORDER, key=lambda r: (allroles.count(r) * (3 if r != 'Cast' else 2), -ORDER.index(r)))
         people[name] = dict(name=name, role='Actor' if main == 'Cast' else main, desc=tidy(p['desc'] or ''), born=p['born'], died=p['died'], bornIn=L.get(p['bp']), diedIn=L.get(p['dp']), occ=[L[o] for o in p['occ'] if L.get(o)],
                             pic=pics.get((p.get('img') or '').replace('_', ' ')), wd=q, imdb=p['imdb'], wiki=p['enwiki'], films=[f['key'] for f in mine], credits=credits)
+# the hand-picked people who are in none of the catalogue's films still get their full list
+for q, name in curated_people.items():
+    if name in people or q not in CRED: continue
+    credits = []
+    for r in ORDER:
+        rows = {}
+        for fq, t, y in CRED[q].get(r, []):
+            if fq not in rows and not re.match(r'^Q\d+$', t): rows[fq] = [tidy(t), y or 0] + ([qkey[fq]] if fq in qkey else [])
+        if rows: credits.append(dict(role='Actor' if r == 'Cast' else r, total=len(rows), list=sorted(rows.values(), key=lambda x: -x[1])))
+    if credits: people[name] = dict(name=name, more=True, full=True, films=[], credits=credits)
+print('   credits on their pages:', sum(c['total'] for p in people.values() for c in p['credits']), '; of them films that play here:', sum(1 for p in people.values() for c in p['credits'] for x in c['list'] if len(x) > 2))
 print(len(people), 'people;', sum(1 for p in people.values() if p.get('pic')), 'with a portrait that is free to show;', sum(1 for p in people.values() if p.get('more')), 'already on the site', flush=True)
 
 # ---------- 4. write ----------

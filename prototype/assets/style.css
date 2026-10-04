@@ -1481,3 +1481,4 @@ label.rel-thumb.add { display: grid; place-items: center; margin: 0; border: 1.5
 @media (max-width: 900px) { .front { grid-template-columns: minmax(0, 1fr); } .steps3, .standing, .aboutpage .twocol { grid-template-columns: minmax(0, 1fr); } .aboutpage .reasons { grid-template-columns: minmax(0, 1fr); } }
 .hubgrid.later .hubcard { opacity: .82; border-style: dashed; }
 .aboutpage .panel a.link, .page-head a.link { font-size: inherit; color: var(--accent); }
+.creditsource { margin-top: 14px; }

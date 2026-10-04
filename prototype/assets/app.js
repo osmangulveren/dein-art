@@ -591,7 +591,9 @@ $$('[data-list]').forEach(el => {
   let items = names.flatMap(name => (by ? [...lists[name], ...(more[name] || [])] : lists[name]).map(item => ({ item, name })));
   if (names.length > 1) items = items.filter((x, i) => items.findIndex(y => y.item === x.item) === i);
   // on a profile: what this person made, and the films they are credited on
-  if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by));
+  // (a person's own list of films counts too: most films arrive without their full credits)
+  const theirs = by && names[0] === 'films' ? new Set(who[by]?.films || []) : null;
+  if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by) || (theirs && theirs.has(x.item.key)));
   // someone with no assets of their own still has stills from the films they worked on
   if (by && names[0] === 'assets') items = items.filter(x => x.item.kind !== 'merch');
   if (by && names[0] === 'assets' && !items.length) items = filmsOf(who[by]).flatMap(f => f.scenes.slice(0, 2).map((_, i) => ({ item: stillOf(f, i), name: 'assets' }))).slice(0, 8);
@@ -953,15 +955,24 @@ const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentC
 const knownExternal = p => { const seen = new Set(); return p.credits.flatMap(c => c.list).filter(x => x.img && !seen.has(x.title) && seen.add(x.title)).slice(0, 4)
   .map(x => `<a class="poster" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener"><div class="thumb"><img src="${x.img}" alt="" loading="lazy"></div><b>${x.title}</b><span class="muted small">${x.year || 'Upcoming'}</span><span class="muted small">${x.kind}</span></a>`).join(''); };
 const knownHtml = p => !p.films.length && p.credits.length ? knownExternal(p) : filmsOf(p).slice(0, 4).map(f => `<a class="poster" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"></div><b>${f.title}</b><span class="muted small">${f.crew.find(c => c.name === p.name)?.role || p.role} · ${f.year}</span><span class="muted small">${f.kind}</span></a>`).join('');
-const creditsHtml = p => p.credits.map((c, i) => `
-  <details class="fold"${i ? '' : ' open'}>
-    <summary><span><b>${c.role}</b><span class="muted small">${c.total} ${c.total === 1 ? 'title' : 'titles'}</span></span>${chev}</summary>
-    <div class="rows">${c.list.map(x => {
+// One credit: a film that is on dein.art plays from here; any other is named, with its year.
+const creditRow = x => {
       const f = film[x.key];
       const note = f ? `${f.kind} · ${f.dur}` : x.added ? (page === 'creator' ? 'Added by you' : 'Added on dein.art') : x.kind ? [x.kind, x.credited, x.eps && `${x.eps} episodes`, x.upcoming && 'in post-production'].filter(Boolean).join(' · ') : 'Not on dein.art yet';
-      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.id && addedTitles[x.id] ? `<a class="btn" href="title.html?id=${encodeURIComponent(x.id)}">Open</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
-    }).join('')}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
-  </details>`).join('');
+      return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${esc(x.title)}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.id && addedTitles[x.id] ? `<a class="btn" href="title.html?id=${encodeURIComponent(x.id)}">Open</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
+};
+// A long life in film is a long list: thirty at first, the rest on request.
+const CREDITS_AT_FIRST = 30;
+const creditsHtml = p => p.credits.map((c, i) => `
+  <details class="fold"${i ? '' : ' open'}>
+    <summary><span><b>${c.role}</b><span class="muted small">${c.total} ${c.total === 1 ? 'title' : 'titles'}${(n => (n && n < c.list.length ? ` · ${n} to watch here` : ''))(c.list.filter(x => film[x.key]).length)}</span></span>${chev}</summary>
+    <div class="rows">${c.list.slice(0, CREDITS_AT_FIRST).map(creditRow).join('')}${c.list.length > CREDITS_AT_FIRST ? `<div class="row credit"><div class="info"><span class="muted small">${CREDITS_AT_FIRST} of ${c.list.length} shown</span></div><button class="btn" data-credits-all="${i}">Show all ${c.list.length}</button></div>` : ''}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
+  </details>`).join('')
+  + (p.wd && p.credits.length ? `<p class="muted small creditsource">Credits as recorded on <a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Wikidata</a>, which does not know every film.${p.imdb ? ` <a class="link" href="https://www.imdb.com/name/${p.imdb}/" target="_blank" rel="noopener">See the full list on IMDb ↗</a>` : ''}</p>` : '');
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-credits-all]'); if (!b) return;
+  const c = subject.credits[Number(b.dataset.creditsAll)]; if (c) b.closest('.row').outerHTML = c.list.slice(CREDITS_AT_FIRST).map(creditRow).join('');
+});
 const totalCredits = p => p.credits.reduce((a, c) => a + c.total, 0);
 $$('[data-known]').forEach(el => { el.innerHTML = knownHtml(subject); });
 $$('[data-credits]').forEach(el => { el.innerHTML = creditsHtml(subject); });

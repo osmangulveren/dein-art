@@ -37,13 +37,15 @@ downloads go through `/api/download`. Openverse allows 200 requests a day withou
 
 ## The big film catalogue
 
-Three scripts build `prototype/films/`: about 26,000 public-domain films, cut into pieces that a page loads only when it
+These scripts build `prototype/films/`: about 25,000 public-domain films and the pages of 9,700 people credited on them, cut into pieces that a page loads only when it
 needs them (see the top of `prototype/assets/films.js`).
 
 ```bash
 python3 12_films_wikidata.py   # every film on Wikidata with its video on Commons, or marked public domain with a copy at the Internet Archive
 python3 13_films_archive.py    # public-domain films at the Internet Archive (takes hours: see below)
 python3 13b_archive_extra.py   # which Archive collections each item sits in, and how many Wikipedias write about each film
+python3 12b_films_match.py     # find the Wikidata entry of Archive films by title and year (about an hour the first time)
+python3 16_people_credits.py   # everything Wikidata credits each person with
 python3 14_films_build.py      # write ../../prototype/films/
 ```
 
@@ -73,3 +75,10 @@ the Public Domain Mark or CC0) and about 5,800 public-domain books from Project 
 links each museum's own image and each book's own page; downloads of the pictures go through `/api/download`. The file
 is large, so pages load it after they are up. Two museums are left out on purpose, because their servers turn programs
 away: the Art Institute of Chicago and the Metropolitan Museum.
+
+Two things keep the catalogue clean. `12b_films_match.py` looks up Archive films on Wikidata by title and year (only when
+exactly one film fits), which gives them their makers and credits and lets the build recognise the same film put up twice,
+or under a title like *Charlie Chaplin's "The Rink"*. `16_people_credits.py` reads each person's whole list of credits
+from Wikidata, so a page lists every film Wikidata knows them for, not only the ones that play here. Measured against
+IMDb's public data files with `tools/qa/credits.py`, the pages went from naming 5% of IMDb's film credits to 48%; the
+rest is not on Wikidata, and each page links the person's IMDb page for it. IMDb's own data is never copied to the site.

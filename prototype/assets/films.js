@@ -66,8 +66,12 @@ const FILMS = (() => {
     people(list, films) {
       films.forEach(film);
       list.forEach(p => {
+        // a credit travels as [title, year, the film's address here if it has one]
+        p.credits.forEach(g => { g.list = g.list.map(c => (Array.isArray(c) ? { title: c[0], year: c[1] || null, key: c[2] || null } : c)); });
         const old = CATALOG.people[p.name];
         if (!old || old.stub) { CATALOG.people[p.name] = p; return; }
+        // someone the site already had, now with every credit Wikidata records: the full lists take the place of the short ones
+        if (p.full) { old.films = [...new Set([...old.films, ...p.films])]; old.credits = p.credits; return; }
         // someone the site already had: their other films join the ones listed
         old.films = [...new Set([...old.films, ...p.films])];
         p.credits.forEach(g => {
