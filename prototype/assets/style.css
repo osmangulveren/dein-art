@@ -1001,3 +1001,13 @@ a.merchbig { color: inherit; }
 .sg.all span { color: var(--muted); }
 .sg-none { padding: 14px 10px; color: var(--muted); font-size: 14px; }
 [data-search] .cf-people .clogo { width: 40px; height: 40px; flex: none; }
+
+/* the top bar on a phone: everything on one line, nothing pushed off the edge */
+@media (max-width: 560px) {
+  .top .wrap { gap: 8px; padding: 0 10px; }
+  .logo { white-space: nowrap; font-size: 19px; }
+  .search { min-width: 0; }
+  .search input { padding: 9px 12px; }
+  .top #theme { display: none; }
+  .suggest { position: fixed; left: 12px; right: 12px; top: 84px; }
+}

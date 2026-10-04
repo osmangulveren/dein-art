@@ -12,8 +12,11 @@ if ($('[data-shop="grid"]')) {
   const state = { cat: param('cat') || 'All', sub: param('sub') || '', q: param('q') || '', price: 'all', film: false, sort: 'featured', shown: 24 };
   if (param('kind')) state.cat = { Image: 'Photos & images' }[param('kind')] || param('kind');
   const el = k => $(`[data-shop="${k}"]`);
+  // every word typed has to start a word of the item, as in the search box at the top: "rain" finds rain, not "train"
+  const plain = t => String(t || '').toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const wordsIn = (q, text) => { const hay = ' ' + plain(text); return plain(q).split(/\s+/).filter(Boolean).every(w => hay.search(new RegExp('[^a-z0-9]' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))) >= 0); };
   const match = it => (state.cat === 'All' || it.cat === state.cat) && (!state.sub || it.sub === state.sub) && (state.price === 'all' || (state.price === 'free') === !it.price) && (!state.film || (it.film && film[it.film]))
-    && (!state.q || [it.title, it.by, it.cat, it.sub, it.desc, ...(it.works || [])].join(' ').toLowerCase().includes(state.q.toLowerCase()));
+    && (!state.q || wordsIn(state.q, [it.title, it.by, it.cat, it.sub, it.desc, it.specs && it.specs.Tags, ...(it.works || [])].join(' ')));
   function draw() {
     const count = (c, s) => MARKET.filter(it => (c === 'All' || it.cat === c) && (!s || it.sub === s)).length;
     el('cats').innerHTML = ['All', ...CATS].map(c => {
