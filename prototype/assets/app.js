@@ -107,7 +107,7 @@ function addLibrary(list, seen) {
       secs, w, h, pic: sound ? '' : thumb(500), big: sound ? '' : film ? thumb(960 > w ? 500 : 960) : cat === 'Scripts & documents' ? thumb(w >= 1000 ? 960 : 500) : thumb(1280), dur: secs ? clock(secs) : '',
       video: film ? `${up}transcoded/${enc}/${file}.480p.vp9.webm` : undefined, audio: sound ? (ext === 'mp3' ? up + enc : `${up}transcoded/${enc}/${file}.mp3`) : undefined,
       files: [{ name, size, url: up + enc }], source: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(name.replace(/ /g, '_')),
-      specs: { ...(secs ? { Length: clock(secs) } : {}), ...(w ? { Size: `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} px` } : {}), Format: ext.toUpperCase() },
+      specs: { ...(secs ? { Length: clock(secs) } : {}), ...(w && cat !== 'Scripts & documents' ? { Size: `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} px` } : {}), Format: ext.toUpperCase() },
       desc: `${title}. ${cc0 ? 'Released under CC0' : 'In the public domain'}, free to use in any project.` };
     it.creator = it.by; seen.add(id); list.push(it); added.push(it);
   }));
@@ -440,7 +440,7 @@ const audio = new Audio();
 let playing;
 const clockOf = t => (isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '0:00');
 // a waveform drawn from the item's name, so every sound has its own shape
-function waveBars(id, n = 18) { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; let last = 50; return Array.from({ length: n }, () => { h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0; last = Math.max(14, Math.min(100, last * .45 + (h % 100) * .62)); return `<i style="height:${Math.round(last)}%"></i>`; }).join(''); }
+function waveBars(id, n = 18) { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; let last = 50; return Array.from({ length: n }, () => { h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0; last = Math.max(12, Math.min(100, last * .25 + (h % 100) * .8)); return `<i style="height:${Math.round(last)}%"></i>`; }).join(''); }
 document.body.insertAdjacentHTML('beforeend', '<div class="nowbar" hidden><button class="btn icon" data-now="toggle" aria-label="Pause or play">❚❚</button><div class="nowinfo"><b></b><span class="muted small"></span></div><input type="range" min="0" max="1000" value="0" data-now="seek" aria-label="Position"><span class="nowtime muted small"></span><button class="btn icon bare" data-now="close" aria-label="Stop">✕</button></div>');
 const nowbar = $('.nowbar');
 const showState = on => {
