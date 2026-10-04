@@ -3,28 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Collection — dein.art</title>
+<title>Token — dein.art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
 </head>
-<body data-page="collection">
+<body data-page="token">
 <main class="wrap">
-  <p style="padding-top:24px" data-c="back"></p>
-  <section class="campaign coll" style="padding-top:12px">
-    <div data-c="cover"></div>
-    <div>
-      <p class="muted small">NFT collection</p>
-      <h1 data-c="name"></h1>
-      <div class="byline" style="margin-top:14px" data-c="by"></div>
-      <p style="margin-top:16px;max-width:560px;font-size:17px;line-height:1.5" data-c="about"></p>
-      <dl class="facts" style="margin-top:18px;max-width:520px" data-c="facts"></dl>
-      <p style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap" data-c="acts"></p>
+  <p class="crumbs" data-t="crumbs"></p>
+  <section class="itempage">
+    <div class="itemmain">
+      <div class="itemmedia" data-t="media"></div>
+      <div data-t="desc"></div>
+      <div data-t="history"></div>
+      <div data-t="raw" style="margin-top:22px"></div>
     </div>
+    <aside class="itemside">
+      <span class="pill tint" data-t="kind"></span>
+      <h1 data-t="title"></h1>
+      <div class="byline" data-t="collection"></div>
+      <dl class="facts" data-t="facts"></dl>
+      <div class="itemacts" data-t="acts"></div>
+      <p class="muted small">Read live from Ethereum. The name, picture and description are the token's own metadata.</p>
+    </aside>
   </section>
-  <div data-c="pieces"></div>
-  <div data-c="more"></div>
+  <div data-t="more"></div>
 </main>
 <script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>

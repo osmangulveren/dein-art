@@ -60,6 +60,7 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 | Search results | `search.html` |
 | Marketplace | `market.html` |
 | Marketplace item | `item.html` |
+| One NFT, read from the chain | `token.html` |
 | Content category | `category.html` |
 | Trending | `trending.html` |
 | Creator page (videos, credits, collections, merch, funding) | `creator.html` |

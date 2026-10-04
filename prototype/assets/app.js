@@ -683,7 +683,7 @@ if (page === 'artist' || page === 'creator') {
 
 /* ---------- an NFT collection's own page ---------- */
 
-if (page === 'collection') {
+if (page === 'collection' && !param('contract')) {   // a collection read live from its contract is drawn by chain.js
   const a = ONCHAIN.find(x => x.name === param('artist')) || ONCHAIN[0], c = a.collections.find(x => x.slug === param('c')) || a.collections[0];
   const set = (key, html) => $$(`[data-c="${key}"]`).forEach(el => { el.innerHTML = html; });
   const ext = (href, label, cls = 'link') => `<a class="${cls}" href="${href}" target="_blank" rel="noopener">${label}</a>`;
