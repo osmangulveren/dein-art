@@ -30,12 +30,13 @@ document.addEventListener('click', e => {
 
 /* ---------- a card, and a row for things you listen to ---------- */
 function shopCard(a, inCat) {
-  const doc = a.cat === 'Scripts & documents', [w, h] = dimsOf(a), tall = !doc && a.kind === 'image' && h > w * 1.15;
+  // documents stand upright among other documents; in a mixed row they lie like everything else
+  const doc = a.cat === 'Scripts & documents' && inCat !== false, [w, h] = dimsOf(a), tall = !doc && a.kind === 'image' && h > w * 1.15;
   const badge = inCat === 'sub' ? '' : a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : inCat ? a.sub : a.cat;
-  const inside = a.kind === 'merch' ? mockup(a) : drawnCover(a) ? `<span class="bookcover" style="--tone:${tone(a.title)}"><b>${esc(a.title)}</b><small>${esc(a.by)}</small></span>`
+  const inside = a.kind === 'merch' ? mockup(a) : drawnCover(a) && doc ? `<span class="bookcover" style="--tone:${tone(a.title)}"><b>${esc(a.title)}</b><small>${esc(a.by)}</small></span>`
     : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`;
   const len = a.audio ? `<span class="badge dur listen" data-audio="${a.audio}" data-title="${esc(a.title)}" data-by="${esc(a.by)}">▶ ${lenOf(a) || 'Listen'}</span>` : lenOf(a) ? `<span class="badge dur">${lenOf(a)}</span>` : '';
-  return `<a class="card${doc ? ' doc' : ''}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic || drawnCover(a) ? '' : ' blank'}${a.dark ? ' darkbg' : ''}${tall ? ' fit' : ''}">${inside}${badge ? `<span class="badge kind">${esc(badge)}</span>` : ''}${len}${saveBtn(a)}</div><h3>${esc(a.title)}</h3><p>${esc(a.by)} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`;
+  return `<a class="card${doc ? ' doc' : ''}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic || (drawnCover(a) && doc) ? '' : ' blank'}${a.dark ? ' darkbg' : ''}${tall ? ' fit' : ''}">${inside}${badge ? `<span class="badge kind">${esc(badge)}</span>` : ''}${len}${saveBtn(a)}</div><h3>${esc(a.title)}</h3><p>${esc(a.by)} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`;
 }
 function audioRow(a) {
   const file = (a.files || [])[0];

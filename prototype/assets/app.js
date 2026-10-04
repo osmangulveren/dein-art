@@ -246,10 +246,12 @@ const side = {
 };
 const sideLink = ([key, label, href, ic, rail]) => `<a class="sl${rail ? ' rail' : ''}" data-key="${key}" href="${href}">${icons[ic]}<span>${label}</span></a>`;
 document.body.insertAdjacentHTML('afterbegin', `
+<a class="skip" href="#main">Skip to the content</a>
 <header class="top"><div class="wrap">
   <button class="btn icon bare" id="menu" aria-label="Open or close the sidebar">${icons.menu}</button>
   <a class="logo" href="index.html"><span class="de">de</span><span class="in">in</span><i>.</i><b>art</b></a>
   <form class="search" onsubmit="return false"><input placeholder="Search films, footage, music" aria-label="Search"></form>
+  <button class="btn icon bare searchbtn" aria-label="Search">${icon('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.800-3.800"/>')}</button>
   <a class="btn primary" href="upload.html">Create</a>
   <button class="btn icon" id="theme" aria-label="Switch between light and dark mode" title="Light / dark">
     <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
@@ -266,7 +268,23 @@ document.body.insertAdjacentHTML('afterbegin', `
   ${side.explore.map(sideLink).join('')}
   <hr><p class="side-foot">Own your narrative.</p>
 </aside>
-<div class="scrim"></div>`);
+<div class="scrim"></div>
+<nav class="tabbar" aria-label="Main">
+  <a href="index.html" data-tab-for="home">${icons.home}<span>Home</span></a>
+  <a href="trending.html" data-tab-for="trending">${icons.trend}<span>Trending</span></a>
+  <a href="upload.html" class="make" data-tab-for="create">${icons.upload}<span>Create</span></a>
+  <a href="market.html" data-tab-for="market">${icons.market}<span>Market</span></a>
+  <a href="creator.html" data-tab-for="creator">${icons.user}<span>You</span></a>
+</nav>`);
+(me => { if (me) $('.tabbar [data-tab-for="creator"]').href = 'artist.html?wallet=' + me.address; })((() => { try { return JSON.parse(localStorage.getItem('session')); } catch { return null; } })());
+if ($('main') && !$('main').id) $('main').id = 'main';
+$$('.tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tabFor === page && a.dataset.tabFor !== 'create'));
+// on a phone the search box sits behind an icon and takes the whole bar while it is used
+document.addEventListener('click', e => {
+  if (e.target.closest('.searchbtn')) { document.documentElement.dataset.searching = '1'; $('.search input').focus(); }
+  else if (document.documentElement.dataset.searching && !e.target.closest('.search')) delete document.documentElement.dataset.searching;
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') delete document.documentElement.dataset.searching; });
 
 /* ---------- following and sharing ---------- */
 // Who you follow is kept in this browser; the sidebar lists them, or a few suggestions while you follow nobody.
@@ -324,7 +342,12 @@ document.body.insertAdjacentHTML('beforeend', `
 <footer class="foot"><div class="wrap">
   <a class="logo" href="index.html"><span class="de">de</span><span class="in">in</span><i>.</i><b>art</b></a>
   <span class="tagline">Own your narrative.</span>
-  <span class="muted small">Blockchain-based · Watch · Live · Marketplace · Shared revenue</span>
+  <nav class="footnav" aria-label="Footer">
+    <div><b>Watch</b><a href="index.html#films">Films</a><a href="trending.html">Trending</a><a href="live.html">Live</a><a href="studios.html">Studios</a></div>
+    <div><b>Marketplace</b><a href="market.html?cat=Footage">Footage</a><a href="market.html?cat=Music">Music</a><a href="market.html?cat=Sound%20effects">Sound effects</a><a href="market.html?cat=Photos%20%26%20images">Photos and images</a></div>
+    <div><b>Create</b><a href="upload.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="fund.html">Start funding</a></div>
+    <div><b>dein.art</b><a href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">Code on GitHub</a><a href="https://x.com/osmangulveren" target="_blank" rel="noopener">Follow the build on X</a><a href="deploy.html">Testnet contract</a></div>
+  </nav>
   <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
 </div></footer>
 <dialog id="pay">
@@ -403,6 +426,7 @@ $$('.close', dialog).forEach(b => b.addEventListener('click', () => dialog.close
 const byline = f => f.by.join(' and ');
 const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}<span data-views="${f.key}"></span></p></div></div></a>`,
+  resume: f => { const p = progress[f.key], left = Math.max(1, Math.round((f.secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / f.secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}</p></div></div></a>`; },
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
@@ -442,7 +466,13 @@ const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukra
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
   .map(c => ({ name: c.name, tone: tone(c.name), href: (() => { const st = typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === c.name); return st ? 'studio.html?s=' + st.slug : watchUrl(film[c.films[0]]); })(),
                about: `${c.films.length} ${c.films.length === 1 ? 'film' : 'films'} here · founded ${c.founded}${c.place ? ', ' + c.place : ''}` }));
-const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels };
+// what you were watching, kept in this browser so the home page can offer to carry on
+const progress = (() => { try { return JSON.parse(localStorage.getItem('progress')) || {}; } catch { return {}; } })();
+const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels,
+  resume: Object.entries(progress).filter(([k, p]) => film[k] && p.t > 20 && p.t < film[k].secs * .95).sort((a, b) => b[1].at - a[1].at).map(([k]) => film[k]),
+  // films by the people you follow, as they are: no ranking decides whether you see them
+  following: CATALOG.films.filter(f => f.by.some(n => following.has(n)) || following.has(f.creator)),
+  quick: CATALOG.films.filter(f => f.secs && f.secs <= 900) };
 $$('[data-list]').forEach(el => {
   const names = el.dataset.list.split(' ');
   // a profile shows everything by that person, not just the front page's pick
@@ -453,6 +483,8 @@ $$('[data-list]').forEach(el => {
   // someone with no assets of their own still has stills from the films they worked on
   if (by && names[0] === 'assets') items = items.filter(x => x.item.kind !== 'merch');
   if (by && names[0] === 'assets' && !items.length) items = filmsOf(who[by]).flatMap(f => f.scenes.slice(0, 2).map((_, i) => ({ item: stillOf(f, i), name: 'assets' }))).slice(0, 8);
+  // a row with nothing in it is left out, heading and all
+  if (!items.length && el.hasAttribute('data-hide-empty')) { el.hidden = true; if (el.previousElementSibling?.classList.contains('sec')) el.previousElementSibling.hidden = true; return; }
   if (!items.length && el.dataset.empty) { el.innerHTML = `<p class="muted empty">${el.dataset.empty}</p>`; return; }
   if (el.dataset.card === 'next') items = items.filter(x => x.item !== cur);
   if (el.dataset.skip) items = items.slice(Number(el.dataset.skip));
@@ -579,7 +611,7 @@ if (video) {
   setMode((() => { try { return localStorage.getItem('viewmode'); } catch { return null; } })() === 'cinema' ? 'cinema' : 'normal', false);
   const play = $('.player .play');
   if (play) {
-    play.addEventListener('click', () => video.play());
+    play.addEventListener('click', () => video.play().catch(() => {}));
     video.addEventListener('play', () => { play.hidden = true; });
   }
   const lead = cur.creator, p = who[lead];
@@ -602,7 +634,7 @@ if (video) {
   const marks = $('[data-marks]'), sceneBox = $('[data-scene]');
   if (marks) {
     const scenes = cur.scenes.filter(s => s[1]).map(([t, name]) => ({ t, name }));
-    sceneBox.addEventListener('click', e => { const b = e.target.closest('[data-from]'); if (b) { video.currentTime = Number(b.dataset.from); video.play(); } });
+    sceneBox.addEventListener('click', e => { const b = e.target.closest('[data-from]'); if (b) { video.currentTime = Number(b.dataset.from); video.play().catch(() => {}); } });
     const showScene = (s, jump) => {
       sceneBox.innerHTML = `<img src="${frame(cur, s.t, 330)}" alt=""><div><b>Scene: ${s.name}</b><span class="muted small">At ${clock(s.t)}</span></div><button class="btn dark" data-from="${s.t}">▶ Play from here</button>`;
       $$('.mark', marks).forEach((m, i) => m.classList.toggle('on', scenes[i] === s));
@@ -636,6 +668,13 @@ if (reviews) {
     input.value = '';
   });
 }
+
+/* ---------- home: straight to a kind of film, or to something to use in one ---------- */
+$$('[data-home-chips]').forEach(el => {
+  const has = slug => CATALOG.films.some(f => categoryOf(f) === slug);
+  el.innerHTML = '<span class="chiplabel">Watch</span>' + CATEGORIES.filter(([slug]) => has(slug)).map(([slug, label]) => `<a class="chip" href="category.html?c=${slug}">${label}</a>`).join('')
+    + '<span class="chiplabel">Use in your film</span>' + ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Scripts & documents', 'Templates'].map(c => `<a class="chip" href="market.html?cat=${encodeURIComponent(c)}">${c}</a>`).join('');
+});
 
 /* ---------- home: the featured film ---------- */
 
@@ -696,6 +735,8 @@ if (page === 'artist' || page === 'creator') {
   set('with', with_.map(n => cards.castp({ name: n, role: who[n].role })).join(''));
   $$('[data-p="withpanel"]').forEach(el => { el.hidden = !with_.length; });
 
+  // a page opens on a picture of the work: a still from the person's best-known film
+  if (!chain && mine.length && !$('.pbanner')) { const f = mine[0]; $('.profile').insertAdjacentHTML('beforebegin', `<a class="pbanner still" href="${watchUrl(f)}" style="background-image:url('${frame(f, f.at, 1280)}')" aria-label="${esc(f.title)}"><span>${esc(f.title)} · ${f.year}</span></a>`); }
   if (chain) {
     if (chain.film) $('[data-panel="videos"]').innerHTML = `<a class="card" href="${chain.film.page}" target="_blank" rel="noopener"><div class="thumb typo"><span>${chain.film.title}</span><span class="badge dur">On the artist's site ↗</span></div><div class="meta">${face(a.name)}<div><h3>${chain.film.title}</h3><p>${a.name} · plays on ${chain.film.page.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p></div></div></a>`;
     const pieces = chain.collections.reduce((n, c) => n + (c.minted || 0), 0), first = chain.collections.map(c => c.year).sort()[0] || '—';
@@ -807,6 +848,20 @@ async function fillViews() {
 }
 fillViews();
 // a watch counts once per visit to the page, when the film starts playing
+if (video && page === 'watch') {
+  let last = 0;
+  video.addEventListener('timeupdate', () => {
+    if (Math.abs(video.currentTime - last) < 5) return; last = video.currentTime;
+    progress[cur.key] = { t: Math.round(video.currentTime), at: Date.now() }; try { localStorage.setItem('progress', JSON.stringify(progress)); } catch {}
+  });
+  const was = progress[cur.key];
+  if (was && was.t > 20 && was.t < cur.secs * .95) {
+    const mmss = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+    video.closest('.player').insertAdjacentHTML('beforeend', `<button class="resumechip" data-resume>▶ Carry on from ${mmss(was.t)}</button>`);
+    document.addEventListener('click', e => { if (!e.target.closest('[data-resume]')) return; video.currentTime = was.t; video.play().catch(() => {}); });
+    video.addEventListener('play', () => $('[data-resume]')?.remove(), { once: true });
+  }
+}
 if (video) video.addEventListener('play', async () => {
   try { const r = await fetch('/api/views/' + cur.key, { method: 'POST' }); if (r.ok) showViews(cur.key, (await r.json()).views); } catch {}
 }, { once: true });
@@ -848,7 +903,7 @@ if (page === 'category') {
 
 /* ---------- chips and tabs ---------- */
 
-const chips = $$('.chip');
+const chips = $$('.chip[data-kind]');   // only the chips that filter the cards on their page
 const pickChip = chip => {
   chips.forEach(c => c.classList.toggle('on', c === chip));
   $$('.grid .card').forEach(card => { card.hidden = chip.dataset.kind !== 'all' && card.dataset.kind !== chip.dataset.kind; });
