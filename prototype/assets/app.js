@@ -93,7 +93,7 @@ function addLibrary(list, seen) {
     if (/^https:/.test(path)) {                                    // a CC0 sound on Freesound: the address is the file itself
       const id = 'fs-' + (path.match(/(\d+)_\d+-hq/) || [0, slugify(title)])[1];
       if (seen.has(id)) return;
-      const it = { id, cat, sub, title, by: credit || 'Freesound', price: 0, lic: 'CC0', lib: true, kind: 'audio', pic: '', big: '', dur: clock(secs), audio: path,
+      const it = { id, cat, sub, title, by: credit || 'Freesound', price: 0, lic: 'CC0', lib: true, kind: 'audio', secs, pic: '', big: '', dur: clock(secs), audio: path,
         files: [{ name: slugify(title) + '.mp3', size, url: path }], source: page, sourceName: 'Freesound', specs: { Length: clock(secs), Format: 'MP3' },
         desc: `${title}. A sound by ${credit || 'a Freesound member'}, released under CC0: free to use in any project, no credit needed.` };
       it.creator = it.by; seen.add(id); list.push(it); added.push(it); return;
@@ -104,7 +104,7 @@ function addLibrary(list, seen) {
     const thumb = n => `${up}thumb/${enc}/${cat === 'Footage' ? n + 'px--' + file + '.jpg' : cat === 'Scripts & documents' ? 'page1-' + n + 'px-' + file + '.jpg' : n + 'px-' + file}`;
     const sound = cat === 'Music' || cat === 'Sound effects', film = cat === 'Footage';
     const it = { id, cat, sub, title, by: credit || 'Wikimedia Commons', price: 0, lic: cc0 ? 'CC0' : 'Public domain', lib: true, kind: sound ? 'audio' : film ? 'video' : 'image',
-      pic: sound ? '' : thumb(500), big: sound ? '' : film ? thumb(960 > w ? 500 : 960) : cat === 'Scripts & documents' ? thumb(w >= 1000 ? 960 : 500) : thumb(1280), dur: secs ? clock(secs) : '',
+      secs, w, h, pic: sound ? '' : thumb(500), big: sound ? '' : film ? thumb(960 > w ? 500 : 960) : cat === 'Scripts & documents' ? thumb(w >= 1000 ? 960 : 500) : thumb(1280), dur: secs ? clock(secs) : '',
       video: film ? `${up}transcoded/${enc}/${file}.480p.vp9.webm` : undefined, audio: sound ? (ext === 'mp3' ? up + enc : `${up}transcoded/${enc}/${file}.mp3`) : undefined,
       files: [{ name, size, url: up + enc }], source: 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(name.replace(/ /g, '_')),
       specs: { ...(secs ? { Length: clock(secs) } : {}), ...(w ? { Size: `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} px` } : {}), Format: ext.toUpperCase() },
@@ -362,7 +362,7 @@ const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}<span data-views="${f.key}"></span></p></div></div></a>`,
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
-  assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave" aria-hidden="true">${'<i></i>'.repeat(18)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
+  assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
   merch: m => merchCard(m),
   trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div><span class="up">▲ ${f.up}%</span></a>`,
@@ -434,19 +434,53 @@ $$('[data-list]').forEach(el => {
   });
 });
 
-// Music in the marketplace can be listened to before getting it.
+// Music and sounds can be listened to before getting them. One player for the whole page: the button that started it
+// shows the state, the sound's waveform fills as it plays, and a bar at the bottom keeps it in reach while scrolling.
 const audio = new Audio();
 let playing;
-const stopAudio = () => { audio.pause(); if (playing) playing.textContent = playing.dataset.label; playing = null; };
+const clockOf = t => (isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '0:00');
+// a waveform drawn from the item's name, so every sound has its own shape
+function waveBars(id, n = 18) { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; let last = 50; return Array.from({ length: n }, () => { h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0; last = Math.max(14, Math.min(100, last * .45 + (h % 100) * .62)); return `<i style="height:${Math.round(last)}%"></i>`; }).join(''); }
+document.body.insertAdjacentHTML('beforeend', '<div class="nowbar" hidden><button class="btn icon" data-now="toggle" aria-label="Pause or play">❚❚</button><div class="nowinfo"><b></b><span class="muted small"></span></div><input type="range" min="0" max="1000" value="0" data-now="seek" aria-label="Position"><span class="nowtime muted small"></span><button class="btn icon bare" data-now="close" aria-label="Stop">✕</button></div>');
+const nowbar = $('.nowbar');
+const showState = on => {
+  if (!playing) return;
+  playing.classList.toggle('playing', on); playing.textContent = on ? (playing.dataset.pause || '❚❚ Playing') : playing.dataset.label;
+  $('[data-now="toggle"]', nowbar).textContent = on ? '❚❚' : '▶';
+};
+const stopAudio = () => { audio.pause(); showState(false); playing?.closest('.arow, .card')?.querySelectorAll('.awave i.on').forEach(i => i.classList.remove('on')); playing = null; nowbar.hidden = true; };
 audio.addEventListener('ended', stopAudio);
+audio.addEventListener('timeupdate', () => {
+  if (!playing) return;
+  const p = audio.duration ? audio.currentTime / audio.duration : 0, bars = playing.closest('.arow, .card')?.querySelectorAll('.awave i') || [];
+  bars.forEach((el, i) => el.classList.toggle('on', i / bars.length < p));
+  if (document.activeElement !== $('[data-now="seek"]', nowbar)) $('[data-now="seek"]', nowbar).value = Math.round(p * 1000);
+  $('.nowtime', nowbar).textContent = `${clockOf(audio.currentTime)} / ${clockOf(audio.duration)}`;
+});
+$('[data-now="seek"]', nowbar).addEventListener('input', e => { if (audio.duration) audio.currentTime = e.target.value / 1000 * audio.duration; });
 document.addEventListener('click', e => {
+  const now = e.target.closest('[data-now]'), wave = e.target.closest('.arow .awave');
+  if (now && now.dataset.now === 'close') return stopAudio();
+  if (now && now.dataset.now === 'toggle' && playing) { audio.paused ? audio.play() : audio.pause(); return showState(!audio.paused); }
+  // a click on a row's waveform jumps to that point (and starts the sound if it is not playing)
+  if (wave) {
+    const btn = wave.closest('.arow').querySelector('[data-audio]'), at = (e.clientX - wave.getBoundingClientRect().left) / wave.offsetWidth;
+    if (playing !== btn) btn.click();
+    const jump = () => { if (audio.duration) audio.currentTime = at * audio.duration; };
+    audio.duration ? jump() : audio.addEventListener('loadedmetadata', jump, { once: true });
+    return;
+  }
   const b = e.target.closest('[data-audio]');
   if (!b) return;
   e.stopPropagation(); e.preventDefault();
-  if (playing === b) return stopAudio();
+  if (playing === b) { audio.paused ? audio.play() : audio.pause(); return showState(!audio.paused); }
   stopAudio();
-  b.dataset.label = b.textContent; b.textContent = '❚❚ Playing';
-  audio.src = b.dataset.audio; audio.play(); playing = b;
+  b.dataset.label = b.textContent; playing = b;
+  const host = b.closest('.arow, .card, .row');
+  $('.nowinfo b', nowbar).textContent = b.dataset.title || host?.querySelector('h3, b')?.textContent || 'Playing';
+  $('.nowinfo span', nowbar).textContent = b.dataset.by || '';
+  $('.nowtime', nowbar).textContent = ''; $('[data-now="seek"]', nowbar).value = 0; nowbar.hidden = false;
+  audio.src = b.dataset.audio; audio.play().catch(() => {}); showState(true);
 }, true);
 
 /* ---------- cast and crew split ---------- */
@@ -698,6 +732,40 @@ if (page === 'artist' || page === 'creator') {
   }
 }
 
+/* ---------- view counts: shared by everyone, kept by the site's small API (worker/index.js) ---------- */
+
+const viewCount = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString('en-US');
+const showViews = (id, n) => $$(`[data-views="${id}"]`).forEach(el => { el.textContent = el.hasAttribute('data-views-lead') ? `${viewCount(n)} ${n === 1 ? 'view' : 'views'} · ` : ` · ${viewCount(n)} ${n === 1 ? 'view' : 'views'}`; });
+async function fillViews() {
+  const ids = [...new Set($$('[data-views]').filter(el => !el.textContent).map(el => el.dataset.views))];
+  for (let i = 0; i < ids.length; i += 60) {
+    try { const r = await fetch('/api/views?ids=' + ids.slice(i, i + 60).join(',')); if (!r.ok) return; Object.entries(await r.json()).forEach(([id, n]) => showViews(id, n)); } catch { return; }
+  }
+}
+fillViews();
+// a watch counts once per visit to the page, when the film starts playing
+if (video) video.addEventListener('play', async () => {
+  try { const r = await fetch('/api/views/' + cur.key, { method: 'POST' }); if (r.ok) showViews(cur.key, (await r.json()).views); } catch {}
+}, { once: true });
+
+/* ---------- rows that slide: arrows, or drag with the mouse ---------- */
+
+$$('[data-slider]').forEach(row => {
+  row.classList.add('slider');
+  row.insertAdjacentHTML('beforebegin', '<div class="slidenav"><button class="btn icon" data-slide="-1" aria-label="Scroll left">‹</button><button class="btn icon" data-slide="1" aria-label="Scroll right">›</button></div>');
+  const nav = row.previousElementSibling;
+  const sync = () => { const max = row.scrollWidth - row.clientWidth - 2; nav.children[0].disabled = row.scrollLeft <= 2; nav.children[1].disabled = row.scrollLeft >= max; nav.hidden = max <= 0; };
+  nav.addEventListener('click', e => { const b = e.target.closest('[data-slide]'); if (b) row.scrollBy({ left: Number(b.dataset.slide) * row.clientWidth * .85, behavior: 'smooth' }); });
+  row.addEventListener('scroll', sync, { passive: true }); new ResizeObserver(sync).observe(row); sync();   // also when a pop-up holding the row opens
+  // dragging with the mouse; a drag does not count as a click on the card under it
+  let down = null, moved = false;
+  row.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; down = { x: e.clientX, left: row.scrollLeft }; moved = false; });
+  addEventListener('pointermove', e => { if (!down) return; const dx = e.clientX - down.x; if (Math.abs(dx) > 4) { moved = true; row.classList.add('dragging'); } row.scrollLeft = down.left - dx; });
+  addEventListener('pointerup', () => { down = null; setTimeout(() => row.classList.remove('dragging'), 0); });
+  row.addEventListener('click', e => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+  row.addEventListener('dragstart', e => e.preventDefault());
+});
+
 initCharts(); initHeat();
 
 /* ---------- a content category ---------- */
@@ -783,7 +851,7 @@ if (uploadZone) fileUpload(uploadZone, { onAll: files => {
   const line = $('[data-step="2"] .muted.small'); if (line) line.textContent = `${film.name} · ${fileSize(film.size)} · uploaded`;
 } });
 
-const steps = $$('[data-step]');
+const steps = $('#shares') ? $$('[data-step]:not(.heat)') : [];   // only the release flow on the Create page has steps
 if (steps.length) {
   const show = n => {
     steps.forEach(s => { s.hidden = Number(s.dataset.step) !== n; });
