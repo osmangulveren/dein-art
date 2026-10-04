@@ -42,8 +42,10 @@ const front = ['trip-to-the-moon', 'man-with-a-movie-camera', 'nosferatu', 'nano
 const films = front.map(k => film[k]);
 
 // Screenings: a film played for everyone at once, with chat.
-const screening = (key, viewers) => ({ ...film[key], viewers });
-const streams = [screening('nosferatu', '2.4K'), screening('man-with-a-movie-camera', '1.1K'), screening('impossible-voyage', '860'), screening('the-general', '540')];
+// A screening runs on the clock, round and round: whoever opens it is at the same moment of the film as everyone else.
+const screening = key => film[key];
+const nowAt = f => Math.floor(Date.now() / 1000) % Math.max(1, f.secs);
+const streams = ['nosferatu', 'man-with-a-movie-camera', 'impossible-voyage', 'the-general'].map(screening);
 
 // ---------- the marketplace: everything shared or offered on dein.art, each item with its own page ----------
 const slugify = t => String(t).toLowerCase().replace(/ı/g, 'i').replace(/ß/g, 'ss').replace(/ø/g, 'o').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
@@ -246,7 +248,7 @@ const campaigns = [
 // Shown when someone presses "Load more"; after these run out the lists repeat.
 const more = {
   films: CATALOG.films.filter(f => !front.includes(f.key)),
-  live: [screening('sherlock-jr', '310'), screening('battleship-potemkin', '190'), screening('kino-eye', '420'), screening('gertie-the-dinosaur', '95')],
+  live: ['sherlock-jr', 'battleship-potemkin', 'kino-eye', 'gertie-the-dinosaur'].map(screening),
   assets: [],
 };
 
@@ -293,11 +295,12 @@ const categoryOf = f => f.cat ? f.cat : f.kind === 'Documentary' ? 'documentary'
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
   main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
-  you: [['creator', 'Your page', 'creator.html', 'user', 1], ['dashboard', 'Dashboard', 'dashboard.html', 'trend'], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
-        ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
+  // "You" is you only once you are logged in. Until then it offers to log in, and an example of what a creator's page looks like.
+  you: me => (me ? [['mine', 'Your page', 'artist.html?wallet=' + me.address, 'user', 1], ['dashboard', 'Dashboard', 'dashboard.html', 'trend'], ['create', 'Create', 'upload.html', 'upload', 1]]
+    : [['login', 'Log in', '#', 'user', 1, 'data-open-login'], ['creator', 'Example creator', 'creator.html', 'list'], ['create', 'Create', 'upload.html', 'upload', 1]]),
   explore: CATEGORIES.map(([slug, label]) => ['cat-' + slug, label, 'category.html?c=' + slug, 'film']),
 };
-const sideLink = ([key, label, href, ic, rail]) => `<a class="sl${rail ? ' rail' : ''}" data-key="${key}" href="${href}">${icons[ic]}<span>${label}</span></a>`;
+const sideLink = ([key, label, href, ic, rail, attr]) => `<a class="sl${rail ? ' rail' : ''}" data-key="${key}" href="${href}"${attr ? ' ' + attr : ''}>${icons[ic]}<span>${label}</span></a>`;
 document.body.insertAdjacentHTML('afterbegin', `
 <a class="skip" href="#main">Skip to the content</a>
 <header class="top"><div class="wrap">
@@ -310,12 +313,12 @@ document.body.insertAdjacentHTML('afterbegin', `
     <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
     <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
   </button>
-  <span data-account><a href="creator.html" aria-label="Your profile">${avatar(ME)}</a></span>
+  <span data-account></span>
 </div></header>
 <aside class="sidebar" aria-label="Site navigation">
   ${side.main.map(sideLink).join('')}
   <hr><h4>You</h4>
-  ${side.you.map(sideLink).join('')}
+  <div data-you></div>
   <hr><div data-following></div>
   <hr><h4>Categories</h4>
   ${side.explore.map(sideLink).join('')}
@@ -327,9 +330,18 @@ document.body.insertAdjacentHTML('afterbegin', `
   <a href="trending.html" data-tab-for="trending">${icons.trend}<span>Trending</span></a>
   <a href="upload.html" class="make" data-tab-for="create">${icons.upload}<span>Create</span></a>
   <a href="market.html" data-tab-for="market">${icons.market}<span>Market</span></a>
-  <a href="creator.html" data-tab-for="creator">${icons.user}<span>You</span></a>
+  <a href="#" data-tab-for="mine">${icons.user}<span>You</span></a>
 </nav>`);
-(me => { if (me) $('.tabbar [data-tab-for="creator"]').href = 'artist.html?wallet=' + me.address; })((() => { try { return JSON.parse(localStorage.getItem('session')); } catch { return null; } })());
+// drawn again whenever someone logs in or out (login.js calls it)
+function drawYou() {
+  const me = sessionNow(), tab = $('.tabbar [data-tab-for="mine"]');
+  $('[data-you]').innerHTML = side.you(me).map(sideLink).join('');
+  tab.href = me ? 'artist.html?wallet=' + me.address : '#'; tab.toggleAttribute('data-open-login', !me);
+  const here = page === 'artist' && me && walletParam.toLowerCase() === me.address ? 'mine' : page;
+  $$('[data-you] .sl').forEach(l => l.classList.toggle('on', l.dataset.key === here));
+}
+drawYou();
+document.addEventListener('click', e => { if (e.target.closest('a[data-open-login]')) e.preventDefault(); });
 if ($('main') && !$('main').id) $('main').id = 'main';
 $$('.tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tabFor === page && a.dataset.tabFor !== 'create'));
 // on a phone the search box sits behind an icon and takes the whole bar while it is used
@@ -364,7 +376,7 @@ const root = document.documentElement;
 // the tab icon is the dot too
 document.head.insertAdjacentHTML('beforeend', `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e0f13"/><circle cx="16" cy="16" r="7" fill="#f5a623"/></svg>')}">`);
 const markSide = () => {
-  const key = page + (page === 'creator' && $(`.sl[data-key="creator${location.hash}"]`) ? location.hash : '');
+  const key = page === 'artist' && sessionNow() && walletParam.toLowerCase() === sessionNow().address ? 'mine' : page;
   $$('.sl[data-key]').forEach(l => l.classList.toggle('on', l.dataset.key === key));
 };
 markSide();
@@ -477,19 +489,21 @@ $$('.close', dialog).forEach(b => b.addEventListener('click', () => dialog.close
 /* ---------- cards ---------- */
 
 const byline = f => f.by.join(' and ');
+const viewsText = n => `${Number(n).toLocaleString('en-US')} ${n === 1 ? 'view' : 'views'}`;
 const under = (f, ...more) => [byline(f), f.year, ...more].filter(Boolean).join(' · ');
 const durTag = f => (f.dur ? `<span class="badge dur">${f.dur}</span>` : '');
 const cards = {
   films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy">${durTag(f)}</div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}<span data-views="${f.key}"></span></p></div></div></a>`,
   resume: f => { const p = progress[f.key], secs = f.secs || p.of || 0, left = Math.max(1, Math.round((secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}</p></div></div></a>`; },
   next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy">${durTag(f)}</div><div><h3>${esc(f.title)}</h3><p class="muted small">${esc(byline(f))}<br>${[f.year, f.kind].filter(Boolean).join(' · ')}<span data-views="${f.key}"></span></p></div></a>`,
-  live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
+  live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">Screening</span><span class="badge dur">now at ${clock(nowAt(s))}</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
   merch: m => merchCard(m),
-  trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · <span class="up">▲ ${f.up}%</span> this week</p></div></div></a>`,
-  rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div><span class="up">▲ ${f.up}%</span></a>`,
-  castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
-  artists: a => `<a class="rankrow" href="${artistUrl(a.name)}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${a.name}</h3><p class="muted small">${a.role} · known for ${a.known}</p></div><span class="up">▲ ${a.up}%</span></a>`,
+  // the most watched: ranked by views the site really counted, and the number is the count
+  trending: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge rank">${f.rank}</span>${durTag(f)}</div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(byline(f))} · ${viewsText(f.n)} ${f.span}</p></div></div></a>`,
+  rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy">${durTag(f)}</div><div class="info"><h3>${esc(f.title)}</h3><p class="muted small">${esc([byline(f), f.year, f.kind].filter(Boolean).join(' · '))}</p></div><span class="up">${viewsText(f.n)}</span></a>`,
+  castp: a => `<a class="castp" href="${a.href || artistUrl(a.name)}">${person(a)}<span><b>${esc(a.name)}</b><span class="muted small">${esc(a.role)}</span></span></a>`,
+  artists: a => `<a class="rankrow" href="${a.href}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${esc(a.name)}</h3><p class="muted small">${esc(a.role)} · ${esc(a.known)}</p></div><span class="up">${viewsText(a.n)}</span></a>`,
   channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow" data-follow="${esc(c.name)}">Follow</button></div>`,
   campaigns: c => {
     const pct = Math.round(c.raised / c.goal * 100);
@@ -514,10 +528,9 @@ const addedTitles = (() => { try { return JSON.parse(localStorage.getItem('title
 const sameKind = f => (cur.cat || f.cat ? categoryOf(f) === categoryOf(cur) : f.kind === cur.kind);
 const related = [...new Set([...(cur.rel || []).map(k => film[k]).filter(Boolean), ...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by.includes(n))), ...CATALOG.films.filter(f => f !== cur && sameKind(f) && !f.by.some(n => cur.by.includes(n)))])].slice(0, 12);
 // What is rising this week: films, the people behind them, and the companies that made them.
-const trending = ['nosferatu', 'sherlock-jr', 'man-with-a-movie-camera', 'trip-to-the-moon', 'the-general', 'cabinet-of-dr-caligari', 'impossible-voyage', 'nanook-of-the-north', 'within-our-gates', 'suspense']
-  .map((k, i) => ({ ...film[k], rank: i + 1, up: [212, 148, 96, 81, 77, 64, 52, 40, 33, 21][i] }));
-const artists = [['Osman Burak Gülveren', 88], ['Max Schreck', 64], ['XCOPY', 58], ['Buster Keaton', 51], ['Jack Butcher', 47], ['Yelizaveta Ignatevna Svilova', 43], ['F. W. Murnau', 38], ['Rosenlykke', 34], ['Lois Weber', 31], ['Dziga Vertov', 27], ['Han x Nicolas Daniel', 24], ['Oscar Micheaux', 22], ['Robert J. Flaherty', 15]]
-  .filter(([n]) => who[n]).map(([name, up], i) => ({ name, up, role: who[name].role, known: who[name].chain ? (who[name].credits[0]?.list[0]?.title || who[name].chain.collections.find(c => c.cc0)?.name || who[name].chain.collections[0]?.name) : film[who[name].films[0]].title, rank: i + 1 }));
+// What is watched most, and who made it. Nothing here is made up: the ranking is the views the site counted (TOP, below),
+// so these two lists are empty until the counts arrive.
+const trending = [], artists = [];
 const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukrainian Photo-Cinema Administration', 'Metro Pictures', 'Hal Roach Studios']
   .map(n => CATALOG.companies.find(c => c.name === n)).filter(Boolean)
   .map(c => ({ name: c.name, tone: tone(c.name), href: (() => { const st = typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === c.name); return st ? 'studio.html?s=' + st.slug : watchUrl(film[c.films[0]]); })(),
@@ -532,6 +545,33 @@ const lists = { films, live: streams, assets, merch, campaigns, related, trendin
   // films by the people you follow, as they are: no ranking decides whether you see them
   following: CATALOG.films.filter(f => f.by.some(n => following.has(n)) || following.has(f.creator)),
   quick: CATALOG.films.filter(f => f.secs && f.secs <= 900) };
+// The most watched films of the last seven days, as counted by the site. While a week holds too little to rank
+// (the daily counts are young), it is everything ever counted, and the page says which of the two it is showing.
+const TOP = (async () => {
+  const get = days => fetch(`/api/views/top?days=${days}&limit=30`).then(r => (r.ok ? r.json() : [])).then(l => (Array.isArray(l) ? l : [])).catch(() => []);
+  let list = await get(7), span = 'this week';
+  if (list.length < 4) { list = await get(0); span = 'so far'; }
+  await Promise.all([FILMS.need(list.map(x => x[0])), RELEASES]);
+  const top = list.map(([id, n]) => film[id] && { ...film[id], n, span }).filter(Boolean).map((f, i) => ({ ...f, rank: i + 1 }));
+  // the people behind them: everyone named as a maker of those films, by the views of their films
+  const makers = new Map();
+  top.forEach(f => (f.owner ? [[f.by[0], 'artist.html?wallet=' + f.owner]] : f.by.filter(n => who[n] || FILMS.known.has(n)).map(n => [n, artistUrl(n)])).forEach(([name, href]) => {
+    const m = makers.get(name) || { name, href, n: 0, role: who[name]?.role || 'Director', known: f.title }; m.n += f.n; makers.set(name, m); }));
+  return { span, films: top, makers: [...makers.values()].sort((x, y) => y.n - x.n).map((m, i) => ({ ...m, rank: i + 1 })) };
+})();
+TOP.then(({ span, films: top, makers }) => {
+  $$('[data-list~="trending"]').forEach(el => {
+    const card = cards[el.dataset.card || 'trending'], shown = top.slice(0, Number(el.dataset.limit) || 30);
+    el.innerHTML = shown.map(card).join('') || '<p class="muted empty">Nothing has been watched yet. The first views will show here.</p>';
+    if (!shown.length && el.previousElementSibling?.classList.contains('sec') && page === 'home') { el.hidden = true; el.previousElementSibling.hidden = true; }
+  });
+  $$('[data-list~="artists"]').forEach(el => {
+    const shown = makers.slice(0, Number(el.dataset.limit) || 30);
+    el.innerHTML = shown.map(cards[el.dataset.card || 'artists']).join('') || '<p class="muted empty">Nobody yet.</p>';
+    if (!shown.length && el.closest('.strip')) el.closest('.strip').hidden = true;
+  });
+  $$('[data-top-span]').forEach(el => { el.textContent = span === 'this week' ? el.dataset.week : el.dataset.all; });
+});
 // what creators released here comes first on the home page, once there is something
 RELEASES.then(list => $$('[data-releases]').forEach(el => {
   if (!list.length) return;
@@ -724,10 +764,13 @@ if (video) {
     if (!crew.some(c => c.pct > 0) || !cur.support) $$('[data-f="split"]').forEach(el => { el.hidden = true; el.parentElement.classList.add('solo'); });
   } else if (live) {
     fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
-      <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago</span></a>
+      <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">Running on the clock for everyone · now at ${clock(nowAt(cur))} of ${cur.dur}</span></a>
       <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
       <button class="btn primary" data-pay="tip" data-split>♥ Tip</button>`);
-    fill('about', `<p>${cur.blurb || ''} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`);
+    $$('[data-live-own]').forEach(el => { el.href = watchUrl(cur); });
+    fill('about', `<p>${cur.blurb || ''} A screening runs on the clock: whoever opens this page is at the same moment of the film as everyone else. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`);
+    // pressing play joins the screening where it is now
+    video.addEventListener('play', () => { const go = () => { video.currentTime = nowAt(cur); }; video.readyState ? go() : video.addEventListener('loadedmetadata', go, { once: true }); }, { once: true });
   } else {
     // under the film: what it is, who made it, and the three things you can do
     fill('meta', `<span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0], cur.dur].filter(Boolean).join(' · ')} <span class="pill tint">${esc(cur.lic)}</span>`);
@@ -930,7 +973,7 @@ const collCard = (a, c) => `<a class="card" href="${collUrl(a, c)}">${tile(c)}<h
 
 // A profile: the same page for every artist, and for the signed-in account.
 if (page === 'artist' || page === 'creator') {
-  const a = subject, me = a.name === ME, chain = a.chain, mine = filmsOf(a), ranked = artists.find(x => x.name === a.name);
+  const a = subject, me = a.name === ME, chain = a.chain, mine = filmsOf(a);
   const set = (key, html) => $$(`[data-p="${key}"]`).forEach(el => { el.innerHTML = html; });
   const ext = (href, label) => `<a class="link" href="${href}" target="_blank" rel="noopener">${label}</a>`;
   document.title = `${a.name} — dein.art`;
@@ -971,7 +1014,7 @@ if (page === 'artist' || page === 'creator') {
     set('side', me ? chartCard({ title: 'Your share of earnings', caption: 'last 7 months', total: '$63,790',
         data: [['May', 4120], ['Jun', 6380], ['Jul', 5240], ['Aug', 9810], ['Sep', 8460], ['Oct', 12900], ['Nov', 16880]].map(([label, value]) => ({ label, value, text: '$' + value.toLocaleString('en-US') })),
         note: 'Only you see this · example figures. Another $123,285 went to your cast and crew. <a class="link" href="dashboard.html">Open your dashboard</a>' })
-      : ranked ? `<a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#${ranked.rank}</b><span class="up">▲ ${ranked.up}%</span></a>` : '');
+      : '');
     set('factstitle', 'Personal details');
     set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
   }
@@ -1217,14 +1260,4 @@ function addChat(name, text, tip) {
   row.innerHTML = '<b></b><span></span>';
   row.firstChild.textContent = name; row.lastChild.textContent = text;
   msgs.append(row); msgs.scrollTop = msgs.scrollHeight;
-}
-if (msgs) {
-  [['mika', 'that shadow on the staircase'], ['arjun_r', 'is this the tinted print?'], ['leyla_s', 'tipped $25.00', true], ['tomas', 'no sound and I still jumped'],
-   ['kerem', 'first time watching this one'], ['sofia.m', 'collected the ship scene yesterday'], ['deniz', 'a hundred years old and it still works']].forEach(m => addChat(...m));
-  $('.chat form').addEventListener('submit', e => {
-    e.preventDefault();
-    const input = $('.chat input');
-    if (input.value.trim()) addChat('You', input.value.trim());
-    input.value = '';
-  });
 }

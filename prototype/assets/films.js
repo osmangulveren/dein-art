@@ -107,6 +107,12 @@ const FILMS = (() => {
         const s = document.createElement('script'); s.src = src; s.onload = s.onerror = done; document.head.append(s);
       }))));
     },
+    // some films are wanted by their address alone (the most watched, say): fetch the pieces that hold them
+    shard: s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return (h % index.shards).toString(16).padStart(2, '0'); },
+    need(keys) {
+      const want = [...new Set(keys.filter(k => !have.has(k) && !k.includes('--') && /^[a-z0-9-]{1,64}$/.test(k)).map(api.shard))];
+      return Promise.all(want.map(x => new Promise(done => { const s = document.createElement('script'); s.src = `films/d/${x}.js`; s.onload = s.onerror = done; document.head.append(s); })));
+    },
     // a film someone is partway through, or kept for later, has to be findable on the home page too
     remember(f) {
       const r = rows.get(f.key); if (!r) return;
@@ -122,7 +128,7 @@ const FILMS = (() => {
 // What this page needs before it can be drawn. The same sum as tools/catalog/14_films_build.py decides which file holds what.
 (() => {
   if (!FILMS.total) return;
-  const shard = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return (h % FILMS_INDEX.shards).toString(16).padStart(2, '0'); };
+  const shard = FILMS.shard;
   const page = document.body.dataset.page, q = new URLSearchParams(location.search), want = src => document.write(`<script src="${src}"><\/script>`);
   const key = q.get('f'), known = key && CATALOG.films.find(f => f.key === key);
   // a film released here has "--" in its address (no catalogue film does) and comes from the server, not from the files

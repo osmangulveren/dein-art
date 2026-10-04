@@ -24,7 +24,7 @@
 //   GET    /api/films                 -> every released film, newest first
 //   GET    /api/films.js?f=<id>       the same as a script, for a page that needs a film before it draws itself
 //   DELETE /api/films/:id { session } its maker, or an admin
-//   GET    /api/views/top?days=7      -> [[id, views]] the most watched in the last days
+//   GET    /api/views/top?days=7      -> [[id, views]] the most watched in the last days (days=0: of all time)
 //   GET    /api/config                -> { splits, claims }: where the contracts live on the test network
 //   POST   /api/config { session, splits, claims }   an admin wallet only
 //
@@ -107,7 +107,9 @@ export class ViewCounter extends DurableObject {
     return this.ctx.storage.sql.exec('INSERT INTO views (id, n) VALUES (?, 1) ON CONFLICT(id) DO UPDATE SET n = n + 1 RETURNING n', id).one().n;
   }
   top(days, limit) {
-    return this.rows("SELECT id, SUM(n) AS n FROM daily WHERE day > ? AND id NOT LIKE 'dl-%' GROUP BY id ORDER BY n DESC, id LIMIT ?", today() - days, limit).map(r => [r.id, r.n]);
+    // days = 0 asks for everything ever counted (the daily counts only start on the day they were introduced)
+    return (days ? this.rows("SELECT id, SUM(n) AS n FROM daily WHERE day > ? AND id NOT LIKE 'dl-%' GROUP BY id ORDER BY n DESC, id LIMIT ?", today() - days, limit)
+      : this.rows("SELECT id, n FROM views WHERE id NOT LIKE 'dl-%' ORDER BY n DESC, id LIMIT ?", limit)).map(r => [r.id, r.n]);
   }
 
   /* ---------- where the contracts live ---------- */
@@ -290,7 +292,7 @@ export default {
       const ids = [...new Set((url.searchParams.get('ids') || '').split(','))].filter(id => ID.test(id)).slice(0, 60);
       return json(await store.read(ids));
     }
-    if (path === '/api/views/top' && method === 'GET') return json(await store.top(Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 7)), Math.min(50, Math.max(1, Number(url.searchParams.get('limit')) || 20))), 200, 'public, max-age=60');
+    if (path === '/api/views/top' && method === 'GET') return json(await store.top(url.searchParams.get('days') === '0' ? 0 : Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 7)), Math.min(50, Math.max(1, Number(url.searchParams.get('limit')) || 20))), 200, 'public, max-age=60');
     if ((m = path.match(/^\/api\/views\/([a-z0-9-]{1,64})$/)) && method === 'POST') return json({ id: m[1], views: await store.add(m[1]) });
 
     if (path === '/api/config' && method === 'GET') return json(await store.config());

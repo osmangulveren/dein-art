@@ -1444,3 +1444,8 @@ label.rel-thumb.add { display: grid; place-items: center; margin: 0; border: 1.5
 .rel-person .rel-wallet.bad { border-color: #d6454a; }
 @media (max-width: 700px) { .rel-person .rel-wallet { grid-column: 1 / -1; grid-row: 3; } }
 .rel-person .cf-err { grid-column: 2 / -1; margin: -4px 0 6px; }
+
+/* ---------- honesty: an example is called an example, and a screening explains itself ---------- */
+.examplebar { margin: 0 0 18px; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, var(--dot) 14%, transparent); font-size: 13.5px; line-height: 1.5; }
+.screeninfo { align-self: start; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.screeninfo h2 { font: 400 22px/1.2 var(--serif); margin: 0; } .screeninfo p { margin: 0; line-height: 1.55; }
