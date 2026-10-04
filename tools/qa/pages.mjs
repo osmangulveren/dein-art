@@ -3,7 +3,7 @@
 //   node tools/qa/pages.mjs https://example.com/   against any copy of the site
 // Run it before every push: a page can look fine and still have thrown at the end of its script.
 import { launch } from '../../promo/cdp.mjs';
-export const PAGES = ['index.html', 'trending.html', 'live.html', 'market.html', 'market.html?cat=Music', 'item.html?id=tpl-film-looks', 'watch.html', 'watch.html?f=nosferatu', 'creator.html', 'dashboard.html',
+export const PAGES = ['index.html', 'library.html', 'about.html', 'trending.html', 'live.html', 'market.html', 'market.html?cat=Music', 'item.html?id=tpl-film-looks', 'watch.html', 'watch.html?f=nosferatu', 'creator.html', 'dashboard.html',
   'artist.html?name=Buster%20Keaton', 'artist.html?name=XCOPY', 'artist.html?wallet=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', 'studios.html', 'studio.html?s=star-film', 'collection.html?artist=XCOPY',
   'collection.html?contract=0x6df9bb5d8c067de97031d62de63c4d94a54fb567', 'token.html?c=0x6df9bb5d8c067de97031d62de63c4d94a54fb567&id=1', 'category.html?c=documentary', 'search.html?q=moon',
   'watch.html?f=the-birth-of-a-nation-1915', 'watch.html?f=about-bananas-1935', 'category.html?c=feature-film', 'artist.html?name=D.%20W.%20Griffith', 'search.html?q=chaplin',

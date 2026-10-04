@@ -64,7 +64,9 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 
 | Page | File |
 | --- | --- |
-| Home | `index.html` |
+| Home: what a creator can do here | `index.html` |
+| The free library | `library.html` |
+| About, what is real, and how to report something | `about.html` |
 | Watch a film | `watch.html?f=…` |
 | Live | `live.html` |
 | Search results | `search.html` |

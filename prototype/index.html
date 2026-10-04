@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dein.art — the blockchain-based home for film</title>
+<title>dein.art — release your film, and everyone who made it gets paid</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
@@ -11,21 +11,38 @@
 </head>
 <body data-page="home">
 <main class="wrap">
-  <a class="hero" data-hero href="watch.html">
-    <img alt="">
-    <div class="hero-in">
-      <span class="pill">Blockchain-based platform</span> <span class="pill">Featured film</span> <span class="pill" data-hero-meta></span>
-      <h1></h1>
-      <p></p>
-      <div class="cta"><span class="btn white">▶ Watch free</span><span class="btn glass">Support the film</span></div>
+  <section class="front">
+    <div class="front-in">
+      <span class="pill tint">Built in public · on a test network for now</span>
+      <h1>Release your film.<br>Everyone who made it gets paid.</h1>
+      <p>dein.art is one place to publish your work, share what is behind it, and split what it earns across your cast and crew, in the moment it arrives.</p>
+      <div class="cta"><a class="btn primary" href="release.html" data-magnetic><span class="mag-in">Release a film</span></a><a class="btn" href="#how">See how the split works</a><a class="btn bare" href="library.html">Or just watch something →</a></div>
     </div>
-  </a>
+    <div class="front-demo" role="img" aria-label="An example: a viewer sends 0.005 ETH; 60% goes to the director, 40% to the editor, and a flat fee to dein.art, in one transaction">
+      <span class="eg">an example</span>
+      <div class="demorow"><span>A viewer sends</span><b>0.005 ETH</b></div>
+      <div class="splitbar"><i style="flex:60;background:var(--accent)"></i><i style="flex:40;background:var(--ok)"></i></div>
+      <div class="demopay"><i style="background:var(--accent)"></i><span><b>Director</b> · 60%</span><em>0.00282</em></div>
+      <div class="demopay"><i style="background:var(--ok)"></i><span><b>Editor</b> · 40%</span><em>0.00188</em></div>
+      <div class="demopay fee"><i></i><span>dein.art, a flat fee</span><em>0.0003</em></div>
+      <small>One transaction. Nothing is held, nobody sends an invoice.</small>
+    </div>
+  </section>
 
-  <div class="chips homechips" data-home-chips></div>
+  <section class="steps3" id="how">
+    <div><b>1</b><h3>Release</h3><p>Your film, or a link to it. Add the people who made it and give each one a share.</p></div>
+    <div><b>2</b><h3>Record the split</h3><p>One transaction puts the shares on the chain. After that, nobody has to trust anybody.</p></div>
+    <div><b>3</b><h3>Support arrives already split</h3><p>Whatever a viewer sends is paid to each person in the same transaction, and shows on everyone's dashboard.</p></div>
+  </section>
+  <p class="muted small frontnote">This runs on Sepolia, a test network, with test ETH that is worth nothing: the mechanism is real, the money is not yet. <a class="link" href="about.html#today">What works today, and what does not</a></p>
 
   <section data-releases hidden>
     <div class="sec"><h2>New from creators</h2><p>Released here by the people who made them</p></div>
     <div class="grid four" data-releases-list></div>
+  </section>
+  <section class="firstbox" data-no-releases>
+    <div><b>Nothing has been released here yet.</b><span class="muted">Yours could be the first: it takes five short steps.</span></div>
+    <a class="btn dark" href="release.html">Release a film</a>
   </section>
 
   <div class="sec"><h2>Carry on watching</h2><p>Kept in this browser</p></div>
@@ -37,65 +54,24 @@
   <div class="sec"><h2>From the people you follow</h2><p>Everything they released, nothing ranked</p></div>
   <div class="grid four" data-list="following" data-card="films" data-limit="8" data-hide-empty></div>
 
+  <div class="sec libsec"><h2>The free library</h2><a href="library.html">Open the library</a></div>
+  <p class="muted libintro"><span data-films-total>Thousands of films</span>, in the public domain. They are here to watch, and to show how the pages work with real films in them.</p>
+  <div class="chips homechips" data-home-chips></div>
+
   <div class="sec"><h2 data-top-span data-week="Most watched this week" data-all="Most watched so far">Most watched</h2><a href="trending.html">See all</a></div>
   <div class="grid four" data-list="trending" data-limit="4"></div>
 
-  <div class="cast strip"><a class="btn dark" href="trending.html#artists">The people behind them</a><div class="castlist" data-list="artists" data-card="castp" data-limit="6"></div></div>
-
-  <div class="sec"><h2>Fifteen minutes or less</h2><a href="category.html?c=short-film">All short films</a></div>
-  <div class="grid four" data-list="quick" data-card="films" data-limit="4" data-hide-empty></div>
-
-  <div class="sec"><h2>Screening now</h2><a href="live.html">See all</a></div>
-  <div class="grid four" data-list="live" data-limit="4"></div>
-
-  <div class="sec" id="films"><h2>Films</h2><p data-films-total>Free to watch</p></div>
-  <div class="grid" data-list="films"></div>
-
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Feature films</h2><a href="category.html?c=feature-film" data-cat-all="feature-film">See all</a></div>
-    <div class="grid" data-list="c-feature-film" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Cartoons and animation</h2><a href="category.html?c=animation" data-cat-all="animation">See all</a></div>
-    <div class="grid" data-list="c-animation" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Documentaries and newsreels</h2><a href="category.html?c=documentary" data-cat-all="documentary">See all</a></div>
-    <div class="grid" data-list="c-documentary" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Short films</h2><a href="category.html?c=short-film" data-cat-all="short-film">See all</a></div>
-    <div class="grid" data-list="c-short-film" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Serials and television</h2><a href="category.html?c=series" data-cat-all="series">See all</a></div>
-    <div class="grid" data-list="c-series" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Lessons from another time</h2><a href="category.html?c=course" data-cat-all="course">See all</a></div>
-    <div class="grid" data-list="c-course" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
-  <section class="block slideblock homerow">
-    <div class="sec"><h2>Home movies</h2><a href="category.html?c=vlog" data-cat-all="vlog">See all</a></div>
-    <div class="grid" data-list="c-vlog" data-card="films" data-limit="14" data-slider data-hide-empty></div>
-  </section>
+  <div class="sec"><h2>Hand-picked</h2><a href="library.html">All of them</a></div>
+  <div class="grid four" data-list="films" data-card="films" data-limit="8"></div>
 
   <div class="sec"><h2>From the marketplace</h2><a href="market.html">See all</a></div>
   <div class="grid four" data-list="assets" data-limit="4"></div>
 
-  <div class="sec"><h2>Studios</h2><a href="studios.html">See all</a></div>
-  <div class="grid c3" data-list="channels" data-limit="3"></div>
-
-  <div class="sec"><h2>One place for a film and everything around it</h2><p>Credits, ownership and payouts are recorded on-chain, quietly</p></div>
-  <div class="pillars">
-    <a class="pillar" href="watch.html"><i data-icon="watch"></i><b>Watch</b><span>Release films to a free audience.</span></a>
-    <a class="pillar" href="live.html"><i data-icon="live"></i><b>Live</b><span>Screen a film together and take tips.</span></a>
-    <a class="pillar" href="market.html"><i data-icon="market"></i><b>Marketplace</b><span>Share footage, music and images.</span></a>
-    <a class="pillar" href="creator.html#merch"><i data-icon="merch"></i><b>Merch</b><span>Printed on demand, shipped for you.</span></a>
-    <a class="pillar" href="creator.html#funding"><i data-icon="fund"></i><b>Funding</b><span>Raise the budget for the next one.</span></a>
-    <a class="pillar" href="watch.html#crew"><i data-icon="split"></i><b>Shared revenue</b><span>Whatever it earns, split on-chain across cast and crew.</span></a>
+  <div class="sec"><h2>Where things stand</h2><a href="about.html">About dein.art</a></div>
+  <div class="standing">
+    <div class="panel"><h3>Works today</h3><ul><li>Releasing a film with its people and their shares</li><li>The split, paid out on a test network</li><li>Uploads to the marketplace, credits, page claims</li><li>Views and downloads, counted for real</li></ul></div>
+    <div class="panel"><h3>Not real yet</h3><ul><li>Payments in real money</li><li>Live streams, merch and funding campaigns</li><li>Logging in without a wallet</li><li>Storing films larger than 25 MB</li></ul></div>
   </div>
-
 </main>
 <script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>

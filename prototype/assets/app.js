@@ -291,14 +291,17 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 // What kind of thing a video is. The catalogue has films; the other kinds are ready for what creators publish.
 const CATEGORIES = [['feature-film', 'Feature film'], ['documentary', 'Documentary'], ['short-film', 'Short film'], ['animation', 'Animation'], ['series', 'Series'], ['vlog', 'Vlog'], ['entertainment', 'Entertainment'],
   ['reality-show', 'Reality show'], ['podcast', 'Podcast'], ['course', 'Course'], ['tutorial', 'Tutorial'], ['music-video', 'Music video']];
+// What each kind is called in the free library, where a "vlog" is a 1940s home movie and a "course" a classroom film.
+const LIBRARY_KINDS = { 'feature-film': 'Feature films', documentary: 'Documentaries and newsreels', 'short-film': 'Short films', animation: 'Cartoons and animation', series: 'Serials and television',
+  vlog: 'Home movies', entertainment: 'Advertising films', course: 'Classroom films', tutorial: 'Training films', 'music-video': 'Music films' };
 const categoryOf = f => f.cat ? f.cat : f.kind === 'Documentary' ? 'documentary' : f.kind === 'Animation' ? 'animation' : f.kind === 'Short film' || f.secs < 2400 ? 'short-film' : 'feature-film';
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
-  main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
+  // Only what is real has a place here. Screenings and studios are reached from the library; merch and funding, which are still examples, from the example creator.
+  main: [['home', 'Home', 'index.html', 'home', 1], ['library', 'Library', 'library.html', 'film', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['trending', 'Trending', 'trending.html', 'trend', 1]],
   // "You" is you only once you are logged in. Until then it offers to log in, and an example of what a creator's page looks like.
   you: me => (me ? [['mine', 'Your page', 'artist.html?wallet=' + me.address, 'user', 1], ['dashboard', 'Dashboard', 'dashboard.html', 'trend'], ['create', 'Create', 'upload.html', 'upload', 1]]
     : [['login', 'Log in', '#', 'user', 1, 'data-open-login'], ['creator', 'Example creator', 'creator.html', 'list'], ['create', 'Create', 'upload.html', 'upload', 1]]),
-  explore: CATEGORIES.map(([slug, label]) => ['cat-' + slug, label, 'category.html?c=' + slug, 'film']),
 };
 const sideLink = ([key, label, href, ic, rail, attr]) => `<a class="sl${rail ? ' rail' : ''}" data-key="${key}" href="${href}"${attr ? ' ' + attr : ''}>${icons[ic]}<span>${label}</span></a>`;
 document.body.insertAdjacentHTML('afterbegin', `
@@ -320,14 +323,13 @@ document.body.insertAdjacentHTML('afterbegin', `
   <hr><h4>You</h4>
   <div data-you></div>
   <hr><div data-following></div>
-  <hr><h4>Categories</h4>
-  ${side.explore.map(sideLink).join('')}
-  <hr><p class="side-foot">Own your narrative.</p>
+  <hr><a class="sl" data-key="about" href="about.html">${icons.list}<span>About</span></a>
+  <p class="side-foot">Own your narrative.</p>
 </aside>
 <div class="scrim"></div>
 <nav class="tabbar" aria-label="Main">
   <a href="index.html" data-tab-for="home">${icons.home}<span>Home</span></a>
-  <a href="trending.html" data-tab-for="trending">${icons.trend}<span>Trending</span></a>
+  <a href="library.html" data-tab-for="library">${icons.film}<span>Library</span></a>
   <a href="upload.html" class="make" data-tab-for="create">${icons.upload}<span>Create</span></a>
   <a href="market.html" data-tab-for="market">${icons.market}<span>Market</span></a>
   <a href="#" data-tab-for="mine">${icons.user}<span>You</span></a>
@@ -343,7 +345,7 @@ function drawYou() {
 drawYou();
 document.addEventListener('click', e => { if (e.target.closest('a[data-open-login]')) e.preventDefault(); });
 if ($('main') && !$('main').id) $('main').id = 'main';
-$$('.tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tabFor === page && a.dataset.tabFor !== 'create'));
+$$('.tabbar a').forEach(a => a.classList.toggle('on', a.dataset.tabFor === ({ category: 'library', live: 'library', studios: 'library', studio: 'library' }[page] || page) && a.dataset.tabFor !== 'create'));
 // on a phone the search box sits behind an icon and takes the whole bar while it is used
 document.addEventListener('click', e => {
   if (e.target.closest('.searchbtn')) { document.documentElement.dataset.searching = '1'; $('.search input').focus(); }
@@ -376,7 +378,7 @@ const root = document.documentElement;
 // the tab icon is the dot too
 document.head.insertAdjacentHTML('beforeend', `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e0f13"/><circle cx="16" cy="16" r="7" fill="#f5a623"/></svg>')}">`);
 const markSide = () => {
-  const key = page === 'artist' && sessionNow() && walletParam.toLowerCase() === sessionNow().address ? 'mine' : page;
+  const key = page === 'artist' && sessionNow() && walletParam.toLowerCase() === sessionNow().address ? 'mine' : { category: 'library', live: 'library', studios: 'library', studio: 'library' }[page] || page;
   $$('.sl[data-key]').forEach(l => l.classList.toggle('on', l.dataset.key === key));
 };
 markSide();
@@ -408,12 +410,12 @@ document.body.insertAdjacentHTML('beforeend', `
   <a class="logo" href="index.html"><span class="de">de</span><span class="in">in</span><i>.</i><b>art</b></a>
   <span class="tagline">Own your narrative.</span>
   <nav class="footnav" aria-label="Footer">
-    <div><b>Watch</b><a href="index.html#films">Films</a><a href="trending.html">Trending</a><a href="live.html">Live</a><a href="studios.html">Studios</a></div>
+    <div><b>Watch</b><a href="library.html">The free library</a><a href="trending.html">Trending</a><a href="live.html">Screenings</a><a href="studios.html">Studios</a></div>
     <div><b>Marketplace</b><a href="market.html?cat=Footage">Footage</a><a href="market.html?cat=Music">Music</a><a href="market.html?cat=Sound%20effects">Sound effects</a><a href="market.html?cat=Photos%20%26%20images">Photos and images</a></div>
-    <div><b>Create</b><a href="release.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="fund.html">Start funding</a></div>
-    <div><b>dein.art</b><a href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">Code on GitHub</a><a href="https://x.com/osmangulveren" target="_blank" rel="noopener">Follow the build on X</a><a href="deploy.html">Testnet contract</a></div>
+    <div><b>Create</b><a href="release.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="dashboard.html">Dashboard</a></div>
+    <div><b>dein.art</b><a href="about.html">About</a><a href="about.html#report">Report something</a><a href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">Code on GitHub</a><a href="https://x.com/osmangulveren" target="_blank" rel="noopener">Follow the build on X</a><a href="deploy.html">Testnet contract</a></div>
   </nav>
-  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and the <a class="link" href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Each film's page says why it is free to show. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
+  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and the <a class="link" href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Each film's page says why it is free to show. Views are counted for real; earnings on the example pages, merch and campaigns are examples, and nothing is charged. <a class="link" href="about.html">More about what is real here</a>.</p>
 </div></footer>
 <dialog id="pay">
   <div class="form">
@@ -549,10 +551,10 @@ const lists = { films, live: streams, assets, merch, campaigns, related, trendin
 // (the daily counts are young), it is everything ever counted, and the page says which of the two it is showing.
 const TOP = (async () => {
   const get = days => fetch(`/api/views/top?days=${days}&limit=30`).then(r => (r.ok ? r.json() : [])).then(l => (Array.isArray(l) ? l : [])).catch(() => []);
-  let list = await get(7), span = 'this week';
-  if (list.length < 4) { list = await get(0); span = 'so far'; }
-  await Promise.all([FILMS.need(list.map(x => x[0])), RELEASES]);
-  const top = list.map(([id, n]) => film[id] && { ...film[id], n, span }).filter(Boolean).map((f, i) => ({ ...f, rank: i + 1 }));
+  // the films behind a list of counts (a film that was since removed drops out)
+  const filmsOf_ = async (list, span) => { await Promise.all([FILMS.need(list.map(x => x[0])), RELEASES]); return list.map(([id, n]) => film[id] && { ...film[id], n, span }).filter(Boolean).map((f, i) => ({ ...f, rank: i + 1 })); };
+  let span = 'this week', top = await filmsOf_(await get(7), span);
+  if (top.length < 4) { span = 'so far'; top = await filmsOf_(await get(0), span); }
   // the people behind them: everyone named as a maker of those films, by the views of their films
   const makers = new Map();
   top.forEach(f => (f.owner ? [[f.by[0], 'artist.html?wallet=' + f.owner]] : f.by.filter(n => who[n] || FILMS.known.has(n)).map(n => [n, artistUrl(n)])).forEach(([name, href]) => {
@@ -576,11 +578,12 @@ TOP.then(({ span, films: top, makers }) => {
 RELEASES.then(list => $$('[data-releases]').forEach(el => {
   if (!list.length) return;
   $('[data-releases-list]', el).innerHTML = list.slice(0, 8).map(cards.films).join(''); el.hidden = false; fillViews();
+  $$('[data-no-releases]').forEach(x => { x.hidden = true; });
 }));
 // the best known of each kind from the big catalogue, for the rows on the home page
 CATEGORIES.forEach(([slug]) => { lists['c-' + slug] = CATALOG.films.filter(f => f.source && categoryOf(f) === slug); });
 $$('[data-cat-all]').forEach(a => { const n = FILMS.counts[a.dataset.catAll]; if (n) a.textContent = `All ${n.toLocaleString('en-US')}`; });
-$$('[data-films-total]').forEach(el => { if (FILMS.total) el.textContent = `${(FILMS.total + CATALOG.films.filter(f => !f.source).length).toLocaleString('en-US')} free to watch`; });
+$$('[data-films-total]').forEach(el => { if (FILMS.total) el.textContent = `${(FILMS.total + CATALOG.films.filter(f => !f.source && !f.owner).length).toLocaleString('en-US')} films`; });
 $$('[data-list]').forEach(el => {
   const names = el.dataset.list.split(' ');
   // a profile shows everything by that person, not just the front page's pick
@@ -925,11 +928,9 @@ if (reviews) {
 }
 
 /* ---------- home: straight to a kind of film, or to something to use in one ---------- */
-$$('[data-home-chips]').forEach(el => {
-  const has = slug => FILMS.counts[slug] || CATALOG.films.some(f => categoryOf(f) === slug);
-  el.innerHTML = '<span class="chiplabel">Watch</span>' + CATEGORIES.filter(([slug]) => has(slug)).map(([slug, label]) => `<a class="chip" href="category.html?c=${slug}">${label}</a>`).join('')
-    + '<span class="chiplabel">Use in your film</span>' + ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Scripts & documents', 'Templates'].map(c => `<a class="chip" href="market.html?cat=${encodeURIComponent(c)}">${c}</a>`).join('');
-});
+const kindChips = () => CATEGORIES.filter(([slug]) => FILMS.counts[slug]).map(([slug]) => `<a class="chip" href="category.html?c=${slug}">${LIBRARY_KINDS[slug]} <small>${FILMS.counts[slug].toLocaleString('en-US')}</small></a>`).join('');
+$$('[data-home-chips]').forEach(el => { el.innerHTML = kindChips(); });
+$$('[data-library-chips]').forEach(el => { el.innerHTML = kindChips(); });
 
 /* ---------- home: the featured film ---------- */
 
@@ -1164,11 +1165,11 @@ if (page === 'category') {
   // what creators released comes first, then the hand-picked films, then the catalogue with the best known first
   const listAll = () => [...FILMS.releases.filter(f => categoryOf(f) === slug), ...CATALOG.films.filter(f => !f.owner && categoryOf(f) === slug)];
   let all = listAll();
-  document.title = `${label} — dein.art`;
-  const many = label.replace(/y$/, 'ie').replace(/s$/, '') + 's';
+  // In the library a kind goes by its library name; a kind that only creators fill keeps its own.
+  const many = FILMS.counts[slug] ? LIBRARY_KINDS[slug] : label.replace(/y$/, 'ie').replace(/s$/, '') + 's';
+  document.title = `${many} — dein.art`;
   $('[data-cat="title"]').textContent = many;
-  $('[data-cat="chips"]').innerHTML = CATEGORIES.map(([sl, l]) => `<a class="chip${sl === slug ? ' on' : ''}" href="category.html?c=${sl}">${l}${FILMS.counts[sl] ? ` <small>${(FILMS.counts[sl] + CATALOG.films.filter(f => !f.source && categoryOf(f) === sl).length).toLocaleString('en-US')}</small>` : ''}</a>`).join('');
-  $$('.sl').forEach(l => l.classList.toggle('on', l.dataset.key === 'cat-' + slug));
+  $('[data-cat="chips"]').innerHTML = `<a class="chip" href="library.html">← Library</a>` + CATEGORIES.filter(([sl]) => FILMS.counts[sl] || sl === slug).map(([sl, l]) => `<a class="chip${sl === slug ? ' on' : ''}" href="category.html?c=${sl}">${FILMS.counts[sl] ? LIBRARY_KINDS[sl] : l}${FILMS.counts[sl] ? ` <small>${(FILMS.counts[sl] + CATALOG.films.filter(f => !f.source && categoryOf(f) === sl).length).toLocaleString('en-US')}</small>` : ''}</a>`).join('');
   $('[data-cat="chips"] .chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   const grid = $('[data-cat="grid"]'), tools = $('[data-cat="tools"]');
   if (!all.length) grid.innerHTML = `<div class="box" style="grid-column:1/-1"><b>No ${many.toLowerCase()} here yet</b><p>This category is ready for the first one. <a class="link" href="release.html">Publish yours</a>.</p></div>`;

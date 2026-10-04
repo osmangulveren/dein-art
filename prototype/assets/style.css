@@ -1449,3 +1449,35 @@ label.rel-thumb.add { display: grid; place-items: center; margin: 0; border: 1.5
 .examplebar { margin: 0 0 18px; padding: 12px 16px; border-radius: 14px; background: color-mix(in srgb, var(--dot) 14%, transparent); font-size: 13.5px; line-height: 1.5; }
 .screeninfo { align-self: start; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .screeninfo h2 { font: 400 22px/1.2 var(--serif); margin: 0; } .screeninfo p { margin: 0; line-height: 1.55; }
+
+/* ---------- the front door: what a creator can do, before anything else ---------- */
+.front { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: clamp(20px, 4vw, 56px); align-items: center; margin-top: 24px; padding: clamp(24px, 4vw, 52px); border-radius: 28px;
+  background: radial-gradient(120% 140% at 0% 0%, var(--accent-soft), transparent 60%), var(--glass); box-shadow: 0 0 0 1px var(--glass-line), var(--glass-shadow); }
+.front h1 { font: 400 clamp(38px, 5.4vw, 70px)/1.02 var(--serif); letter-spacing: -1px; margin: 16px 0 14px; }
+.front-in > p { font-size: 17px; line-height: 1.55; max-width: 540px; color: var(--muted); }
+.front .cta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; align-items: center; } .front .cta .btn { padding: 12px 20px; font-size: 15px; }
+.front-demo { position: relative; padding: 22px; border-radius: 22px; background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 24px 60px -30px rgba(16,18,22,.35); display: flex; flex-direction: column; gap: 10px; }
+.front-demo .eg { align-self: flex-start; }
+.demorow { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; } .demorow b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.front-demo .splitbar { margin: 4px 0 6px; }
+.demopay { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; padding: 6px 0; border-top: 1px solid var(--line); }
+.demopay i { width: 10px; height: 10px; border-radius: 3px; background: var(--line); } .demopay em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; } .demopay.fee { color: var(--muted); } .demopay.fee em { font-weight: 500; }
+.front-demo small { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+.steps3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; scroll-margin-top: 100px; }
+.steps3 > div { padding: 20px; border-radius: 20px; background: var(--glass); box-shadow: 0 0 0 1px var(--glass-line); }
+.steps3 b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 14px; }
+.steps3 h3 { font: 400 22px/1.2 var(--serif); margin: 14px 0 6px; } .steps3 p { color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+.frontnote { margin: 14px 2px 0; }
+.firstbox { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 34px; padding: 20px 24px; border-radius: 20px; border: 1px dashed var(--line); }
+.firstbox > div { display: flex; flex-direction: column; gap: 2px; } .firstbox[hidden] { display: none; }
+.libsec { margin-top: 56px; } .libintro { margin: -6px 0 14px; max-width: 720px; }
+.standing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.standing h3, .aboutpage h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+.standing ul, .aboutpage ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; font-size: 14.5px; line-height: 1.45; }
+.aboutpage { max-width: 940px; } .aboutpage .panel { margin-top: 16px; } .aboutpage .panel > h2 { font: 400 26px/1.2 var(--serif); margin-bottom: 12px; }
+.aboutpage .panel p { line-height: 1.6; max-width: 760px; } .aboutpage .panel p + p { margin-top: 10px; }
+.aboutpage .twocol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.aboutpage .reasons { margin: 14px 0; grid-template-columns: 180px minmax(0, 1fr); } .reportacts { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 !important; }
+@media (max-width: 900px) { .front { grid-template-columns: minmax(0, 1fr); } .steps3, .standing, .aboutpage .twocol { grid-template-columns: minmax(0, 1fr); } .aboutpage .reasons { grid-template-columns: minmax(0, 1fr); } }
+.hubgrid.later .hubcard { opacity: .82; border-style: dashed; }
+.aboutpage .panel a.link, .page-head a.link { font-size: inherit; color: var(--accent); }

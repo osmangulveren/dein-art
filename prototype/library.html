@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The free library — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="library">
+<main class="wrap">
+  <div class="page-head">
+    <h1>The free library</h1>
+    <p><span data-films-total>Thousands of films</span>, in the public domain, from Wikimedia Commons and the Internet Archive. Each film's page says why it is free to show. <a class="link" href="about.html#library">Where they come from</a></p>
+  </div>
+  <div class="chips" data-library-chips></div>
+
+  <div class="sec"><h2 data-top-span data-week="Most watched this week" data-all="Most watched so far">Most watched</h2><a href="trending.html">See all</a></div>
+  <div class="grid four" data-list="trending" data-limit="4"></div>
+
+  <div class="sec" id="films"><h2>Hand-picked</h2><p>Chosen by hand, with their scenes named</p></div>
+  <div class="grid" data-list="films"></div>
+
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Feature films</h2><a href="category.html?c=feature-film" data-cat-all="feature-film">See all</a></div>
+    <div class="grid" data-list="c-feature-film" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Cartoons and animation</h2><a href="category.html?c=animation" data-cat-all="animation">See all</a></div>
+    <div class="grid" data-list="c-animation" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Documentaries and newsreels</h2><a href="category.html?c=documentary" data-cat-all="documentary">See all</a></div>
+    <div class="grid" data-list="c-documentary" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Short films</h2><a href="category.html?c=short-film" data-cat-all="short-film">See all</a></div>
+    <div class="grid" data-list="c-short-film" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Serials and television</h2><a href="category.html?c=series" data-cat-all="series">See all</a></div>
+    <div class="grid" data-list="c-series" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Classroom films</h2><a href="category.html?c=course" data-cat-all="course">See all</a></div>
+    <div class="grid" data-list="c-course" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+  <section class="block slideblock homerow">
+    <div class="sec"><h2>Home movies</h2><a href="category.html?c=vlog" data-cat-all="vlog">See all</a></div>
+    <div class="grid" data-list="c-vlog" data-card="films" data-limit="14" data-slider data-hide-empty></div>
+  </section>
+
+  <div class="sec"><h2>Fifteen minutes or less</h2><a href="category.html?c=short-film&len=s">All of them</a></div>
+  <div class="grid four" data-list="quick" data-card="films" data-limit="4" data-hide-empty></div>
+
+  <div class="sec"><h2>Screening now</h2><a href="live.html">How screenings work</a></div>
+  <div class="grid four" data-list="live" data-limit="4"></div>
+
+  <div class="sec"><h2>Studios</h2><a href="studios.html">See all</a></div>
+  <div class="grid c3" data-list="channels" data-limit="3"></div>
+</main>
+<script src="assets/ui.js"></script>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/founder.js"></script>
+<script src="assets/studios.js"></script>
+<script src="assets/assets.js"></script>
+<script src="assets/market.js"></script>
+<script src="films/index.js"></script>
+<script src="assets/films.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/search.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About — dein.art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>(function (r) { r.dataset.theme = "light"; r.dataset.side = "closed"; try { r.dataset.theme = localStorage.getItem("theme") || "light"; if (innerWidth >= 1100) r.dataset.side = localStorage.getItem("side") || "open"; } catch (e) {} })(document.documentElement);</script>
+</head>
+<body data-page="about">
+<main class="wrap aboutpage">
+  <div class="page-head">
+    <h1>About dein.art</h1>
+    <p>One place for a creator to publish their work, share what is behind it, and split what it earns across everyone who made it. "Dein" is German for "your".</p>
+  </div>
+
+  <section class="panel">
+    <h2>Who is behind it</h2>
+    <p>dein.art is built by one person, <a class="link" href="artist.html?name=Osman%20Burak%20G%C3%BClveren">Osman Burak Gülveren</a>, a filmmaker, with AI, a little every day, in public. It is a side project and a prototype. There are no promises here, only what has been built so far. The code is on <a class="link" href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">GitHub</a>, and the build is written up on <a class="link" href="https://x.com/osmangulveren" target="_blank" rel="noopener">X</a>.</p>
+  </section>
+
+  <section class="panel" id="today">
+    <h2>What works today, and what does not</h2>
+    <div class="twocol">
+      <div><h3>Works</h3><ul>
+        <li><b>Releasing a film</b>: a file up to 25 MB, or a YouTube or Vimeo link, with the people who made it and each person's share.</li>
+        <li><b>The split</b>: support sent to a released film is paid to each person in the same transaction. This runs on Sepolia, a test network, with test ETH that is worth nothing.</li>
+        <li><b>The marketplace</b>: files you upload are stored and can be downloaded by anyone.</li>
+        <li><b>Credits and page claims</b>, signed with your wallet.</li>
+        <li><b>Views, downloads and what is most watched</b>: counted for real.</li>
+        <li><b>Search</b>, over films, people, studios, the marketplace, ENS names and wallets.</li>
+      </ul></div>
+      <div><h3>Not real yet</h3><ul>
+        <li><b>Payments in real money.</b> Nothing is charged anywhere on this site.</li>
+        <li><b>The example creator</b> (Georges Méliès): his earnings, merch and funding campaign are examples.</li>
+        <li><b>The split shown on public-domain films</b>: the people are real, the percentages are examples.</li>
+        <li><b>Live streams, merch, funding campaigns.</b> The pages show how they would look.</li>
+        <li><b>Logging in without a wallet</b>, and storing films larger than 25 MB.</li>
+        <li><b>Reviews, your list and who you follow</b> are kept in your own browser only.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="panel" id="library">
+    <h2>The free library</h2>
+    <p>So that the pages can be judged with real work in them, the site carries <span data-films-total>thousands of films</span> and about 30,000 free files. Nothing is copied: every film plays from, and every file is downloaded from, the place that keeps it. A film is listed only for one of these reasons, and its page says which:</p>
+    <dl class="facts reasons">
+      <dt>Wikimedia Commons</dt><dd>The file is there under a public-domain or CC0 licence, checked by its community. Trailers and clips are left out.</dd>
+      <dt>Wikidata</dt><dd>The film is recorded as public domain, and Wikidata points to its copy at the Internet Archive.</dd>
+      <dt>Before 1931</dt><dd>It was first shown before 1931, so its copyright term in the United States has run out.</dd>
+      <dt>Prelinger Archives</dt><dd>Advertising, educational and industrial films given to the public domain by their owner.</dd>
+      <dt>US government</dt><dd>Works of the United States government are public domain by law.</dd>
+      <dt>Universal Newsreels</dt><dd>Released to the public domain by Universal in 1976.</dd>
+      <dt>Marked public domain</dt><dd>Its page at the Internet Archive marks it public domain, and it was first shown before 1964. This is the weakest reason: the mark is put there by whoever uploaded the film, and nobody at dein.art has checked it.</dd>
+    </dl>
+    <p>Credits come from Wikidata. Only people who have died, or were born before 1900, have a page: nobody living is listed as if they had joined. In the marketplace, footage, music, photographs and documents come from Wikimedia Commons, sounds from Freesound (CC0), art from the open-access collections of the Cleveland Museum of Art, the National Gallery of Art and the Wellcome Collection, and books from Project Gutenberg.</p>
+  </section>
+
+  <section class="panel" id="report">
+    <h2>If something should not be here</h2>
+    <p>If a film, a file, a credit or a page is here that should not be, because it is yours, because it is not free after all, or because it is wrong, say so and it is taken down or corrected.</p>
+    <p class="reportacts"><a class="btn primary" href="https://github.com/osmangulveren/dein-art/issues/new?title=Please%20remove%20or%20correct%3A%20&body=The%20page%20(its%20address)%3A%0A%0AWhat%20is%20wrong%3A%0A%0AWho%20I%20am%20in%20relation%20to%20it%3A" target="_blank" rel="noopener">Report it on GitHub</a><a class="btn" href="https://x.com/osmangulveren" target="_blank" rel="noopener">Or write to @osmangulveren on X</a></p>
+    <p class="muted small">Send the address of the page and what is wrong with it. Every film from the big catalogue also has a "Report a mistake" link on its own page. Things uploaded here by a wallet can be removed by that wallet at any time.</p>
+  </section>
+
+  <section class="panel" id="privacy">
+    <h2>What the site keeps, and who else your browser talks to</h2>
+    <p>There are no ads, no analytics and no tracking. dein.art keeps counts of views and downloads without knowing who watched, and what people publish: files, credits, released films and page claims, each with the wallet that signed it. Your list, who you follow, your reviews and where you stopped a film stay in your own browser.</p>
+    <p>Because nothing is copied, your browser fetches films and pictures from where they live: Wikimedia, the Internet Archive, the museums, Freesound, and YouTube or Vimeo for films released by a link (only once you press play). Fonts come from Google Fonts, wallet names from Blockscout, and some pictures pass through the image resizer wsrv.nl. Those sites see that request, as they would if you visited them.</p>
+  </section>
+</main>
+<script src="assets/ui.js"></script>
+<script src="assets/catalog.js"></script>
+<script src="assets/onchain.js"></script>
+<script src="assets/founder.js"></script>
+<script src="assets/studios.js"></script>
+<script src="assets/assets.js"></script>
+<script src="assets/market.js"></script>
+<script src="films/index.js"></script>
+<script src="assets/films.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/search.js"></script>
+<script src="assets/login.js"></script>
+</body>
+</html>
