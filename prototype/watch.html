@@ -11,35 +11,59 @@
 </head>
 <body data-page="watch">
 <main class="wrap watch">
-  <div>
+  <div class="watchmain">
     <div class="stage"><img class="glow" alt="">
     <div class="player">
       <video data-f-video controls preload="none" playsinline></video>
       <button class="play" aria-label="Play">▶</button>
+      <div class="endcard" data-endcard hidden></div>
     </div></div>
-    <div class="track" data-marks title="Scenes are marked on the timeline"><span></span></div>
-    <div class="scenecard" data-scene></div>
-    <div class="proof" data-f="proof"></div>
-    <h1 data-f="title"></h1>
-    <div class="byline" data-f="byline"></div>
-    <div class="box" data-f="about"></div>
-    <div class="cast" data-cast></div>
+    <div class="chapters" data-chapters aria-label="Scenes"></div>
+
+    <header class="filmhead">
+      <h1 data-f="title"></h1>
+      <p class="filmmeta" data-f="meta"></p>
+      <div class="filmacts">
+        <div class="byline" data-f="byline"></div>
+        <div class="acts" data-f="acts"></div>
+      </div>
+    </header>
+
+    <div class="filmbody">
+      <section class="panel" data-f="about"></section>
+      <section class="panel splitcard" data-f="split"></section>
+    </div>
 
     <section class="block slideblock">
-      <h2 data-f="related">Related</h2>
+      <div class="sec"><h2>Cast and crew</h2><a href="#crew">Roles and shares</a></div>
+      <div class="grid crewcards crewrow" data-cast data-slider></div>
+    </section>
+
+    <section class="block slideblock" data-fromfilm hidden>
+      <div class="sec"><h2>From this film</h2><a data-fromfilm-all href="market.html">In the marketplace</a></div>
+      <div class="grid" data-fromfilm-list data-slider></div>
+    </section>
+
+    <section class="block slideblock">
+      <div class="sec"><h2 data-f="related">Related</h2></div>
       <div class="grid" data-list="related" data-card="films" data-slider></div>
     </section>
 
     <section class="block" id="reviews">
-      <h2>Reviews</h2>
-      <form class="review-form"><input placeholder="Add a review" aria-label="Add a review"><button class="btn dark">Publish</button></form>
-      <div class="reviews" data-reviews><p class="muted" data-noreviews>No reviews yet. Be the first.</p></div>
+      <div class="sec"><h2>Reviews</h2><p data-review-avg></p></div>
+      <form class="reviewbox" data-review-form>
+        <div class="stars" data-stars role="radiogroup" aria-label="Your rating"></div>
+        <textarea class="field" rows="2" placeholder="What did you think of it?" aria-label="Your review"></textarea>
+        <button class="btn dark">Publish</button>
+      </form>
+      <div class="reviews" data-reviews></div>
     </section>
   </div>
 
   <aside class="side">
-    <h2>Up next</h2>
+    <div class="uphead"><h2>Up next</h2><label class="autonext"><span>Autoplay</span><span data-autonext></span></label></div>
     <div data-list="films" data-card="next" data-limit="6"></div>
+    <p class="keys muted small"><b>Keys</b> <kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> 5 s · <kbd>J</kbd><kbd>L</kbd> 10 s · <kbd>M</kbd> mute · <kbd>F</kbd> full screen · <kbd>C</kbd> cinematic · <kbd>N</kbd> next</p>
   </aside>
 </main>
 <dialog id="crew" class="crewpop"><div data-crew></div></dialog>

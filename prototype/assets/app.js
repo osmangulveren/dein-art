@@ -240,7 +240,7 @@ const categoryOf = f => f.kind === 'Documentary' ? 'documentary' : f.kind === 'A
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
   main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
-  you: [['creator', 'Your page', 'creator.html', 'user', 1], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
+  you: [['creator', 'Your page', 'creator.html', 'user', 1], ['dashboard', 'Dashboard', 'dashboard.html', 'trend'], ['creator#credits', 'Credits', 'creator.html#credits', 'list'], ['creator#merch', 'Merch', 'creator.html#merch', 'merch'],
         ['creator#funding', 'Funding', 'creator.html#funding', 'fund'], ['create', 'Create', 'upload.html', 'upload', 1]],
   explore: CATEGORIES.map(([slug, label]) => ['cat-' + slug, label, 'category.html?c=' + slug, 'film']),
 };
@@ -345,7 +345,7 @@ document.body.insertAdjacentHTML('beforeend', `
   <nav class="footnav" aria-label="Footer">
     <div><b>Watch</b><a href="index.html#films">Films</a><a href="trending.html">Trending</a><a href="live.html">Live</a><a href="studios.html">Studios</a></div>
     <div><b>Marketplace</b><a href="market.html?cat=Footage">Footage</a><a href="market.html?cat=Music">Music</a><a href="market.html?cat=Sound%20effects">Sound effects</a><a href="market.html?cat=Photos%20%26%20images">Photos and images</a></div>
-    <div><b>Create</b><a href="upload.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="fund.html">Start funding</a></div>
+    <div><b>Create</b><a href="release.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="fund.html">Start funding</a></div>
     <div><b>dein.art</b><a href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">Code on GitHub</a><a href="https://x.com/osmangulveren" target="_blank" rel="noopener">Follow the build on X</a><a href="deploy.html">Testnet contract</a></div>
   </nav>
   <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
@@ -468,7 +468,10 @@ const channels = ['Star Film Company', 'Prana Film', 'Edison Studios', 'All-Ukra
                about: `${c.films.length} ${c.films.length === 1 ? 'film' : 'films'} here · founded ${c.founded}${c.place ? ', ' + c.place : ''}` }));
 // what you were watching, kept in this browser so the home page can offer to carry on
 const progress = (() => { try { return JSON.parse(localStorage.getItem('progress')) || {}; } catch { return {}; } })();
+// films kept for later, in this browser
+const watchlist = new Set((() => { try { return JSON.parse(localStorage.getItem('watchlist')) || []; } catch { return []; } })());
 const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels,
+  mylist: [...watchlist].map(k => film[k]).filter(Boolean),
   resume: Object.entries(progress).filter(([k, p]) => film[k] && p.t > 20 && p.t < film[k].secs * .95).sort((a, b) => b[1].at - a[1].at).map(([k]) => film[k]),
   // films by the people you follow, as they are: no ranking decides whether you see them
   following: CATALOG.films.filter(f => f.by.some(n => following.has(n)) || following.has(f.creator)),
@@ -579,7 +582,8 @@ $$('[data-crew]').forEach(el => {
 /* ---------- pages about one film: watch and live ---------- */
 
 $$('[data-cast]').forEach(el => {
-  el.innerHTML = `<a class="btn dark" href="#crew">All cast &amp; crew</a>` + crew.map(c => `<a class="castp" href="${artistUrl(c.name)}">${mug(c)}<span><b>${c.name}</b><span class="muted small">${c.role}</span></span></a>`).join('');
+  el.innerHTML = page === 'watch' ? crew.map(c => personCard(c.name, c.role, c.pct)).join('')
+    : `<a class="btn dark" href="#crew">All cast &amp; crew</a>` + crew.map(c => `<a class="castp" href="${artistUrl(c.name)}">${mug(c)}<span><b>${c.name}</b><span class="muted small">${c.role}</span></span></a>`).join('');
 });
 
 const fill = (key, html) => $$(`[data-f="${key}"]`).forEach(el => { el.innerHTML = html; });
@@ -604,7 +608,7 @@ if (video) {
   };
   document.addEventListener('goo', e => { if (e.detail.name === 'cinema') setMode(e.detail.on ? 'cinema' : 'normal'); });
   document.addEventListener('keydown', e => {
-    if (e.target.closest('input, textarea, select')) return;
+    if (e.target.closest?.('input, textarea, select')) return;
     if (e.key === 'c' || e.key === 'C') setMode(root.dataset.cinema === 'on' ? 'normal' : 'cinema');
     if (e.key === 'Escape' && root.dataset.cinema === 'on' && !$('dialog[open]')) setMode('normal');
   });
@@ -620,14 +624,36 @@ if (video) {
     <a class="link" href="${cur.page}" target="_blank" rel="noopener" title="Where the film file comes from">${cur.lic} · Wikimedia Commons</a>
     <a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener" title="Title, credits and dates">Wikidata</a>
     ${cur.imdb ? `<a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb</a>` : ''}`);
-  fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
-    <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${live ? `${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago` : `${p.role}${years(p) ? ' · ' + years(p) : ''}`}</span></a>
-    <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
-    ${live ? '' : '<button class="btn" data-share>Share</button>'}
-    <button class="btn primary" data-pay="${live ? 'tip' : 'support'}" data-split>♥ ${live ? 'Tip' : 'Support'}</button>`);
-  fill('about', live
-    ? `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`
-    : `<b><span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0]].filter(Boolean).join(' · ')}${cur.company[0] ? ' · ' + ((st => st ? `<a href="studio.html?s=${st.slug}">${st.name}</a>` : cur.company[0])(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === cur.company[0]))) : ''}</b><p>${cur.blurb} Free to watch. Whatever it earns is shared across the people who made it.</p>`);
+  const studioLink = cur.company[0] ? ((st => (st ? `<a class="link" href="studio.html?s=${st.slug}">${st.name}</a>` : esc(cur.company[0])))(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === cur.company[0]))) : '';
+  if (live) {
+    fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
+      <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago</span></a>
+      <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
+      <button class="btn primary" data-pay="tip" data-split>♥ Tip</button>`);
+    fill('about', `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`);
+  } else {
+    // under the film: what it is, who made it, and the three things you can do
+    fill('meta', `<span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0], cur.dur].filter(Boolean).join(' · ')} <span class="pill tint">${esc(cur.lic)}</span>`);
+    fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
+      <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${p.role}${years(p) ? ' · ' + years(p) : ''}</span></a>
+      <button class="btn follow" data-follow="${esc(lead)}">Follow</button>`);
+    fill('acts', `<button class="btn primary" data-pay="support" data-split>♥ Support</button>
+      <button class="btn" data-mylist aria-pressed="${watchlist.has(cur.key)}">${watchlist.has(cur.key) ? '✓ In my list' : '+ My list'}</button>
+      <button class="btn" data-share>Share</button>`);
+    fill('about', `<h2>About</h2><p class="lead">${cur.blurb}</p>
+      <dl class="facts">${[['Year', cur.year], ['Kind', cur.kind], ['Country', cur.country.join(', ')], ['Studio', studioLink], ['Running time', cur.dur], ['Licence', esc(cur.lic)],
+        ['Film file', `<a class="link" href="${cur.page}" target="_blank" rel="noopener">Wikimedia Commons ↗</a>`], ['Credits', `<a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener">Wikidata ↗</a>${cur.imdb ? ` · <a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}`]]
+        .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      <p class="muted small" style="margin-top:14px">Free to watch. The film's record on-chain is a demo.</p>`);
+    // the thing this platform is for: whatever the film earns goes to everyone who made it
+    const top = [...crew].sort((x, y) => y.pct - x.pct);
+    fill('split', `<h2>Where support goes</h2>
+      <p class="muted small">Whatever this film earns is split across the people who made it, automatically, minus a flat ${money(FEE)} for dein.art each time.</p>
+      <div class="splitbar" role="img" aria-label="Shares of cast and crew">${top.map(c => `<i style="flex:${c.pct};background:${tone(c.name)}" title="${esc(c.name)} · ${c.pct}%"></i>`).join('')}</div>
+      <div class="splitlist">${top.slice(0, 4).map(c => `<a class="splitrow" href="${artistUrl(c.name)}"><i style="background:${tone(c.name)}"></i><span><b>${esc(c.name)}</b><small>${esc(c.role)}</small></span><em>${c.pct}%</em></a>`).join('')}</div>
+      <div class="splitfoot">${top.length > 4 ? `<a class="link" href="#crew">and ${top.length - 4} more</a>` : '<span></span>'}<button class="btn primary small" data-pay="support" data-split>♥ Support the film</button></div>
+      <p class="muted small" style="margin-top:10px">Prototype: the percentages are an example of a split, and nothing is charged.</p>`);
+  }
   fill('related', related.every(f => f.by.some(n => cur.by.includes(n))) ? `More from ${byline(cur)}` : 'More to watch');
 
   // Moments of the film that viewers can collect, marked on the timeline. A click jumps the film there.
@@ -650,23 +676,82 @@ if (video) {
     if (scenes.length) showScene(scenes[Math.min(2, scenes.length - 1)]); else { marks.hidden = true; sceneBox.hidden = true; }
   }
 }
+if (video && page === 'watch') {
+  // Scenes of the film as a strip of chapters under the player: a click jumps there, and the one that is playing is lit.
+  const strip = $('[data-chapters]'), scenes = cur.scenes.filter(sc => sc[1]).map(([t, name]) => ({ t, name }));
+  if (strip && scenes.length > 1) {
+    strip.innerHTML = scenes.map((sc, i) => `<button class="chapter" data-at="${sc.t}"><span class="thumb"><img src="${frame(cur, sc.t, 250)}" alt="" loading="lazy"><span class="badge dur">${clock(sc.t)}</span></span><b>${esc(sc.name)}</b></button>`).join('');
+    strip.addEventListener('click', e => { const b = e.target.closest('[data-at]'); if (b) { video.currentTime = Number(b.dataset.at); video.play().catch(() => {}); } });
+    const light = () => { const at = scenes.reduce((k, sc, i) => (video.currentTime >= sc.t ? i : k), -1); $$('.chapter', strip).forEach((c, i) => c.classList.toggle('on', i === at)); };
+    video.addEventListener('timeupdate', light); video.addEventListener('seeked', light);
+  } else if (strip) strip.hidden = true;
+
+  // what the marketplace holds from this film: stills, posters, merch
+  const mine = MARKET.filter(x => x.film === cur.key), shelf = $('[data-fromfilm]');
+  if (shelf && mine.length) { shelf.hidden = false; $('[data-fromfilm-list]').innerHTML = mine.slice(0, 12).map(cards.assets).join(''); $('[data-fromfilm-all]').href = 'market.html?q=' + encodeURIComponent(cur.title); }
+
+  // my list
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-mylist]'); if (!b) return;
+    watchlist.has(cur.key) ? watchlist.delete(cur.key) : watchlist.add(cur.key);
+    try { localStorage.setItem('watchlist', JSON.stringify([...watchlist])); } catch {}
+    b.textContent = watchlist.has(cur.key) ? '✓ In my list' : '+ My list'; b.setAttribute('aria-pressed', watchlist.has(cur.key));
+  });
+
+  // What plays next: the first film in the rail. With autoplay on it starts after a short count; either way the end of a film offers it.
+  const next = films.find(f => f !== cur) || related[0], card = $('[data-endcard]');
+  let auto = (() => { try { return localStorage.getItem('autonext') !== 'off'; } catch { return true; } })(), timer;
+  $('[data-autonext]').innerHTML = gooSwitch('autonext', auto, 'Play the next film automatically');
+  document.addEventListener('goo', e => { if (e.detail.name !== 'autonext') return; auto = e.detail.on; try { localStorage.setItem('autonext', auto ? 'on' : 'off'); } catch {} });
+  const stopCount = () => { clearInterval(timer); timer = null; };
+  video.addEventListener('ended', () => {
+    if (!next || !card) return;
+    let left = 8;
+    const draw = () => { card.innerHTML = `<div><span class="muted small">Up next</span><b>${esc(next.title)}</b><span class="muted small">${byline(next)} · ${next.year} · ${next.dur}</span>
+      <div class="endacts"><a class="btn white" href="${watchUrl(next)}">▶ Play${auto && timer ? ` in ${left}` : ' now'}</a><button class="btn glass" data-replay>Watch again</button>${auto && timer ? '<button class="btn glass" data-endstop>Cancel</button>' : ''}</div></div>
+      <img src="${frame(next, next.at, 500)}" alt="">`; };
+    card.hidden = false;
+    if (auto) timer = setInterval(() => { left--; if (left <= 0) { stopCount(); location.href = watchUrl(next); } else draw(); }, 1000);
+    draw();
+    card.onclick = e => { if (e.target.closest('[data-endstop]')) { stopCount(); draw(); } if (e.target.closest('[data-replay]')) { stopCount(); card.hidden = true; video.currentTime = 0; video.play().catch(() => {}); } };
+  });
+  video.addEventListener('play', () => { stopCount(); if (card) card.hidden = true; });
+
+  // keys, as on every player people already know
+  document.addEventListener('keydown', e => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || $('dialog[open]')) return;
+    const k = e.key.toLowerCase(), seek = d => { video.currentTime = Math.max(0, Math.min((video.duration || cur.secs) - 1, video.currentTime + d)); };
+    if (k === ' ' || k === 'k') { e.preventDefault(); video.paused ? video.play().catch(() => {}) : video.pause(); }
+    else if (k === 'arrowleft') seek(-5); else if (k === 'arrowright') seek(5);
+    else if (k === 'j') seek(-10); else if (k === 'l') seek(10);
+    else if (k === 'm') video.muted = !video.muted;
+    else if (k === 'f') (document.fullscreenElement ? document.exitFullscreen() : video.requestFullscreen?.())?.catch?.(() => {});
+    else if (k === 'n' && next) location.href = watchUrl(next);
+    else if (/^[0-9]$/.test(k)) video.currentTime = (video.duration || cur.secs) * Number(k) / 10;
+  });
+}
 function clock(s) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(Math.floor(s % 60)).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; }
 
 const reviews = $('[data-reviews]');
 if (reviews) {
-  const review = (name, text) => {
-    const row = document.createElement('div');
-    row.className = 'review';
-    row.innerHTML = avatar(ME) + '<div><b></b><p></p></div>';
-    $('b', row).textContent = name; $('p', row).textContent = text;
-    return row;
+  const key = 'reviews:' + cur.key, read = () => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } };
+  const form = $('[data-review-form]'), starBox = $('[data-stars]'); let rating = 0;
+  const stars = n => '★★★★★'.slice(0, n) + '<i>' + '★★★★★'.slice(n) + '</i>';
+  const drawStars = () => { starBox.innerHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" class="star${n <= rating ? ' on' : ''}" data-star="${n}" role="radio" aria-checked="${n === rating}" aria-label="${n} of 5">★</button>`).join(''); };
+  const draw = () => {
+    const list = read();
+    reviews.innerHTML = list.map(r => `<div class="review">${avatar(ME)}<div><b>You <span class="rstars">${stars(r.stars)}</span></b><p>${esc(r.text)}</p><span class="muted small">${esc(r.at)}</span></div></div>`).join('') || '<p class="muted" data-noreviews>No reviews yet. Be the first.</p>';
+    $('[data-review-avg]').textContent = list.length ? `${(list.reduce((n, r) => n + r.stars, 0) / list.length).toFixed(1)} of 5 · ${list.length} ${list.length === 1 ? 'review' : 'reviews'}` : '';
   };
-  $('.review-form').addEventListener('submit', e => {
+  starBox.addEventListener('click', e => { const b = e.target.closest('[data-star]'); if (b) { rating = Number(b.dataset.star); drawStars(); } });
+  form.addEventListener('submit', e => {
     e.preventDefault();
-    const input = $('.review-form input');
-    if (input.value.trim()) { reviews.prepend(review('You', input.value.trim())); $('[data-noreviews]')?.remove(); }
-    input.value = '';
+    const text = $('textarea', form).value.trim();
+    if (!rating && !text) return;
+    try { localStorage.setItem(key, JSON.stringify([{ stars: rating || 5, text, at: new Date().toISOString().slice(0, 10) }, ...read()])); } catch {}
+    $('textarea', form).value = ''; rating = 0; drawStars(); draw();
   });
+  drawStars(); draw();
 }
 
 /* ---------- home: straight to a kind of film, or to something to use in one ---------- */
@@ -758,7 +843,7 @@ if (page === 'artist' || page === 'creator') {
     set('links', [ext(`https://www.wikidata.org/wiki/${a.wd}`, 'Wikidata'), a.imdb && ext(`https://www.imdb.com/name/${a.imdb}/`, 'IMDb'), a.wiki && ext(`https://en.wikipedia.org/wiki/${encodeURIComponent(a.wiki.replace(/ /g, '_'))}`, 'Wikipedia')].filter(Boolean).join(''));
     set('side', me ? chartCard({ title: 'Your share of earnings', caption: 'last 7 months', total: '$63,790',
         data: [['May', 4120], ['Jun', 6380], ['Jul', 5240], ['Aug', 9810], ['Sep', 8460], ['Oct', 12900], ['Nov', 16880]].map(([label, value]) => ({ label, value, text: '$' + value.toLocaleString('en-US') })),
-        note: 'Only you see this · example figures. Another $123,285 went to your cast and crew.' })
+        note: 'Only you see this · example figures. Another $123,285 went to your cast and crew. <a class="link" href="dashboard.html">Open your dashboard</a>' })
       : ranked ? `<a class="pop" href="trending.html#artists"><span class="muted small">Trending</span><b>#${ranked.rank}</b><span class="up">▲ ${ranked.up}%</span></a>` : '');
     set('factstitle', 'Personal details');
     set('facts', [['Born', a.born && `${a.born}${a.bornIn ? ' · ' + a.bornIn : ''}`], ['Died', a.died && `${a.died}${a.diedIn ? ' · ' + a.diedIn : ''}`], ['Worked as', a.occ.join(', ')]].filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join(''));
@@ -957,49 +1042,5 @@ if (msgs) {
     const input = $('.chat input');
     if (input.value.trim()) addChat('You', input.value.trim());
     input.value = '';
-  });
-}
-
-/* ---------- create flow ---------- */
-
-const uploadZone = $('[data-upload]');
-if (uploadZone) fileUpload(uploadZone, { onAll: files => {
-  const next = $('[data-upload-next]'); next.disabled = false;
-  const film = files.find(f => f.type.startsWith('video')) || files[0];
-  const line = $('[data-step="2"] .muted.small'); if (line) line.textContent = `${film.name} · ${fileSize(film.size)} · uploaded`;
-} });
-
-const steps = $('#shares') ? $$('[data-step]:not(.heat)') : [];   // only the release flow on the Create page has steps
-if (steps.length) {
-  const show = n => {
-    steps.forEach(s => { s.hidden = Number(s.dataset.step) !== n; });
-    $$('.steps').forEach(bar => $$('span', bar).forEach((s, i) => s.classList.toggle('on', i < n)));
-    window.scrollTo(0, 0);
-  };
-  document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b && !b.disabled) show(Number(b.dataset.go)); });
-
-  // Step 3: who shares the earnings
-  const shares = $('#shares'), total = $('#total'), next = $('#toEarn');
-  const shareRow = (c = { name: '', role: '', pct: 0 }) => `<div class="share"><input class="field" value="${c.name}" placeholder="Name or email" aria-label="Name"><input class="field" value="${c.role}" placeholder="Role" aria-label="Role"><input class="field" type="number" min="0" max="100" value="${c.pct}" aria-label="Share in percent"></div>`;
-  const sumShares = () => {
-    const sum = $$('input[type=number]', shares).reduce((a, i) => a + Number(i.value), 0);
-    total.textContent = sum === 100 ? '100% — all set' : `${sum}% — must add up to 100%`;
-    total.className = sum === 100 ? 'good' : 'bad';
-    next.disabled = sum !== 100;
-  };
-  shares.innerHTML = crew.map(shareRow).join('');
-  shares.addEventListener('input', sumShares);
-  $('#addPerson').addEventListener('click', () => { shares.insertAdjacentHTML('beforeend', shareRow()); sumShares(); });
-  sumShares();
-
-  // Step 4: what else to share
-  $$('.sell').forEach(row => {
-    const input = $('input[type=number]', row), check = $('input[type=checkbox]', row), get = $('.get', row), cost = Number(row.dataset.cost || 0);
-    const update = () => {
-      const net = Number(input.value) - cost - FEE;
-      input.disabled = !check.checked;
-      get.textContent = !check.checked ? 'Not shared' : net > 0 ? 'Crew gets ' + money(net) : 'Amount too low';
-    };
-    input.addEventListener('input', update); check.addEventListener('change', update); update();
   });
 }
