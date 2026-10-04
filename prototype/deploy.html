@@ -13,15 +13,19 @@
 <main class="wrap" style="max-width:820px">
   <div class="page-head">
     <h1>Put dein.art on the testnet</h1>
-    <p>This deploys the page-claims contract to Sepolia, Ethereum's test network, from your own wallet. Test ETH has no value and is free from a faucet; nothing here touches real money.</p>
+    <p>This deploys dein.art's contracts to Sepolia, Ethereum's test network, from your own wallet. Test ETH has no value and is free from a faucet; nothing here touches real money.</p>
   </div>
   <ol class="deploysteps">
     <li><b>Have a wallet</b><span>MetaMask or Rabby in this browser.</span></li>
-    <li><b>Get free Sepolia ETH</b><span>From any Sepolia faucet. About 0.01 test ETH is plenty: deploying needs roughly 0.002, a claim far less.</span></li>
-    <li><b>Deploy</b><span>Your wallet asks you to confirm one transaction on Sepolia.</span></li>
+    <li><b>Get free Sepolia ETH</b><span>From any Sepolia faucet. About 0.02 test ETH is plenty for both contracts.</span></li>
+    <li><b>Deploy</b><span>Your wallet asks you to confirm one transaction for each contract.</span></li>
   </ol>
-  <div class="claimbox" data-d="box"></div>
-  <p class="muted small" style="margin-top:14px">The contract's source is <a class="link" href="https://github.com/osmangulveren/dein-art/blob/main/contracts/DeinArtClaims.sol" target="_blank" rel="noopener">contracts/DeinArtClaims.sol</a>. A wallet can only claim its own page, so nobody can claim or block a page for someone else.</p>
+  <div class="sec"><h2>Splits</h2><p>Pays a film's support out to its people</p></div>
+  <div class="claimbox" data-d="splits"></div>
+  <p class="muted small" style="margin-top:10px">Source: <a class="link" href="https://github.com/osmangulveren/dein-art/blob/main/contracts/DeinArtSplits.sol" target="_blank" rel="noopener">contracts/DeinArtSplits.sol</a>. Whoever releases a film records its split; support is paid out in the same transaction, minus a flat fee of <span data-d="fee"></span> test ETH that goes to the wallet that deployed the contract. Nothing is held.</p>
+  <div class="sec"><h2>Page claims</h2><p>Records which wallet claimed which page</p></div>
+  <div class="claimbox" data-d="claims"></div>
+  <p class="muted small" style="margin-top:10px">Source: <a class="link" href="https://github.com/osmangulveren/dein-art/blob/main/contracts/DeinArtClaims.sol" target="_blank" rel="noopener">contracts/DeinArtClaims.sol</a>. A wallet can only claim its own page, so nobody can claim or block a page for someone else.</p>
 </main>
 <script src="assets/ui.js"></script>
 <script src="assets/catalog.js"></script>
@@ -35,47 +39,66 @@
 <script src="assets/app.js"></script>
 <script src="assets/search.js"></script>
 <script src="assets/login.js"></script>
+<script src="assets/splits-contract.js"></script>
+<script src="assets/chainpay.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="assets/claims-contract.js"></script>
 <script>
-(() => {
-  const box = document.querySelector('[data-d="box"]');
-  const saved = (() => { try { return CLAIMS.address || localStorage.getItem('claimsAddress') || ''; } catch { return CLAIMS.address; } })();
+(async () => {
+  // Each contract: where it is (the site knows, once an admin wallet has saved it), or a button to put it there.
+  const LIST = [
+    { key: 'splits', def: SPLITS, args: () => [ethers.ZeroAddress, ethers.parseEther(SPLITS.fee)], local: 'splitsAddress', done: 'Films released on dein.art can now record their split there, and support is paid out through it.' },
+    { key: 'claims', def: CLAIMS, args: () => [], local: 'claimsAddress', done: 'Claims made on artist pages are now recorded there.' },
+  ];
+  document.querySelector('[data-d="fee"]').textContent = SPLITS.fee;
+  const config = await fetch('/api/config').then(r => (r.ok ? r.json() : {})).catch(() => ({}));
+  const local = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   let me = '';
-  const show = (title, text, acts = '', tone = '') => { box.className = 'claimbox' + (tone === 'ok' ? ' claimed' : ''); box.innerHTML = `<div><h2>${title}</h2><p>${text}</p></div><div class="claimacts">${acts}</div>`; };
-  const ready = () => saved
-    ? show('The contract is on Sepolia', `Address <span class="mono">${saved}</span> ${copyBtn(saved)}. Claims made on artist pages are now recorded there. <a class="link" href="${CLAIMS.explorer}/address/${saved}" target="_blank" rel="noopener">See it on Etherscan</a>`,
-        `<button class="btn primary" data-mine>Open my wallet's page</button>`, 'ok')
-    : show('Ready to deploy', 'Connect your wallet; it will switch to Sepolia and ask you to confirm.', '<button class="btn primary" data-deploy>Connect and deploy</button>');
   async function sepolia() {
-    const id = '0x' + CLAIMS.chainId.toString(16);
+    const id = '0x' + SPLITS.chainId.toString(16);
     try { await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: id }] }); }
-    catch (e) { if (e.code !== 4902) throw e; await ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: id, chainName: 'Sepolia', nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: [CLAIMS.rpc], blockExplorerUrls: [CLAIMS.explorer] }] }); }
+    catch (e) { if (e.code !== 4902) throw e; await ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: id, chainName: 'Sepolia', nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: [SPLITS.rpc], blockExplorerUrls: [SPLITS.explorer] }] }); }
     return new ethers.BrowserProvider(window.ethereum);
   }
-  async function deploy() {
-    if (!window.ethereum) return show('No wallet found', 'Open this page in a browser with MetaMask or Rabby installed.', '<button class="btn primary" data-deploy>Try again</button>');
-    try {
-      [me] = await ethereum.request({ method: 'eth_requestAccounts' });
-      const provider = await sepolia(), signer = await provider.getSigner();
-      const balance = await provider.getBalance(me);
-      if (balance < ethers.parseEther('0.001')) return show('This wallet needs test ETH', `<span class="mono">${me}</span> has ${ethers.formatEther(balance)} Sepolia ETH. Get some free from a Sepolia faucet, then deploy.`, '<button class="btn primary" data-deploy>Deploy</button>');
-      show('Confirm in your wallet', 'One transaction on Sepolia creates the contract.');
-      const c = await new ethers.ContractFactory(CLAIMS.abi, CLAIMS.bytecode, signer).deploy();
-      show('Deploying…', `Waiting for Sepolia to include it. <a class="link" href="${CLAIMS.explorer}/tx/${c.deploymentTransaction().hash}" target="_blank" rel="noopener">Follow the transaction</a>`);
-      await c.waitForDeployment();
-      const at = await c.getAddress();
-      try { localStorage.setItem('claimsAddress', at); } catch {}
-      show('Deployed', `The contract is at <span class="mono">${at}</span> ${copyBtn(at)}. It already works in this browser. Send this address to Claude to make it the address for everyone.`, `<button class="btn primary" data-mine>Open my wallet's page</button><a class="btn" href="${CLAIMS.explorer}/address/${at}" target="_blank" rel="noopener">Etherscan</a>`, 'ok');
-    } catch (e) {
-      show('Not deployed', (e?.code === 4001 || e?.code === 'ACTION_REJECTED') ? 'You cancelled in your wallet. Nothing was sent.' : 'The wallet did not complete the request. Nothing was deployed.', '<button class="btn primary" data-deploy>Try again</button>');
+  LIST.forEach(c => {
+    const box = document.querySelector(`[data-d="${c.key}"]`);
+    const show = (title, text, acts = '', tone = '') => { box.className = 'claimbox' + (tone === 'ok' ? ' claimed' : ''); box.innerHTML = `<div><h2>${title}</h2><p>${text}</p></div><div class="claimacts">${acts}</div>`; };
+    const where = at => `<span class="mono">${at}</span> ${copyBtn(at)} <a class="link" href="${c.def.explorer}/address/${at}" target="_blank" rel="noopener">Etherscan ↗</a>`;
+    // the address counts for everyone once it is saved on the site, which only an admin wallet can do
+    async function save(at) {
+      const session = sessionNow();
+      if (!session) return show('Deployed, for this browser only', `${where(at)}<br>Log in with the admin wallet, then save it, and it becomes the address for everyone.`, `<button class="btn primary" data-open-login>Log in</button><button class="btn" data-save="${at}">Save for everyone</button>`, 'ok');
+      const r = await fetch('/api/config', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session, [c.key]: at }) }), d = await r.json().catch(() => ({}));
+      if (r.ok) show('The contract is on Sepolia', `${where(at)}<br>${c.done} It is saved on the site, so this is the address for everyone.`, c.key === 'claims' ? '<button class="btn primary" data-mine>Open my wallet\'s page</button>' : '<a class="btn primary" href="release.html">Release a film</a>', 'ok');
+      else show('Deployed, for this browser only', `${where(at)}<br>It could not be saved for everyone: ${esc(d.error || 'the site answered ' + r.status)}.`, `<button class="btn" data-save="${at}">Try saving again</button>`, 'ok');
     }
-  }
-  document.addEventListener('click', async e => {
-    if (e.target.closest('[data-deploy]')) deploy();
-    if (e.target.closest('[data-mine]')) { if (!me && window.ethereum) [me] = await ethereum.request({ method: 'eth_requestAccounts' }); if (me) location.href = 'artist.html?wallet=' + me; }
+    async function deploy() {
+      if (!window.ethereum) return show('No wallet found', 'Open this page in a browser with MetaMask or Rabby installed.', '<button class="btn primary" data-deploy>Try again</button>');
+      try {
+        [me] = await ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = await sepolia(), signer = await provider.getSigner(), balance = await provider.getBalance(me);
+        if (balance < ethers.parseEther('0.003')) return show('This wallet needs test ETH', `<span class="mono">${me}</span> has ${ethers.formatEther(balance)} Sepolia ETH. Get some free from a Sepolia faucet, then deploy.`, '<button class="btn primary" data-deploy>Deploy</button>');
+        show('Confirm in your wallet', 'One transaction on Sepolia creates the contract.');
+        const made = await new ethers.ContractFactory(c.def.abi, c.def.bytecode, signer).deploy(...c.args());
+        show('Deploying…', `Waiting for Sepolia to include it. <a class="link" href="${c.def.explorer}/tx/${made.deploymentTransaction().hash}" target="_blank" rel="noopener">Follow the transaction</a>`);
+        await made.waitForDeployment();
+        const at = await made.getAddress();
+        try { localStorage.setItem(c.local, at); } catch {}
+        await save(at);
+      } catch (e) {
+        show('Not deployed', (e?.code === 4001 || e?.code === 'ACTION_REJECTED') ? 'You cancelled in your wallet. Nothing was sent.' : 'The wallet did not complete the request. Nothing was deployed.', '<button class="btn primary" data-deploy>Try again</button>');
+      }
+    }
+    box.addEventListener('click', async e => {
+      if (e.target.closest('[data-deploy]')) deploy();
+      const s = e.target.closest('[data-save]'); if (s) save(s.dataset.save);
+      if (e.target.closest('[data-mine]')) { if (!me && window.ethereum) [me] = await ethereum.request({ method: 'eth_requestAccounts' }); if (me) location.href = 'artist.html?wallet=' + me; }
+    });
+    const saved = config[c.key] || c.def.address, here = local(c.local);
+    if (saved) show('The contract is on Sepolia', `${where(saved)}<br>${c.done}`, '<button class="btn" data-deploy>Deploy a new one</button>', 'ok');
+    else if (here) show('Deployed, for this browser only', `${where(here)}<br>Save it, and it becomes the address for everyone.`, `<button class="btn primary" data-save="${here}">Save for everyone</button><button class="btn" data-deploy>Deploy a new one</button>`, 'ok');
+    else show('Ready to deploy', 'Connect your wallet; it will switch to Sepolia and ask you to confirm.', '<button class="btn primary" data-deploy>Connect and deploy</button>');
   });
-  ready();
 })();
 </script>
 </body>

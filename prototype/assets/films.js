@@ -11,6 +11,7 @@
 
 const FILMS = (() => {
   const CATS = ['feature-film', 'documentary', 'short-film', 'animation', 'series', 'vlog', 'entertainment', 'reality-show', 'podcast', 'course', 'tutorial', 'music-video'];
+  const KINDS = ['Feature film', 'Documentary', 'Short film', 'Animation', 'Series', 'Vlog', 'Entertainment', 'Reality show', 'Podcast', 'Course', 'Tutorial', 'Music video'];
   const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/', ARCHIVE = 'https://archive.org/';
   const index = typeof FILMS_INDEX !== 'undefined' ? FILMS_INDEX : { total: 0, counts: {}, shards: 256, picks: [] };
   const have = new Map(CATALOG.films.map(f => [f.key, f])), rows = new Map(), loaded = new Set();
@@ -77,6 +78,27 @@ const FILMS = (() => {
         });
       });
     },
+    // Films released on dein.art by their makers, as the server keeps them. These are the only films here with living
+    // people, real wallets and a real split, so what people typed is kept as plain text.
+    releases: [],
+    released(list) {
+      const plain = t => String(t || '').replace(/[<>]/g, '').replace(/"/g, '”');
+      (list || []).forEach(d => {
+        if (!d || have.has(d.id)) return;
+        const crew = (d.people || []).map(p => ({ name: plain(p.name), role: plain(p.role) || 'Crew', pct: p.share || 0, wallet: p.wallet || '' }));
+        const dirs = crew.filter(p => /director/i.test(p.role)).map(p => p.name).slice(0, 2), title = plain(d.title);
+        // a film with no picture gets a plain tile in its own colour
+        const hue = [...title].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+        const tile = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="hsl(${hue} 32% 22%)"/><circle cx="8" cy="4.5" r="1.1" fill="#f5a623"/></svg>`);
+        const f = { key: d.id, title, year: d.year, secs: d.secs || 0, dur: d.secs ? clock(d.secs) : '', by: dirs.length ? dirs : [crew[0] ? crew[0].name : 'Unknown maker'], kind: KINDS[CATS.indexOf(d.kind)] || 'Film', cat: d.kind,
+          country: [], company: [], scenes: [], crew, blurb: plain(d.desc), language: plain(d.language), lic: 'Released by its makers', owner: d.owner, at: d.at, support: d.support !== false, w: d.w || 0,
+          pic: d.poster ? '/api/files/' + d.poster : d.link && d.link.site === 'youtube' ? `https://i.ytimg.com/vi/${d.link.id}/hqdefault.jpg` : d.thumb || tile };
+        if (d.video) f[d.video.type === 'video/webm' ? 'webm' : d.video.type === 'video/quicktime' ? 'mov' : 'mp4'] = '/api/files/' + d.video.id;
+        if (d.link) f.embed = d.link;
+        f.creator = f.by[0]; have.set(f.key, f); CATALOG.films.push(f); api.releases.push(f);
+      });
+      api.releases.sort((a, b) => b.at - a.at);
+    },
     // the names of everyone who has a page, so that they can be searched for
     peopleNames(list) { api.names = list; list.forEach(([name]) => api.known.add(name)); },
     // the whole catalogue, for the search: asked for once, the first time it is wanted
@@ -103,7 +125,9 @@ const FILMS = (() => {
   const shard = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return (h % FILMS_INDEX.shards).toString(16).padStart(2, '0'); };
   const page = document.body.dataset.page, q = new URLSearchParams(location.search), want = src => document.write(`<script src="${src}"><\/script>`);
   const key = q.get('f'), known = key && CATALOG.films.find(f => f.key === key);
-  if ((page === 'watch' || page === 'live') && key && /^[a-z0-9-]{1,64}$/.test(key) && (!known || known.lite)) want(`films/d/${shard(key)}.js`);
+  // a film released here has "--" in its address (no catalogue film does) and comes from the server, not from the files
+  if ((page === 'watch' || page === 'live') && key && /^[a-z0-9-]{1,64}$/.test(key) && key.includes('--')) want('/api/films.js?f=' + key);
+  else if ((page === 'watch' || page === 'live') && key && /^[a-z0-9-]{1,64}$/.test(key) && (!known || known.lite)) want(`films/d/${shard(key)}.js`);
   if (page === 'category' && FILMS.counts[q.get('c')]) want(`films/c/${q.get('c')}.js`);
   if (page === 'artist' && q.get('name')) want(`films/p/${shard(q.get('name'))}.js`);
 })();

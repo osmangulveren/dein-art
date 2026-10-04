@@ -37,7 +37,15 @@ The content in the prototype is real, so the pages can be judged with actual fil
 
 - **Artists from the blockchain** sit alongside the others: real artists with CC0 collections on Ethereum, listed with the wallet that created the work. Their pages are unclaimed: the artists have not joined dein.art. A page is claimed from that wallet. Once the claims contract is deployed to the Sepolia testnet (`prototype/deploy.html`), the claim is a transaction there, public and the same for everyone, paid with free test ETH. Until then, the wallet signs a message that is checked in the browser. Any wallet also has a page at `artist.html?wallet=0x…` that its holder can claim.
 
-Every entry links back to its source file. Public-domain and CC0 works are shown as free. What is not real: view counts, earnings, the revenue split percentages, merch and funding campaigns. They show how the platform would work, and nothing is charged.
+Every entry links back to its source file. Public-domain and CC0 works are shown as free.
+
+**What works for real**
+
+- **Releasing a film.** A film (a file up to 25 MB, or a YouTube or Vimeo link) is stored with its people, their wallets and their shares, and gets its own page.
+- **The split.** The film's maker records the split in `contracts/DeinArtSplits.sol` on Sepolia, Ethereum's test network. Support sent to the film is paid to each person in the same transaction, in their shares, minus one flat fee. The film page and the dashboard read the amounts back from the chain. Test ETH is free and worth nothing: the mechanism is real, the money is not.
+- **Uploads** to the marketplace, **credits**, **page claims**, **view and download counts**, and the search.
+
+**What is not real:** payments in real money, the earnings on the sample account, the split percentages shown on public-domain films, merch and funding campaigns. They show how the platform would work, and nothing is charged.
 
 ## What's in the repository
 
@@ -46,8 +54,10 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 | [`prototype/`](prototype) | Clickable website design: static HTML, CSS and JavaScript, no build step. Live at [dein-art.osmangulveren.workers.dev](https://dein-art.osmangulveren.workers.dev) |
 | [`brand/`](brand) | The emblem, as SVG and PNG |
 | [`promo/`](promo) | The promo video ([watch](promo/dein-art-promo.mp4)) |
-| [`worker/`](worker) | The Cloudflare worker: serves `prototype/` and keeps what everyone shares — view and download counts, page claims, uploaded files and the items made from them, and credits. Publishing needs a wallet sign-in; the worker checks the signature itself |
-| [`contracts/`](contracts) | `DeinArtClaims.sol`: page claims recorded on the Sepolia testnet |
+| [`worker/`](worker) | The Cloudflare worker: serves `prototype/` and keeps what everyone shares: view and download counts, page claims, uploaded files and the items made from them, credits, and the films creators release with their people and shares. Publishing needs a wallet sign-in; the worker checks the signature itself |
+| [`contracts/`](contracts) | `DeinArtSplits.sol`: a film's support, split and paid out to its people in one transaction. `DeinArtClaims.sol`: page claims. Both for the Sepolia testnet, deployed from `prototype/deploy.html` |
+| [`tools/contracts/`](tools/contracts) | Compiles the splits contract and tests it on a local chain |
+| [`tools/qa/`](tools/qa) | Checks that open every page, click every control, and run the whole money path end to end on a local chain |
 | [`tools/catalog/`](tools/catalog) | Scripts that build the demo catalogue from Wikimedia Commons, Wikidata and public on-chain records |
 
 ### Pages in the prototype

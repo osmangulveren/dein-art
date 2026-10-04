@@ -34,6 +34,7 @@
       then();
     });
   };
+  document.addEventListener('films-changed', () => CATALOG.films.forEach(f => { if (indexed.has(f.key)) return; indexed.add(f.key); const x = filmEntry(f); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }));
   document.addEventListener('market-changed', e => e.detail.forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }));
   const GROUPS = ['Wallets', 'Films', 'People', 'Studios', 'Categories', 'Marketplace'], LABEL = { Wallets: 'ENS names and wallets' };
   // artists whose ENS name is not written down yet: ask once, then they are found by it

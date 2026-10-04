@@ -422,8 +422,27 @@
   const releaseRoot = $('[data-release-form]');
   if (releaseRoot) {
     const ROLES_ = ['Director', 'Writer', 'Producer', 'Cinematographer', 'Editor', 'Composer', 'Sound', 'Production designer', 'Cast', 'Animator', 'Colourist'];
-    const state = { file: null, name: '', size: 0, secs: 0, w: 0, h: 0, frames: [], thumb: '', reading: false, title: '', desc: '', type: '', year: String(thisYear), language: '',
-      people: [{ name: '', role: 'Director', pct: 100 }], support: true, confirm: false };
+    const state = { file: null, name: '', size: 0, secs: 0, w: 0, h: 0, frames: [], thumb: '', reading: false, link: '', title: '', desc: '', type: '', year: String(thisYear), language: '',
+      people: [{ name: '', role: 'Director', pct: 100, wallet: session ? session.address : '' }], support: true, confirm: false };
+    const MAX = 25e6;          // what the site can keep for one file, for now
+    // a film that lives on YouTube or Vimeo is released by its link and plays from there
+    const linkOf = u => { const t = String(u || '').trim(); let m;
+      if ((m = t.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/))) return { site: 'youtube', id: m[1] };
+      if ((m = t.match(/vimeo\.com\/(?:video\/)?(\d{6,12})/))) return { site: 'vimeo', id: m[1] };
+      return null; };
+    const isWallet = v => /^0x[0-9a-fA-F]{40}$/.test(String(v || '').trim()), isName = v => /^[^\s.]+(\.[^\s.]{2,})+$/.test(String(v || '').trim());
+    let askedLink = '';
+    // what YouTube or Vimeo says about the film: its picture, and its title if none was typed
+    async function readLink() {
+      const l = linkOf(state.link); if (!l || askedLink === l.site + l.id) return; askedLink = l.site + l.id;
+      if (l.site === 'youtube') state.thumb = `https://i.ytimg.com/vi/${l.id}/hqdefault.jpg`;
+      try {
+        const d = await (await fetch(l.site === 'youtube' ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent('https://www.youtube.com/watch?v=' + l.id)}` : `https://vimeo.com/api/oembed.json?url=${encodeURIComponent('https://vimeo.com/' + l.id)}`)).json();
+        if (!state.title && d.title) state.title = String(d.title).slice(0, 140);
+        if (l.site === 'vimeo') { if (/^https:\/\/i\.vimeocdn\.com\//.test(d.thumbnail_url || '')) state.thumb = d.thumbnail_url; if (d.duration) state.secs = Number(d.duration) || 0; }
+      } catch {}
+      redraw();
+    }
     const mmss = t => (t >= 3600 ? Math.floor(t / 3600) + ':' + String(Math.floor(t / 60) % 60).padStart(2, '0') : Math.floor(t / 60)) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
     const crew = t => t.people.filter(x => (x.name || '').trim()), total = t => t.people.reduce((n, x) => n + (Number(x.pct) || 0), 0);
     const splitBar = t => `<div class="splitbar">${crew(t).filter(x => Number(x.pct) > 0).map(x => `<i style="flex:${Number(x.pct)};background:${tone(x.name.trim())}" title="${esc(x.name)} · ${Number(x.pct)}%"></i>`).join('') || '<i style="flex:1;background:var(--line)"></i>'}</div>`;
@@ -447,20 +466,25 @@
     }
     const steps = [
       { name: 'Film', title: 'Release a film', intro: 'Start with the film itself. Releasing is free, and anyone can watch for free.',
-        html: () => state.file ? `<div class="rel-file"><div class="thumb">${state.thumb ? `<img src="${state.thumb}" alt="">` : `<span class="soundwave">${'<i></i>'.repeat(14)}</span>`}</div>
+        html: () => state.file ? `<div class="rel-file" data-e="file"><div class="thumb">${state.thumb ? `<img src="${state.thumb}" alt="">` : `<span class="soundwave">${'<i></i>'.repeat(14)}</span>`}</div>
             <div><b>${esc(state.name)}</b><span class="muted small">${state.reading ? 'Reading the film…' : [fileSize(state.size), state.secs && mmss(state.secs), state.w && `${state.w} × ${state.h}`].filter(Boolean).join(' · ')}</span>
               <button type="button" class="btn small" data-rel-clear>Choose another file</button></div></div>`
-          : `<label class="fu-drop big" data-e="file"><input type="file" accept="video/*" hidden data-rel-file>
+          : `<label class="fu-drop big" data-e="file"><input type="file" accept="video/mp4,video/webm,video/quicktime" hidden data-rel-file>
             <span class="fu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>
-            <b>Drop your film here</b><span class="muted small">or click to choose · MP4, MOV or WebM</span></label>`,
+            <b>Drop your film here</b><span class="muted small">or click to choose · MP4, MOV or WebM, up to 25 MB for now</span></label>
+            <div class="cf-f wide" style="margin-top:16px"><label>Or a link to the film<small>for anything longer: YouTube or Vimeo</small></label>
+              <input class="field" data-f="link" data-e="link" value="${esc(state.link)}" placeholder="https://vimeo.com/123456789">
+              ${linkOf(state.link) ? `<p class="muted small" style="margin-top:8px">✓ It will play from ${linkOf(state.link).site === 'youtube' ? 'YouTube' : 'Vimeo'} on the film's page, with its people and its split here.</p>` : ''}</div>`,
         after: root => {
           const drop = root.querySelector('.fu-drop'), input = root.querySelector('[data-rel-file]');
           if (input) { input.addEventListener('change', () => input.files[0] && take(input.files[0]));
             drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); }); drop.addEventListener('dragleave', () => drop.classList.remove('over'));
             drop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) take(e.dataTransfer.files[0]); }); }
           root.querySelector('[data-rel-clear]')?.addEventListener('click', () => { Object.assign(state, { file: null, name: '', size: 0, frames: [], thumb: '' }); redraw(); });
+          root.querySelector('[data-f="link"]')?.addEventListener('change', readLink);
         },
-        check: t => (t.file ? {} : { file: 'Choose the film file.' }) },
+        check: t => (t.file ? (t.size > MAX ? { file: `This file is ${fileSize(t.size)}. A file can be up to 25 MB for now: choose another, or release it by its YouTube or Vimeo link.` } : {})
+          : t.link.trim() ? (linkOf(t.link) ? {} : { link: 'That does not look like a YouTube or Vimeo link.' }) : { file: 'Choose the film file, or paste a link to it.' }) },
       { name: 'Details', title: 'What is it?', intro: 'The title and a few lines are what people see first.',
         html: f => `<div class="cf-grid">${f.field('title', 'Title', { req: 1, wide: 1 })}
           ${f.field('desc', 'Description', { req: 1, wide: 1, area: 4, ph: 'What is it about? One or two sentences are enough.' })}
@@ -480,8 +504,9 @@
           <div class="rel-people" data-e="people">${state.people.map((x, i) => `<div class="rel-person"><span class="avatar" style="background:${tone((x.name || '?').trim())}">${esc(initials((x.name || '?').trim()) || '?')}</span>
             <input class="field" data-f="people.${i}.name" value="${esc(x.name || '')}" placeholder="Full name" aria-label="Name" list="people">
             <input class="field" data-f="people.${i}.role" value="${esc(x.role || '')}" placeholder="Role" aria-label="Role" list="roles">
-            <span class="rel-pct"><input class="field" type="number" min="0" max="100" data-f="people.${i}.pct" value="${x.pct ?? ''}" aria-label="Share in percent"><i>%</i></span>
-            <button type="button" class="btn icon bare" data-rm="people.${i}" aria-label="Remove"${state.people.length === 1 ? ' disabled' : ''}>✕</button></div>`).join('')}</div>
+            <span class="rel-pct"><input class="field" type="number" min="0" max="100" step="1" data-f="people.${i}.pct" value="${x.pct ?? ''}" aria-label="Share in percent"><i>%</i></span>
+            <button type="button" class="btn icon bare" data-rm="people.${i}" aria-label="Remove"${state.people.length === 1 ? ' disabled' : ''}>✕</button>
+            <input class="field rel-wallet mono" data-f="people.${i}.wallet" data-e="people.${i}.wallet" value="${esc(x.wallet || '')}" placeholder="Wallet address or ENS name: where this share is paid" aria-label="Wallet address or ENS name" spellcheck="false" autocomplete="off"></div>`).join('')}</div>
           <div class="rel-tools"><button type="button" class="btn small" data-add="people">+ Add a person</button><button type="button" class="btn small" data-rel-even>Split evenly</button><button type="button" class="btn small" data-rel-rest>Give the first person the rest</button>
             <span class="rel-total" data-rel-total></span></div>
           <div data-rel-bar>${splitBar(state)}</div>`,
@@ -492,17 +517,20 @@
           root.querySelector('[data-rel-even]').addEventListener('click', () => { const n = t.people.length, each = Math.floor(100 / n); t.people.forEach((x, i) => { x.pct = each + (i < 100 - each * n ? 1 : 0); }); draw(); });
           root.querySelector('[data-rel-rest]').addEventListener('click', () => { const others = t.people.slice(1).reduce((n, x) => n + (Number(x.pct) || 0), 0); t.people[0].pct = Math.max(0, 100 - others); draw(); });
         },
-        check: t => ({ ...(!crew(t).length && { 'people.0.name': 'Add at least one person.' }), ...(crew(t).length && !crew(t).some(x => /director/i.test(x.role || '')) && { people: 'Someone has to be the director.' }), ...(crew(t).length && total(t) !== 100 && { people: 'The shares have to add up to 100%.' }) }) },
+        check: t => ({ ...(!crew(t).length && { 'people.0.name': 'Add at least one person.' }), ...(crew(t).length && !crew(t).some(x => /director/i.test(x.role || '')) && { people: 'Someone has to be the director.' }),
+          ...(crew(t).length && (total(t) !== 100 || crew(t).some(x => !Number.isInteger(Number(x.pct) || 0))) && { people: 'The shares have to be whole numbers that add up to 100%.' }),
+          ...Object.fromEntries(t.people.map((x, i) => [x, i]).filter(([x]) => (x.name || '').trim() && Number(x.pct) > 0 && !isWallet(x.wallet) && !isName(x.wallet)).map(([, i]) => [`people.${i}.wallet`, 'A share needs a wallet address (0x…) or an ENS name to be paid to.'])) }) },
       { name: 'Support', title: 'Support and getting paid', intro: 'Watching is always free. Viewers can still send support, and it is split across the people you just listed.',
-        html: () => `<label class="cf-confirm"><input type="checkbox" data-f="support"${state.support ? ' checked' : ''}> <span><b>Let viewers send support on the film's page</b><br><span class="muted small">A flat $1 of each payment goes to dein.art; the rest is paid to the crew in their shares.</span></span></label>
-          <div class="box" style="margin-top:16px"><b>Where you are paid</b><p>${session ? `Your wallet ${ensTag(session.address)}. Each person on the crew chooses their own.` : 'Log in with a wallet and your share is paid there. No bank account is needed, and each person on the crew chooses their own.'}</p>${session ? '' : '<button type="button" class="btn small" data-open-login style="margin-top:10px">Log in with a wallet</button>'}</div>` },
+        html: () => `<label class="cf-confirm"><input type="checkbox" data-f="support"${state.support ? ' checked' : ''}> <span><b>Let viewers send support on the film's page</b><br><span class="muted small">Each payment is split and paid to the crew in their shares, in the same transaction. One flat fee goes to dein.art.</span></span></label>
+          <div class="box" style="margin-top:16px"><b>This runs on a test network for now</b><p>Support is paid on Sepolia, Ethereum's test network. Test ETH is free and worth nothing: the split is real, the money is not. After releasing, you record the split once from the film's page, and support opens.</p></div>
+          <div class="box" style="margin-top:12px"><b>Where each person is paid</b><p>To the wallet you gave for them. No bank account, no invoices.${session ? ` You are logged in as ${ensTag(session.address)}.` : ' Log in with a wallet to release.'}</p>${session ? '' : '<button type="button" class="btn small" data-open-login style="margin-top:10px">Log in with a wallet</button>'}</div>` },
       { name: 'Check', title: 'Check and release', intro: 'This is what goes out.',
         html: (f, t, { errors, go }) => {
           const row = (label, value, key) => `<dt>${label}${key ? star : ''}</dt>${key && errors[key] ? '<dd class="cf-miss">Missing — required</dd>' : `<dd>${value || '<span class="muted">Not set</span>'}</dd>`}`;
           const block = (i, name, rows) => `<div class="cf-review"><div class="cf-review-h"><b>${name}</b><button type="button" class="link" ${go(i)}>Edit</button></div><dl>${rows}</dl></div>`;
-          return block(0, 'The film', row('File', t.file && esc(`${t.name} · ${fileSize(t.size)}${t.secs ? ' · ' + mmss(t.secs) : ''}`), 'file'))
+          return block(0, 'The film', t.file || !linkOf(t.link) ? row('File', t.file && esc(`${t.name} · ${fileSize(t.size)}${t.secs ? ' · ' + mmss(t.secs) : ''}`), 'file') : row('Plays from', (linkOf(t.link).site === 'youtube' ? 'YouTube' : 'Vimeo') + ' · ' + esc(t.link.trim())))
             + block(1, 'Details', row('Title', esc(t.title), 'title') + row('Description', esc(t.desc), 'desc') + row('Kind', esc(t.type), 'type') + row('Year', esc(t.year), 'year') + row('Language', esc(t.language)))
-            + block(2, 'Cast and crew', row('People', crew(t).map(x => `${esc(x.name.trim())} · ${esc(x.role || 'no role')} · ${Number(x.pct) || 0}%`).join('<br>'), errors['people.0.name'] ? 'people.0.name' : 'people') + `<dt>Split</dt><dd>${splitBar(t)}</dd>`)
+            + block(2, 'Cast and crew', row('People', crew(t).map(x => `${esc(x.name.trim())} · ${esc(x.role || 'no role')} · ${Number(x.pct) || 0}%${Number(x.pct) > 0 ? ` <span class="muted small mono">${esc(isWallet(x.wallet) ? x.wallet.trim().slice(0, 6) + '…' + x.wallet.trim().slice(-4) : (x.wallet || 'no wallet').trim())}</span>` : ''}`).join('<br>'), errors['people.0.name'] ? 'people.0.name' : Object.keys(errors).find(k => /^people\.\d+\.wallet$/.test(k)) || 'people') + `<dt>Split</dt><dd>${splitBar(t)}</dd>`)
             + block(3, 'Support', row('Viewers can send support', t.support ? 'Yes' : 'No'))
             + `<label class="cf-confirm" data-e="confirm"><input type="checkbox" data-f="confirm"${t.confirm ? ' checked' : ''}> <span>I made this film or have the right to release it, and the people listed worked on it.${star}</span></label>`;
         },
@@ -512,18 +540,66 @@
       <b>${esc(t.title.trim() || 'Your film')}</b><small>${esc(crew(t).filter(x => /director/i.test(x.role || '')).map(x => x.name.trim()).join(' and ') || 'Director')} · ${esc(t.year || '')}${t.type ? ' · ' + esc(t.type) : ''}</small></div>
       <p class="cf-aside-h" style="margin-top:16px">Split</p>${splitBar(t)}<p class="pv-text">${crew(t).map(x => `${esc(x.name.trim())} ${Number(x.pct) || 0}%`).join(' · ') || 'Nobody added yet'}</p>`;
     wizard(releaseRoot, { state, steps, submitLabel: 'Release the film', preview: releasePreview,
-      required: [['The film file', t => t.file, 0], ['Title', t => t.title.trim(), 1], ['Description', t => t.desc.trim().length >= 20, 1], ['Kind', t => t.type, 1], ['A director', t => crew(t).some(x => /director/i.test(x.role || '')), 2], ['Shares add up to 100%', t => crew(t).length && total(t) === 100, 2], ['Your confirmation', t => t.confirm, 4]],
-      done: t => {
-        // Films are not stored on the site yet. What is real today is the credit: the form's answers become a draft of it.
-        const mine = crew(t)[0], dirs = crew(t).filter(x => /director/i.test(x.role || ''));
-        keep('draft:credit', { title: t.title.trim(), type: t.type, status: 'Released', year: String(t.year), desc: t.desc.trim(), language: t.language, poster: t.thumb && t.thumb.length < 80000 ? t.thumb : '',
-          directors: dirs.map(x => ({ name: x.name.trim() })), crew: crew(t).filter(x => !/director/i.test(x.role || '')).map(x => ({ name: x.name.trim(), as: (x.role || '').trim() })), role: ROLES.includes((mine.role || '').trim()) ? mine.role.trim() : '' });
-        releaseRoot.innerHTML = `<section class="done"><div class="tick">✓</div><h1>Ready to release</h1>
-          <p class="muted" style="margin:6px auto 8px;max-width:560px"><b>${esc(t.title.trim())}</b> has everything a release needs: the film, its details and a split that adds up.</p>
-          <p class="box" style="max-width:560px;margin:14px auto 22px;text-align:left">Prototype: films themselves are not stored on dein.art yet, so this one stays on your computer. Credits and marketplace files are stored for real — your answers are waiting as a credit, ready to submit.</p>
-          <a class="btn primary" href="add-credit.html">Add it as a credit</a> <a class="btn" href="share-asset.html">Share stills or files from it</a> <a class="btn" href="upload.html">Back to Create</a></section>`;
+      required: [['The film, or a link to it', t => (t.file && t.size <= MAX) || (!t.file && linkOf(t.link)), 0], ['Title', t => t.title.trim(), 1], ['Description', t => t.desc.trim().length >= 20, 1], ['Kind', t => t.type, 1], ['A director', t => crew(t).some(x => /director/i.test(x.role || '')), 2], ['Shares add up to 100%', t => crew(t).length && total(t) === 100, 2], ['A wallet for every share', t => crew(t).length && crew(t).every(x => !(Number(x.pct) > 0) || isWallet(x.wallet) || isName(x.wallet)), 2], ['Your confirmation', t => t.confirm, 4]],
+      done: t => release(t) });
+    // The last step. The film (or its link), its thumbnail, its people and their shares are stored on dein.art, for everyone.
+    const stage = Object.assign(document.createElement('main'), { className: 'formpage stage', hidden: true }); releaseRoot.after(stage);
+    const show = html => { releaseRoot.hidden = true; stage.hidden = false; stage.innerHTML = html; window.scrollTo(0, 0); };
+    const backToForm = () => { stage.hidden = true; releaseRoot.hidden = false; };
+    let watch;
+    async function release(t) {
+      clearInterval(watch);
+      const who_ = load('session'), acts = more => `<div class="actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">${more}<button class="btn bare" data-stage="back">Back</button></div>`;
+      const online = await fetch('/api/films').then(r => r.ok).catch(() => false);
+      if (!online) return show(`<h1>The site could not be reached</h1><p class="muted">Your film is still here on this page. Try again in a moment.</p>${acts('<button class="btn primary" data-stage="retry">Try again</button>')}`);
+      if (!who_) {
+        show(`<h1>Log in to release</h1><p class="muted">A film is released by a wallet: it is what makes the film yours to change or remove, and where your share is paid. Logging in is free and is not a transaction.</p>${acts('<button class="btn primary" data-open-login>Log in with a wallet</button>')}`);
+        watch = setInterval(() => { if (load('session')) { clearInterval(watch); release(t); } }, 600);
+        return;
+      }
+      show(`<h1>Releasing…</h1><p class="muted">Keep this page open.</p><div class="cf-bar"><i></i></div><p class="muted small" data-stage-note>Checking the wallets…</p>`);
+      const note = (p, label) => { $('.cf-bar i', stage).style.width = Math.round(p * 100) + '%'; $('[data-stage-note]', stage).textContent = label; };
+      try {
+        // an ENS name stands for a wallet: look each one up before anything is stored
+        const people = [];
+        for (const x of crew(t)) {
+          const share = Number(x.pct) || 0; let wallet = (x.wallet || '').trim();
+          if (share > 0 && !isWallet(wallet)) { const hit = await ensDomain(wallet.toLowerCase()).catch(() => null); if (!hit || !isWallet(hit.address)) throw new Error(`No wallet was found for “${wallet}” (${x.name.trim()})`); wallet = hit.address; }
+          people.push({ name: x.name.trim(), role: (x.role || '').trim(), share, wallet: isWallet(wallet) ? wallet.toLowerCase() : '' });
+        }
+        const call = async (path, body) => { const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'The site answered ' + r.status); return d; };
+        const link = t.file ? null : linkOf(t.link), poster = /^data:image\//.test(t.thumb || '') ? await (await fetch(t.thumb)).blob() : null;
+        const list = [t.file && { blob: t.file, name: t.name, type: t.file.type, as: 'video' }, poster && { blob: poster, name: 'thumbnail.jpg', type: 'image/jpeg', as: 'poster' }].filter(Boolean);
+        let token = '', ids = {};
+        if (list.length) {
+          const up = await call('/api/uploads', { session: who_, files: list.map(f => ({ name: f.name, type: f.type, size: f.blob.size })) });
+          const total_ = list.reduce((k, f) => k + f.blob.size, 0); let sent = 0; token = up.token;
+          for (let i = 0; i < list.length; i++) { ids[list[i].as] = up.files[i].id;
+            for (let k = 0; k < up.files[i].chunks; k++) {
+              const piece = list[i].blob.slice(k * up.chunk, (k + 1) * up.chunk);
+              for (let tries = 0; ; tries++) {
+                const r = await fetch(`/api/uploads/${up.files[i].id}/${k}`, { method: 'PUT', headers: { 'x-upload-token': up.token }, body: piece }).catch(() => null);
+                if (r && r.ok) break;
+                if (tries >= 2) throw new Error((r && (await r.json().catch(() => ({}))).error) || 'The upload was interrupted');
+                await new Promise(w => setTimeout(w, 1200));
+              }
+              sent += piece.size; note(sent / total_, `${fileSize(sent)} of ${fileSize(total_)}`);
+            } }
+        }
+        note(1, 'Almost there…');
+        const { film } = await call('/api/films', { session: who_, token, film: { title: t.title.trim(), desc: t.desc.trim(), kind: (CATEGORIES.find(c => c[1] === t.type) || [''])[0], year: Number(t.year), language: t.language, secs: Math.round(t.secs) || 0, w: t.w, h: t.h,
+          video: ids.video || '', poster: ids.poster || '', link, thumb: link && !poster ? t.thumb : '', people, support: t.support } });
+        stage.hidden = true; releaseRoot.hidden = false;
+        releaseRoot.innerHTML = `<section class="done"><div class="tick">✓</div><h1>It is released</h1>
+          <p class="muted" style="margin:6px auto 8px;max-width:560px"><b>${esc(film.title)}</b> has its own page now, and everyone can watch it.</p>
+          ${film.support && people.some(x => x.share > 0) ? '<p class="box" style="max-width:560px;margin:14px auto 22px;text-align:left"><b>One thing left: record the split.</b> On the film\'s page, under “Where support goes”, record the split on the test network. It is one transaction from your wallet, and after it viewers can send support.</p>' : '<p style="margin-bottom:22px"></p>'}
+          <a class="btn primary" href="watch.html?f=${film.id}">Open the film</a> <a class="btn" href="dashboard.html">Your dashboard</a> <a class="btn" href="upload.html">Back to Create</a></section>`;
         window.scrollTo(0, 0);
-      } });
+      } catch (e) {
+        show(`<h1>It did not go through</h1><p class="muted">${esc(e.message || 'Something went wrong')}.</p>${acts('<button class="btn primary" data-stage="retry">Try again</button>')}`);
+      }
+    }
+    stage.addEventListener('click', e => { const b = e.target.closest('[data-stage]'); if (!b) return; clearInterval(watch); if (b.dataset.stage === 'back') backToForm(); else release(state); });
     redraw = () => { const b = releaseRoot.querySelector('.cf-step'); if (b?.classList.contains('on')) b.click(); };
   }
 

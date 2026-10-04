@@ -1423,3 +1423,24 @@ label.rel-thumb.add { display: grid; place-items: center; margin: 0; border: 1.5
 .itemshot.bookshot .bookcover { position: relative; inset: auto; width: min(320px, 70%); aspect-ratio: 2 / 3; border-radius: 6px 14px 14px 6px; padding: 54px 26px 26px; box-shadow: 0 24px 50px -18px rgba(16,18,22,.5); }
 .itemshot.bookshot .bookcover b { font-size: 30px; -webkit-line-clamp: 7; }
 .itemshot.bookshot .bookcover small { font-size: 14px; }
+
+/* ---------- films released by their makers: a player from elsewhere, and the split as it is on the chain ---------- */
+.player iframe.embed { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.chainrows { display: flex; flex-direction: column; margin-top: 4px; }
+.chainrow { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; }
+.chainrow + .chainrow { border-top: 1px solid var(--line); }
+.chainrow i { width: 10px; height: 10px; border-radius: 3px; }
+.chainrow b { display: block; font-size: 14px; } .chainrow small { color: var(--muted); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chainrow em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; } .chainrow em small { font-weight: 400; }
+.chainstate { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--soft); font-size: 13px; line-height: 1.5; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.chainstate.ok { background: color-mix(in srgb, var(--ok) 12%, transparent); } .chainstate.warn { background: color-mix(in srgb, var(--dot) 16%, transparent); }
+.testnote { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--dot) 22%, transparent); color: var(--text); }
+#chainpay { max-width: 460px; }
+#chainpay .picks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 6px; }
+#chainpay .picks .field { text-align: center; padding: 10px 6px; }
+#chainpay .sum { margin-top: 14px; }
+/* the release form: a wallet under each person, where their share is paid */
+.rel-person .rel-wallet { grid-column: 2 / 5; font-size: 13px; padding: 9px 12px; margin-bottom: 6px; }
+.rel-person .rel-wallet.bad { border-color: #d6454a; }
+@media (max-width: 700px) { .rel-person .rel-wallet { grid-column: 1 / -1; grid-row: 3; } }
+.rel-person .cf-err { grid-column: 2 / -1; margin: -4px 0 6px; }

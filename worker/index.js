@@ -19,6 +19,15 @@
 //
 //   GET  /api/download?url=…&name=…   a free Wikimedia Commons or Freesound file, sent as a download
 //
+// Films released by their makers
+//   POST   /api/films { session, token, film }   the film (an uploaded file, or a YouTube or Vimeo link), its people and their shares
+//   GET    /api/films                 -> every released film, newest first
+//   GET    /api/films.js?f=<id>       the same as a script, for a page that needs a film before it draws itself
+//   DELETE /api/films/:id { session } its maker, or an admin
+//   GET    /api/views/top?days=7      -> [[id, views]] the most watched in the last days
+//   GET    /api/config                -> { splits, claims }: where the contracts live on the test network
+//   POST   /api/config { session, splits, claims }   an admin wallet only
+//
 // A "session" is the sign-in message a wallet signed in the browser, with its signature: the server checks the
 // signature itself, so nobody can publish or delete in someone else's name.
 // Everything lives in one Durable Object with SQLite storage (files are kept in pieces of CHUNK bytes), so every visitor
@@ -34,12 +43,18 @@ const MAX_ALL = 4_000_000_000;              // everything stored (the free plan 
 const MAX_FILES_A_DAY = 80;                 // per wallet
 const ADMINS = ['0xe803aad78e6eabcde6f820d2c64cf83402eddbe2'];   // may remove anything
 const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents'];
+const KINDS = ['feature-film', 'documentary', 'short-film', 'animation', 'series', 'vlog', 'entertainment', 'reality-show', 'podcast', 'course', 'tutorial', 'music-video'];
+const WALLET = /^0x[0-9a-fA-F]{40}$/;
 // what a browser may show in place; everything else is only ever sent as a download
 const INLINE = /^(image\/(jpeg|png|webp|gif|avif)|audio\/(mpeg|mp4|wav|x-wav|ogg|flac|webm|aac)|video\/(mp4|webm|quicktime))$/;
 
 const hex = n => [...crypto.getRandomValues(new Uint8Array(n))].map(b => b.toString(16).padStart(2, '0')).join('');
 const clip = (v, n) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n);
 const fail = (error, status = 400) => ({ error, status });
+// what people type is kept as plain text: nothing in it can become a tag on someone else's screen
+const text = (v, n) => clip(v, n).replace(/[<>]/g, '');
+const slugOf = t => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 44).replace(/-$/, '') || 'film';
+const today = () => Math.floor(Date.now() / 864e5);
 
 // Who is asking: the wallet that signed a dein.art sign-in message, if the signature holds and the message is recent.
 function signer(session) {
@@ -60,6 +75,9 @@ export class ViewCounter extends DurableObject {
     sql.exec('CREATE TABLE IF NOT EXISTS chunks (file TEXT NOT NULL, i INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (file, i))');
     sql.exec('CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, owner TEXT NOT NULL, json TEXT NOT NULL, at INTEGER NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS titles (id TEXT PRIMARY KEY, owner TEXT NOT NULL, json TEXT NOT NULL, at INTEGER NOT NULL)');
+    sql.exec('CREATE TABLE IF NOT EXISTS releases (id TEXT PRIMARY KEY, owner TEXT NOT NULL, json TEXT NOT NULL, at INTEGER NOT NULL)');
+    sql.exec('CREATE TABLE IF NOT EXISTS config (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+    sql.exec('CREATE TABLE IF NOT EXISTS daily (id TEXT NOT NULL, day INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (id, day))');
   }
   rows(q, ...args) { return [...this.ctx.storage.sql.exec(q, ...args)]; }
 
@@ -84,7 +102,69 @@ export class ViewCounter extends DurableObject {
     return out;
   }
   add(id) {
+    // each day's count is kept too, so "most watched this week" is a real answer
+    this.ctx.storage.sql.exec('INSERT INTO daily (id, day, n) VALUES (?, ?, 1) ON CONFLICT(id, day) DO UPDATE SET n = n + 1', id, today());
     return this.ctx.storage.sql.exec('INSERT INTO views (id, n) VALUES (?, 1) ON CONFLICT(id) DO UPDATE SET n = n + 1 RETURNING n', id).one().n;
+  }
+  top(days, limit) {
+    return this.rows("SELECT id, SUM(n) AS n FROM daily WHERE day > ? AND id NOT LIKE 'dl-%' GROUP BY id ORDER BY n DESC, id LIMIT ?", today() - days, limit).map(r => [r.id, r.n]);
+  }
+
+  /* ---------- where the contracts live ---------- */
+  config() { return Object.fromEntries(this.rows('SELECT key, value FROM config').map(r => [r.key, r.value])); }
+  setConfig(session, body) {
+    const who = signer(session); if (!who) return fail('log in with your wallet first', 401);
+    if (!ADMINS.includes(who)) return fail('only an admin wallet can change this', 403);
+    for (const key of ['splits', 'claims']) {
+      if (!(key in (body || {}))) continue;
+      const v = String(body[key] || '');
+      if (v && !WALLET.test(v)) return fail('not a contract address');
+      this.ctx.storage.sql.exec('INSERT INTO config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', key, v);
+    }
+    return this.config();
+  }
+
+  /* ---------- films released by their makers ---------- */
+  release(session, token, f) {
+    const owner = signer(session); if (!owner) return fail('log in with your wallet first', 401);
+    f = f || {};
+    const title = text(f.title, 140), desc = text(f.desc, 4000), kind = KINDS.includes(f.kind) ? f.kind : '', year = Number(f.year);
+    if (!title || desc.length < 20 || !kind || !Number.isInteger(year) || year < 1888 || year > new Date().getFullYear() + 1) return fail('a film needs a title, a description, a kind and a year');
+    const people = (Array.isArray(f.people) ? f.people.slice(0, 40) : []).map(p => ({ name: text(p && p.name, 80), role: text(p && p.role, 60), share: Number(p && p.share) || 0, wallet: WALLET.test(String((p && p.wallet) || '')) ? p.wallet.toLowerCase() : '' })).filter(p => p.name);
+    if (!people.some(p => /director/i.test(p.role))) return fail('a film needs a director');
+    if (people.some(p => !Number.isInteger(p.share) || p.share < 0) || people.reduce((n, p) => n + p.share, 0) !== 100) return fail('the shares have to be whole numbers that add up to 100');
+    if (people.some(p => p.share > 0 && !p.wallet)) return fail('everyone with a share needs a wallet to be paid to');
+    if (this.rows('SELECT COUNT(*) AS n FROM releases WHERE owner = ? AND at > ?', owner, Date.now() - 864e5)[0].n >= 10) return fail('that is a lot for one day; try again tomorrow', 429);
+    // the film itself: a file that has arrived whole, or a link to where it plays
+    const mine = Object.fromEntries(this.rows('SELECT id, type, size, chunks FROM files WHERE owner = ? AND token = ? AND item IS NULL', owner, String(token || '')).map(x => [x.id, x]));
+    const whole = id => mine[id] && this.rows('SELECT COUNT(*) AS n FROM chunks WHERE file = ?', id)[0].n === mine[id].chunks;
+    const link = f.link && ((f.link.site === 'youtube' && /^[A-Za-z0-9_-]{11}$/.test(String(f.link.id))) || (f.link.site === 'vimeo' && /^\d{6,12}$/.test(String(f.link.id)))) ? { site: f.link.site, id: String(f.link.id) } : null;
+    let video = null;
+    if (f.video) {
+      if (!whole(f.video) || !/^video\/(mp4|webm|quicktime)$/.test(mine[f.video].type)) return fail('the film file did not arrive completely, or is not an MP4, MOV or WebM');
+      video = { id: f.video, type: mine[f.video].type, size: mine[f.video].size };
+    }
+    if (!video && !link) return fail('a film needs its file, or a YouTube or Vimeo link');
+    if (f.poster && (f.poster === f.video || !whole(f.poster) || !/^image\/(jpeg|png|webp)$/.test(mine[f.poster].type))) return fail('the thumbnail did not arrive completely');
+    let id; do { id = `${slugOf(title)}--${hex(3)}`; } while (this.rows('SELECT 1 FROM releases WHERE id = ?', id).length);
+    const num = (v, max) => (Number.isFinite(Number(v)) && Number(v) > 0 && Number(v) < max ? Math.round(Number(v)) : 0);
+    const doc = { id, owner, title, desc, kind, year, language: text(f.language, 60), secs: num(f.secs, 864000), w: num(f.w, 20000), h: num(f.h, 20000), video, link, poster: f.poster || '',
+      thumb: link && /^https:\/\/i\.vimeocdn\.com\/[\w\-./%?=&]+$/.test(String(f.thumb || '')) ? String(f.thumb).slice(0, 300) : '', people, support: f.support !== false, at: Date.now() };
+    this.ctx.storage.sql.exec('INSERT INTO releases (id, owner, json, at) VALUES (?, ?, ?, ?)', id, owner, JSON.stringify(doc), doc.at);
+    [f.video, f.poster].filter(Boolean).forEach(x => this.ctx.storage.sql.exec('UPDATE files SET item = ?, pub = 1 WHERE id = ?', 'film-' + id, x));
+    return { film: doc };
+  }
+  releases(id) {
+    return (id ? this.rows('SELECT json FROM releases WHERE id = ?', id) : this.rows('SELECT json FROM releases ORDER BY at DESC LIMIT 400')).map(r => JSON.parse(r.json));
+  }
+  removeRelease(session, id) {
+    const who = signer(session); if (!who) return fail('log in with your wallet first', 401);
+    const row = this.rows('SELECT owner FROM releases WHERE id = ?', id)[0];
+    if (!row) return fail('not found', 404);
+    if (row.owner !== who && !ADMINS.includes(who)) return fail('only the wallet that released it can remove it', 403);
+    for (const x of this.rows('SELECT id FROM files WHERE item = ?', 'film-' + id)) this.dropFile(x.id);
+    this.ctx.storage.sql.exec('DELETE FROM releases WHERE id = ?', id);
+    return { ok: true };
   }
 
   /* ---------- uploads: a file arrives in pieces, then is published as part of an item ---------- */
@@ -210,7 +290,20 @@ export default {
       const ids = [...new Set((url.searchParams.get('ids') || '').split(','))].filter(id => ID.test(id)).slice(0, 60);
       return json(await store.read(ids));
     }
+    if (path === '/api/views/top' && method === 'GET') return json(await store.top(Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 7)), Math.min(50, Math.max(1, Number(url.searchParams.get('limit')) || 20))), 200, 'public, max-age=60');
     if ((m = path.match(/^\/api\/views\/([a-z0-9-]{1,64})$/)) && method === 'POST') return json({ id: m[1], views: await store.add(m[1]) });
+
+    if (path === '/api/config' && method === 'GET') return json(await store.config());
+    if (path === '/api/config' && method === 'POST') { const b = await bodyOf(request); return answer(await store.setConfig(b.session, b)); }
+
+    if (path === '/api/films' && method === 'GET') return json(await store.releases());
+    if (path === '/api/films' && method === 'POST') { const b = await bodyOf(request); return answer(await store.release(b.session, b.token, b.film)); }
+    // the same list as a script: a film's own page asks for it before it draws itself
+    if (path === '/api/films.js' && method === 'GET') {
+      const f = url.searchParams.get('f') || '', list = ID.test(f) ? await store.releases(f) : [];
+      return new Response(`FILMS.released(${JSON.stringify(list).replace(/</g, '\\u003c').replace(/\u2028|\u2029/g, '')});`, { headers: { 'content-type': 'application/javascript; charset=utf-8', 'cache-control': 'no-store' } });
+    }
+    if ((m = path.match(/^\/api\/films\/([a-z0-9-]{1,64})$/)) && method === 'DELETE') { const b = await bodyOf(request); return answer(await store.removeRelease(b.session, m[1])); }
 
     if (path === '/api/claims' && method === 'GET') {
       const address = (url.searchParams.get('address') || '').toLowerCase();

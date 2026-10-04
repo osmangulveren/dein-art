@@ -230,6 +230,12 @@ const SHARED = fetch('/api/items').then(r => (r.ok ? r.json() : [])).then(list =
 });
 // titles added as credits, for everyone
 const TITLES = fetch('/api/titles').then(r => (r.ok ? r.json() : [])).then(list => (Array.isArray(list) ? list : [])).catch(() => []);
+// Films released here by their makers. They arrive after the page is up; whatever lists films is told when they do.
+const RELEASES = fetch('/api/films').then(r => (r.ok ? r.json() : [])).then(list => (Array.isArray(list) ? list : [])).catch(() => []).then(list => {
+  FILMS.released(list);
+  if (FILMS.releases.length) document.dispatchEvent(new CustomEvent('films-changed'));
+  return FILMS.releases;
+});
 const priceTag = it => it.price ? `<span class="price">$${it.price}</span>` : '<span class="price free">Free</span>';
 
 const campaigns = [
@@ -474,9 +480,9 @@ const byline = f => f.by.join(' and ');
 const under = (f, ...more) => [byline(f), f.year, ...more].filter(Boolean).join(' · ');
 const durTag = f => (f.dur ? `<span class="badge dur">${f.dur}</span>` : '');
 const cards = {
-  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy">${durTag(f)}</div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}<span data-views="${f.key}"></span></p></div></div></a>`,
-  resume: f => { const p = progress[f.key], secs = f.secs || p.of || 0, left = Math.max(1, Math.round((secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}</p></div></div></a>`; },
-  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy">${durTag(f)}</div><div><h3>${esc(f.title)}</h3><p class="muted small">${esc(byline(f))}<br>${[f.year, f.kind].filter(Boolean).join(' · ')}<span data-views="${f.key}"></span></p></div></a>`,
+  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy">${durTag(f)}</div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}<span data-views="${f.key}"></span></p></div></div></a>`,
+  resume: f => { const p = progress[f.key], secs = f.secs || p.of || 0, left = Math.max(1, Math.round((secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}</p></div></div></a>`; },
+  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb${f.ia ? ' soft' : ''}"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy">${durTag(f)}</div><div><h3>${esc(f.title)}</h3><p class="muted small">${esc(byline(f))}<br>${[f.year, f.kind].filter(Boolean).join(' · ')}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
   merch: m => merchCard(m),
@@ -526,6 +532,11 @@ const lists = { films, live: streams, assets, merch, campaigns, related, trendin
   // films by the people you follow, as they are: no ranking decides whether you see them
   following: CATALOG.films.filter(f => f.by.some(n => following.has(n)) || following.has(f.creator)),
   quick: CATALOG.films.filter(f => f.secs && f.secs <= 900) };
+// what creators released here comes first on the home page, once there is something
+RELEASES.then(list => $$('[data-releases]').forEach(el => {
+  if (!list.length) return;
+  $('[data-releases-list]', el).innerHTML = list.slice(0, 8).map(cards.films).join(''); el.hidden = false; fillViews();
+}));
 // the best known of each kind from the big catalogue, for the rows on the home page
 CATEGORIES.forEach(([slug]) => { lists['c-' + slug] = CATALOG.films.filter(f => f.source && categoryOf(f) === slug); });
 $$('[data-cat-all]').forEach(a => { const n = FILMS.counts[a.dataset.catAll]; if (n) a.textContent = `All ${n.toLocaleString('en-US')}`; });
@@ -619,9 +630,10 @@ document.addEventListener('click', e => {
 /* ---------- cast and crew split ---------- */
 
 // A person as a large portrait card; the whole card opens their page.
-const personCard = (name, role, pct) => {
+const personCard = (name, role, pct, wallet) => {
   const pic = who[name]?.pic ? who[name].pic.replace('/120px-', '/500px-') : '';
-  return `<a class="crewcard" href="${artistUrl(name)}" aria-label="${esc(name)}, ${esc(role)}">
+  // someone on a film released here is found by their wallet; everyone else by their page
+  return `<a class="crewcard" href="${wallet ? 'artist.html?wallet=' + wallet : artistUrl(name)}" aria-label="${esc(name)}, ${esc(role)}">
     <span class="cc-media">${pic ? `<img src="${pic}" alt="" loading="lazy">` : `<span class="crewinit" style="--t:${tone(name)}">${initials(name)}</span>`}
       <span class="crewname"><b>${esc(name)}</b><span>${esc(role)}</span></span>
       ${pct ? `<span class="crewpct">${pct}%</span>` : ''}</span>
@@ -631,13 +643,13 @@ const personCard = (name, role, pct) => {
 $$('[data-crew]').forEach(el => {
   el.innerHTML = `
     <div class="crewtop"><h2>Cast and crew</h2><button class="btn icon crewclose" data-close aria-label="Close">✕</button></div>
-    <div class="crewcol"><div class="grid crewcards" data-slider>${crew.map(c => personCard(c.name, c.role, c.pct)).join('')}</div></div>`;
+    <div class="crewcol"><div class="grid crewcards" data-slider>${crew.map(c => personCard(c.name, c.role, c.pct, c.wallet)).join('')}</div></div>`;
 });
 
 /* ---------- pages about one film: watch and live ---------- */
 
 $$('[data-cast]').forEach(el => {
-  el.innerHTML = page === 'watch' ? crew.map(c => personCard(c.name, c.role, c.pct)).join('')
+  el.innerHTML = page === 'watch' ? crew.map(c => personCard(c.name, c.role, c.pct, c.wallet)).join('')
     : `<a class="btn dark" href="#crew">All cast &amp; crew</a>` + crew.map(c => `<a class="castp" href="${artistUrl(c.name)}">${mug(c)}<span><b>${c.name}</b><span class="muted small">${c.role}</span></span></a>`).join('');
 });
 
@@ -648,7 +660,7 @@ if (video) {
   document.title = `${cur.title} — dein.art`;
   const posterAt = live && cur.scenes[1] ? cur.scenes[1][0] : cur.at;
   // the Archive's picture of a film is small, so it sits blurred behind the play button instead of being stretched
-  if (cur.pic) { $('.player').classList.add('softposter'); $('.player').style.setProperty('--poster', `url("${cur.pic}")`); } else video.poster = frame(cur, posterAt, 1280);
+  if (cur.ia) { $('.player').classList.add('softposter'); $('.player').style.setProperty('--poster', `url("${cur.pic}")`); } else video.poster = frame(cur, posterAt, 1280);
   video.innerHTML = sources(cur);
   $('.stage .glow').src = frame(cur, posterAt, 330);
   // Viewing modes: Normal keeps the page around the film; Cinematic dims everything else and gives the film the screen.
@@ -672,7 +684,17 @@ if (video) {
   setMode((() => { try { return localStorage.getItem('viewmode'); } catch { return null; } })() === 'cinema' ? 'cinema' : 'normal', false);
   const play = $('.player .play');
   if (play) {
-    play.addEventListener('click', () => { video.dataset.wanted = '1'; video.play().catch(() => {}); });
+    play.addEventListener('click', () => {
+      // a film that lives on YouTube or Vimeo plays in their player, loaded only once someone asks for it
+      if (cur.embed) {
+        const src = cur.embed.site === 'youtube' ? `https://www.youtube-nocookie.com/embed/${cur.embed.id}?autoplay=1&rel=0` : `https://player.vimeo.com/video/${cur.embed.id}?autoplay=1&dnt=1`;
+        video.hidden = true; play.hidden = true;
+        video.insertAdjacentHTML('afterend', `<iframe class="embed" src="${src}" title="${esc(cur.title)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`);
+        video.dispatchEvent(new Event('play'));
+        return;
+      }
+      video.dataset.wanted = '1'; video.play().catch(() => {});
+    });
     video.addEventListener('play', () => { play.hidden = true; $('.player').classList.remove('softposter'); });
   }
   const lead = cur.creator, p = who[lead];
@@ -682,7 +704,25 @@ if (video) {
     ${cur.wd ? `<a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener" title="Title, credits and dates">Wikidata</a>` : ''}
     ${cur.imdb ? `<a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb</a>` : ''}`);
   const studioLink = cur.company[0] ? ((st => (st ? `<a class="link" href="studio.html?s=${st.slug}">${st.name}</a>` : esc(cur.company[0])))(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === cur.company[0]))) : '';
-  if (live) {
+  if (cur.owner && !live) {
+    // A film released here by its makers: real people, real wallets, and a split that is recorded on the test network.
+    const ownerUrl = 'artist.html?wallet=' + cur.owner;
+    fill('meta', `<span data-views="${cur.key}" data-views-lead></span>${[cur.year, esc(cur.kind), cur.dur].filter(Boolean).join(' · ')} <span class="pill tint">Released on dein.art</span>`);
+    fill('byline', `<a href="${ownerUrl}"><span class="avatar" style="background:linear-gradient(135deg,#${cur.owner.slice(2, 8)},#${cur.owner.slice(-6)})"></span></a>
+      <a class="who" href="${ownerUrl}"><b>${esc(byline(cur))}</b><span class="muted small">Released by ${ensTag(cur.owner)}</span></a>
+      <button class="btn follow" data-follow="${esc(lead)}">Follow</button>`);
+    fill('acts', `${cur.support ? '<button class="btn primary" data-chain-support>♥ Support</button>' : ''}
+      <button class="btn" data-mylist aria-pressed="${watchlist.has(cur.key)}">${watchlist.has(cur.key) ? '✓ In my list' : '+ My list'}</button>
+      <button class="btn" data-share>Share</button>`);
+    fill('about', `<h2>About</h2><p class="lead">${esc(cur.blurb)}</p>
+      <dl class="facts">${[['Year', cur.year], ['Kind', esc(cur.kind)], ['Language', esc(cur.language)], ['Running time', cur.dur], ['Released', new Date(cur.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })],
+        ['Released by', `<a class="link" href="${ownerUrl}">${ensTag(cur.owner)}</a>`], ['Plays from', cur.embed ? (cur.embed.site === 'youtube' ? 'YouTube' : 'Vimeo') : 'dein.art']]
+        .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      <p class="muted small" style="margin-top:14px">Free to watch. <span data-owner-tools></span></p>`);
+    // the split is read from the test network by chainpay.js, which draws into this
+    fill('split', `<h2>Where support goes</h2><div data-chain-split><p class="muted small">Reading the split…</p></div>`);
+    if (!crew.some(c => c.pct > 0) || !cur.support) $$('[data-f="split"]').forEach(el => { el.hidden = true; el.parentElement.classList.add('solo'); });
+  } else if (live) {
     fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
       <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago</span></a>
       <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
@@ -980,6 +1020,13 @@ if ((page === 'artist' || page === 'creator') && subject.chain) {
     if (panel.querySelector('.empty')) panel.innerHTML = '';
     panel.insertAdjacentHTML('afterbegin', mine.map(cards.assets).join(''));
   });
+  // films this wallet released, or is paid from
+  RELEASES.then(list => {
+    const mine = list.filter(f => f.owner === address || f.crew.some(c => c.wallet === address)); if (!mine.length) return;
+    const panel = $('[data-panel="videos"]'); if (!panel) return;
+    if (panel.querySelector('.empty')) panel.innerHTML = '';
+    panel.insertAdjacentHTML('afterbegin', mine.map(cards.films).join('')); fillViews();
+  });
   TITLES.then(list => {
     const mine = list.filter(t => t.owner === address); if (!mine.length) return;
     mine.forEach(t => { addedTitles[t.id] = t;
@@ -1071,7 +1118,9 @@ initCharts(); initHeat();
 
 if (page === 'category') {
   const [slug, label] = CATEGORIES.find(c => c[0] === param('c')) || CATEGORIES[0];
-  const all = CATALOG.films.filter(f => categoryOf(f) === slug);          // hand-picked first, then best known first
+  // what creators released comes first, then the hand-picked films, then the catalogue with the best known first
+  const listAll = () => [...FILMS.releases.filter(f => categoryOf(f) === slug), ...CATALOG.films.filter(f => !f.owner && categoryOf(f) === slug)];
+  let all = listAll();
   document.title = `${label} — dein.art`;
   const many = label.replace(/y$/, 'ie').replace(/s$/, '') + 's';
   $('[data-cat="title"]').textContent = many;
@@ -1116,6 +1165,7 @@ if (page === 'category') {
       draw();
     });
     $('button', moreBox).addEventListener('click', () => { state.shown += STEP; draw(true); });
+    document.addEventListener('films-changed', () => { all = listAll(); draw(true); });
     draw();
   }
 }

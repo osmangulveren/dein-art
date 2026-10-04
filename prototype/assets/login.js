@@ -11,10 +11,11 @@ const PRIVY_APP_ID = '';   // public app id from the Privy dashboard; empty unti
   if (!account) return;
   const read = () => { try { return JSON.parse(localStorage.getItem('session')) || null; } catch { return null; } };
   const write = v => { try { v ? localStorage.setItem('session', JSON.stringify(v)) : localStorage.removeItem('session'); } catch {} };
-  const ethersReady = () => window.ethers ? Promise.resolve() : new Promise((ok, fail) => {
+  // one copy of the library for the whole page (chainpay.js asks for it the same way)
+  const ethersReady = () => window.__ethers || (window.__ethers = window.ethers ? Promise.resolve() : new Promise((ok, fail) => {
     const s = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js', crossOrigin: 'anonymous', onload: ok, onerror: fail });
     document.head.append(s);
-  });
+  }));
   // a wallet's own colours, so the same wallet always looks the same
   const walletFace = a => `<span class="avatar walletface" style="background:linear-gradient(135deg,#${a.slice(2, 8)},#${a.slice(-6)})" aria-hidden="true"></span>`;
 
