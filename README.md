@@ -46,7 +46,7 @@ Every entry links back to its source file. Public-domain and CC0 works are shown
 | [`prototype/`](prototype) | Clickable website design: static HTML, CSS and JavaScript, no build step. Live at [dein-art.osmangulveren.workers.dev](https://dein-art.osmangulveren.workers.dev) |
 | [`brand/`](brand) | The emblem, as SVG and PNG |
 | [`promo/`](promo) | The promo video ([watch](promo/dein-art-promo.mp4)) |
-| [`worker/`](worker) | The Cloudflare worker: serves `prototype/` and keeps shared view counts (`/api/views`) |
+| [`worker/`](worker) | The Cloudflare worker: serves `prototype/` and keeps what everyone shares — view and download counts, page claims, uploaded files and the items made from them, and credits. Publishing needs a wallet sign-in; the worker checks the signature itself |
 | [`contracts/`](contracts) | `DeinArtClaims.sol`: page claims recorded on the Sepolia testnet |
 | [`tools/catalog/`](tools/catalog) | Scripts that build the demo catalogue from Wikimedia Commons, Wikidata and public on-chain records |
 

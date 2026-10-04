@@ -12,7 +12,7 @@ const PRIVY_APP_ID = '';   // public app id from the Privy dashboard; empty unti
   const read = () => { try { return JSON.parse(localStorage.getItem('session')) || null; } catch { return null; } };
   const write = v => { try { v ? localStorage.setItem('session', JSON.stringify(v)) : localStorage.removeItem('session'); } catch {} };
   const ethersReady = () => window.ethers ? Promise.resolve() : new Promise((ok, fail) => {
-    const s = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js', onload: ok, onerror: fail });
+    const s = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js', crossOrigin: 'anonymous', onload: ok, onerror: fail });
     document.head.append(s);
   });
   // a wallet's own colours, so the same wallet always looks the same
@@ -84,5 +84,6 @@ const PRIVY_APP_ID = '';   // public app id from the Privy dashboard; empty unti
   drawAccount();
   // A stored session counts only if its signature still matches; check it once the library is at hand.
   const s = read();
-  if (s) ethersReady().then(() => { try { if (ethers.verifyMessage(s.message, s.signature).toLowerCase() !== s.address) { write(null); drawAccount(); } } catch { write(null); drawAccount(); } }).catch(() => {});
+  // (after the page's own scripts have run: profile pages load the same library themselves, and it must not load twice)
+  if (s) (document.readyState === 'loading' ? new Promise(r => addEventListener('DOMContentLoaded', r)) : Promise.resolve()).then(ethersReady).then(() => { try { if (ethers.verifyMessage(s.message, s.signature).toLowerCase() !== s.address) { write(null); drawAccount(); } } catch { write(null); drawAccount(); } }).catch(() => {});
 })();

@@ -176,16 +176,21 @@
       if (!keep('titles', all)) { delete all[id].poster; keep('titles', all); }
       pages.forEach(p => { const ed = load('edits:' + p) || {}; ed.credits = [...(ed.credits || []).filter(c => c.id !== id), { id, title: all[id].title, year: all[id].year, role: s.role }]; keep('edits:' + p, ed); });
       try { localStorage.removeItem('draft:credit'); } catch {}
-      finished(creditRoot, editing ? 'Saved' : 'Your credit is added', `<b>${esc(all[id].title)}</b> (${all[id].year}) now has its own page, and <b>${esc(s.role)}</b> is on your credits.`,
-        [['Open the title', 'title.html?id=' + encodeURIComponent(id)], ['See your credits', 'creator.html#credits'], ['Add another', 'add-credit.html']]);
+      // signed in with a wallet: the title is kept by the site, so everyone sees it and the credit shows on the wallet's page
+      const sent = session ? fetch('/api/titles', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session, title: all[id] }) }).then(r => r.json().then(d => (r.ok ? '' : d.error || 'error'))).catch(() => 'offline') : Promise.resolve('none');
+      sent.then(problem => { if (!problem) { const now = titles(); if (now[id]) { now[id].owner = session.address; keep('titles', now); } } return problem; }).then(problem => finished(creditRoot, editing ? 'Saved' : 'Your credit is added', `<b>${esc(all[id].title)}</b> (${all[id].year}) now has its own page, and <b>${esc(s.role)}</b> is on your credits.<br><span class="small">${!problem ? 'Everyone can see it.' : problem === 'none' ? 'It is kept in this browser. Log in with a wallet before adding a credit to publish it for everyone.' : problem === 'offline' ? 'It is kept in this browser; the site could not be reached to publish it.' : 'It is kept in this browser only: ' + esc(problem) + '.'}</span>`,
+        [['Open the title', 'title.html?id=' + encodeURIComponent(id)], ['See your credits', (session ? 'artist.html?wallet=' + session.address : 'creator.html') + '#credits'], ['Add another', 'add-credit.html']]));
     } });
   }
 
   /* ---------- a title's own page ---------- */
 
   const titleRoot = $('[data-title-page]');
-  if (titleRoot) {
-    const t = titles()[param('id')];
+  if (titleRoot) (async () => {
+    let t = titles()[param('id')]; const local = !!t;
+    if (!t) { titleRoot.innerHTML = '<div class="page-head"><h1>Loading…</h1></div>'; t = (await TITLES).find(x => x.id === param('id')); }
+    const mineOnSite = t && t.owner && session && session.address === t.owner;
+    if (t && t.owner && !t.added) t.added = new Date(t.at).toISOString().slice(0, 10);
     if (!t) titleRoot.innerHTML = '<div class="page-head"><h1>Title not found</h1><p>This title is not in this browser. <a class="link" href="add-credit.html">Add a credit</a>.</p></div>';
     else {
       document.title = `${t.title} (${t.year}) — dein.art`;
@@ -200,34 +205,35 @@
       const links = [[t.watch, '▶ Watch'], [t.trailer, 'Trailer'], [t.site, 'Official site'], [t.imdb, 'IMDb'], [t.proof, 'Source']].filter(([u]) => u);
       titleRoot.innerHTML = `
         <p class="crumbs"><a href="category.html?c=${(CATEGORIES.find(c => c[1] === t.type) || CATEGORIES[0])[0]}">${esc(t.type)}</a> › ${esc(t.title)}</p>
-        <div class="tp"><div class="tp-poster">${t.poster ? `<img src="${t.poster}" alt="">` : `<span>${esc(t.title)}</span>`}</div>
+        <div class="tp"><div class="tp-poster">${t.poster ? `<img src="${esc(t.poster)}" alt="">` : `<span>${esc(t.title)}</span>`}</div>
           <div class="tp-main"><p class="eyebrow">${esc(t.type)} · ${esc(t.status)}</p><h1>${esc(t.title)} <span class="muted">${t.year}</span></h1>
             ${t.tagline ? `<p class="tp-tag">${esc(t.tagline)}</p>` : ''}<p class="lead">${esc(t.desc)}</p>
-            ${t.genres.length ? `<div class="cf-chips" style="margin-top:14px">${t.genres.map(g => `<span class="chip">${g}</span>`).join('')}</div>` : ''}
+            ${t.genres.length ? `<div class="cf-chips" style="margin-top:14px">${t.genres.map(g => `<span class="chip">${esc(g)}</span>`).join('')}</div>` : ''}
             <p class="tp-by">Directed by ${t.directors.map(d => (who[d.name] ? `<a class="link" ${link(d.name)}>${esc(d.name)}</a>` : `<b>${esc(d.name)}</b>`)).join(', ')}</p>
             ${links.length ? `<div class="tp-links">${links.map(([u, l], i) => `<a class="btn${i ? '' : ' primary'}" href="${url(u)}" target="_blank" rel="noopener">${l} ↗</a>`).join('')}</div>` : ''}
             <dl class="facts">${Object.entries(facts).filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div></div>
         ${cast.length ? `<div class="sec"><h2>Cast</h2></div><div class="cf-people">${cast.map(c => card(...c)).join('')}</div>` : ''}
         <div class="sec"><h2>Crew</h2></div><div class="cf-people">${crew.map(c => card(...c)).join('')}</div>
-        <div class="box tp-own"><span><b>Added by you on ${t.added}</b><br><span class="muted small">Prototype: this title is kept in this browser. On the real platform it is checked, then shown to everyone.</span></span>
-          <span><a class="btn" href="add-credit.html?edit=${encodeURIComponent(t.id)}">✎ Edit</a> <button class="btn" data-title-x>Remove</button></span></div>`;
-      $('[data-title-x]').addEventListener('click', () => {
+        ${local || mineOnSite ? `<div class="box tp-own"><span><b>Added by you on ${esc(t.added)}</b><br><span class="muted small">${t.owner || mineOnSite ? 'Everyone can see this title.' : 'This title is kept in this browser. Log in with a wallet and save it again to publish it for everyone.'}</span></span>
+          <span>${local ? `<a class="btn" href="add-credit.html?edit=${encodeURIComponent(t.id)}">✎ Edit</a> ` : ''}<button class="btn" data-title-x>Remove</button></span></div>`
+          : `<div class="box tp-own"><span><b>Added on ${esc(t.added || '')} by <a class="link" href="artist.html?wallet=${t.owner}">${ensTag(t.owner)}</a></b><br><span class="muted small">Credits on dein.art are added by the people who worked on a title.</span></span></div>`}`;
+      $('[data-title-x]')?.addEventListener('click', () => {
         if (!confirm(`Remove “${t.title}” and your credit on it?`)) return;
         const all = titles(); delete all[t.id]; keep('titles', all);
         pages.forEach(p => { const ed = load('edits:' + p); if (ed?.credits) { ed.credits = ed.credits.filter(c => c.id !== t.id); keep('edits:' + p, ed); } });
-        location.href = 'creator.html#credits';
+        const leave = () => { location.href = (session ? 'artist.html?wallet=' + session.address : 'creator.html') + '#credits'; };
+        if (session) fetch('/api/titles/' + t.id, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session }) }).then(leave, leave); else leave();
       });
     }
-  }
+  })();
 
-  // titles you added show up under their category
+  // titles added as credits show up under their category: the ones in this browser, then everyone's
   if (page === 'category') {
-    const label = (CATEGORIES.find(c => c[0] === param('c')) || CATEGORIES[0])[1], grid = $('[data-cat="grid"]');
-    const mine = Object.values(titles()).filter(t => t.type === label);
-    if (mine.length) {
+    const label = (CATEGORIES.find(c => c[0] === param('c')) || CATEGORIES[0])[1], grid = $('[data-cat="grid"]'), shown = new Set();
+    const add = list => { const fresh = list.filter(t => t.type === label && !shown.has(t.id)); if (!fresh.length) return; fresh.forEach(t => shown.add(t.id));
       if (!grid.querySelector('.card')) grid.innerHTML = '';
-      grid.insertAdjacentHTML('afterbegin', mine.map(t => `<a class="card" href="title.html?id=${encodeURIComponent(t.id)}"><div class="thumb${t.poster ? '' : ' blank'}">${t.poster ? `<img src="${t.poster}" alt="">` : ''}<span class="badge kind">Added by you</span></div><div class="meta"><div><h3>${esc(t.title)}</h3><p>${esc(t.directors.map(d => d.name).join(', '))} · ${t.year}</p></div></div></a>`).join(''));
-    }
+      grid.insertAdjacentHTML('afterbegin', fresh.map(t => `<a class="card" href="title.html?id=${encodeURIComponent(t.id)}"><div class="thumb${t.poster ? '' : ' blank'}">${t.poster ? `<img src="${esc(t.poster)}" alt="">` : ''}<span class="badge kind">${t.owner ? 'Added as a credit' : 'Added by you'}</span></div><div class="meta"><div><h3>${esc(t.title)}</h3><p>${esc(t.directors.map(d => d.name).join(', '))} · ${t.year}</p></div></div></a>`).join('')); };
+    add(Object.values(titles())); TITLES.then(add);
   }
 
   /* ---------- share an asset ---------- */
@@ -254,7 +260,7 @@
       for (const file of list) {
         if (state.files.some(x => x.name === file.name && x.size === file.size)) continue;
         const kind = kindOf(file), ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : 'file';
-        const f = { name: file.name, size: file.size, kind, ext, title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/^./, c => c.toUpperCase()), desc: '', cat: guess(kind, ext), sub: '', tags: '', thumb: '', data: '' };
+        const f = { file, name: file.name, size: file.size, kind, ext, title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/^./, c => c.toUpperCase()), desc: '', cat: guess(kind, ext), sub: '', tags: '', thumb: '', data: '' };
         state.files.push(f); redraw();
         f.thumb = (kind === 'image' ? await imageThumb(file) : kind === 'video' ? await videoThumb(file) : '') || '';
         if (file.size <= 300e3) f.data = await dataUrl(file);   // small files can really be downloaded again in the prototype
@@ -268,7 +274,7 @@
             <span class="fu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span>
             <b>Drop your files here</b><span class="muted small">or click to choose · any kind of file, as many as you like</span></label>
           <div class="fu-list">${state.files.map((f, i) => `<div class="fu-card ok"><span class="fu-kind"${f.thumb ? ` style="background:center/cover url(${f.thumb});color:transparent"` : ''}>${esc(f.ext.toUpperCase().slice(0, 4))}</span><span class="fu-meta"><b>${esc(f.name)}</b><small>${fileSize(f.size)} · <em>Ready</em></small></span><button type="button" class="btn icon bare" data-rm="files.${i}" aria-label="Remove ${esc(f.name)}">✕</button></div>`).join('')}</div>
-          <p class="muted small fu-note">Prototype: files stay on your computer. Small files (under 300 KB) are kept in this browser so the download works.</p>`,
+          <p class="muted small fu-note">${session ? 'You are logged in, so what you publish is stored on dein.art and everyone can see it. A file can be up to 25 MB.' : 'Log in with a wallet (top right) to publish for everyone, up to 25 MB a file. Without it, what you share stays in this browser.'}</p>`,
         after: root => {
           const drop = root.querySelector('.fu-drop'), input = root.querySelector('[data-files]');
           input.addEventListener('change', () => addFiles([...input.files]));
@@ -294,7 +300,7 @@
           <div class="cf-f wide"><label>Price${star}</label>${f.picks('pricing', [['free', 'Free', 'Anyone can download it'], ['paid', 'Paid', 'You set the amount']])}</div>
           ${state.pricing === 'paid' ? f.field('price', state.mode === 'pack' ? 'Amount in dollars' : 'Amount in dollars, per item', { req: 1, type: 'number', min: 2, ph: '15', hint: 'A flat $1 goes to dein.art each time; the rest is paid to you and your crew straight away.' }) : ''}
           ${f.field('lic', 'Licence', { req: 1, options: LICS, blank: 'Choose a licence', hint: 'What people may do with it.' })}
-          ${f.field('film', 'Linked to one of your films', { options: myFilms.map(x => x.title), blank: 'Not linked to a film', hint: 'Only if it comes from that film. Otherwise leave it.' })}</div>`,
+          ${session ? '' : f.field('film', 'Linked to one of your films', { options: myFilms.map(x => x.title), blank: 'Not linked to a film', hint: 'Only if it comes from that film. Otherwise leave it.' })}</div>`,
         check: s => { const pack = s.mode === 'pack' && s.files.length > 1; return { ...(pack && !s.title.trim() && { title: 'A title is needed.' }), ...(pack && s.desc.trim().length < 20 && { desc: 'Describe the pack in at least a sentence.' }), ...(pack && !s.cat && { cat: 'Choose a category.' }),
           ...(s.pricing === 'paid' && !(Number(s.price) >= 2) && { price: 'Enter an amount of $2 or more.' }), ...(!s.lic && { lic: 'Choose a licence.' }) }; } },
       { name: 'Check', title: 'Check and publish', intro: 'This is what goes on the marketplace.',
@@ -318,13 +324,68 @@
       return s.files.map((x, i) => ({ ...base, id: `my-${slugify(x.title) || 'item'}-${stamp}${i}`, cat: x.cat, sub: x.sub.trim() || (x.cat ? SUBS[x.cat][0] : ''), title: x.title.trim(), kind: x.kind === 'audio' && x.data ? 'audio' : 'image', audio: x.kind === 'audio' ? x.data : undefined,
         pic: x.kind === 'audio' && x.data ? '' : pic(x), big: pic(x), files: [file(x)], desc: x.desc.trim() || `${x.title.trim()}, shared by ${myName}.`, specs: { Format: x.ext.toUpperCase(), Size: fileSize(x.size), Tags: tags(x).join(', ') } }));
     }
-    wizard(shareRoot, { state, steps, submitLabel: 'Publish', done: s => {
+    // kept in this browser only: the way it worked before there was a place to store files
+    const publishLocal = s => {
       const items = build(s), old = load('shared') || [];
       // the browser only has room for so much: drop the kept files first, then the pictures
       if (!keep('shared', [...items, ...old])) { items.forEach(it => it.files.forEach(x => { x.url = ''; })); if (!keep('shared', [...items, ...old])) { items.forEach(it => { delete it.gallery; }); keep('shared', [...items, ...old]); } }
-      finished(shareRoot, items.length === 1 ? 'It is on the marketplace' : `${items.length} items are on the marketplace`, items.length === 1 ? `<b>${esc(items[0].title)}</b> has its own page now.` : 'Each one has its own page now.',
-        [[items.length === 1 ? 'Open its page' : 'Open the first one', itemUrl(items[0])], ['Go to the marketplace', 'market.html'], ['Share more', 'share-asset.html']]);
-    } });
+      return items;
+    };
+    // stored on dein.art for everyone: the files go up in pieces, then the items are published
+    async function publishForAll(s, who_, progress) {
+      const call = async (path, body) => { const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'The site answered ' + r.status); return d; };
+      const previews = await Promise.all(s.files.map(x => (x.thumb ? fetch(x.thumb).then(r => r.blob()) : null)));
+      const list = [...s.files.map(x => ({ blob: x.file, name: x.name, type: x.file.type || 'application/octet-stream' })), ...previews.map((b, i) => b && { blob: b, name: `preview-${i + 1}.jpg`, type: 'image/jpeg', of: i }).filter(Boolean)];
+      const up = await call('/api/uploads', { session: who_, files: list.map(f => ({ name: f.name, type: f.type, size: f.blob.size })) });
+      const total = list.reduce((n, f) => n + f.blob.size, 0); let sent = 0;
+      for (let i = 0; i < list.length; i++) for (let n = 0; n < up.files[i].chunks; n++) {
+        const piece = list[i].blob.slice(n * up.chunk, (n + 1) * up.chunk);
+        for (let tries = 0; ; tries++) {
+          const r = await fetch(`/api/uploads/${up.files[i].id}/${n}`, { method: 'PUT', headers: { 'x-upload-token': up.token }, body: piece }).catch(() => null);
+          if (r && r.ok) break;
+          if (tries >= 2) throw new Error((r && (await r.json().catch(() => ({}))).error) || 'The upload was interrupted');
+          await new Promise(w => setTimeout(w, 1200));
+        }
+        sent += piece.size; progress(sent / total, `${fileSize(sent)} of ${fileSize(total)}`);
+      }
+      const idOf = i => up.files[i].id, previewOf = i => { const k = list.findIndex(f => f.of === i); return k >= 0 ? up.files[k].id : ''; };
+      const by = (await resolveEns(who_.address).catch(() => null)) || who_.address.slice(0, 6) + '…' + who_.address.slice(-4);
+      const price = s.pricing === 'paid' ? Number(s.price) || 0 : 0, lic = s.lic.split(' — ')[0], kind = x => (['image', 'video', 'audio'].includes(x.kind) ? x.kind : 'file');
+      const pack = s.mode === 'pack' && s.files.length > 1, lead = Math.max(0, s.files.findIndex(x => x.thumb));
+      const items = pack
+        ? [{ title: s.title, desc: s.desc, cat: s.cat, sub: s.sub || 'Packs', price, lic, by, kind: 'file', tags: [...new Set(s.files.flatMap(x => x.tags.split(',').map(t => t.trim()).filter(Boolean)))].join(', '),
+            thumb: previewOf(lead), gallery: s.files.map((x, i) => previewOf(i)).filter(Boolean), files: s.files.map((x, i) => ({ id: idOf(i), note: x.desc.trim() || x.title.trim() })) }]
+        : s.files.map((x, i) => ({ title: x.title, desc: x.desc, cat: x.cat, sub: x.sub || SUBS[x.cat][0], price, lic, by, kind: kind(x), tags: x.tags, thumb: previewOf(i), files: [{ id: idOf(i), note: '' }] }));
+      return (await call('/api/items', { session: who_, token: up.token, items })).items.map(d => ({ id: 'up-' + d.id, title: d.title }));
+    }
+    const done = (items, everyone) => finished(shareRoot, items.length === 1 ? 'It is on the marketplace' : `${items.length} items are on the marketplace`,
+      (items.length === 1 ? `<b>${esc(items[0].title)}</b> has its own page now.` : 'Each one has its own page now.') + (everyone ? ' Everyone can see it.' : ' It is kept in this browser only.'),
+      [[items.length === 1 ? 'Open its page' : 'Open the first one', itemUrl(items[0])], ['Go to the marketplace', 'market.html'], ['Share more', 'share-asset.html']]);
+    // the last step: for everyone when logged in, with the choice to log in first, or in this browser only
+    const stage = Object.assign(document.createElement('main'), { className: 'narrow form', hidden: true }); shareRoot.after(stage);
+    const show = html => { shareRoot.hidden = true; stage.hidden = false; stage.innerHTML = html; window.scrollTo(0, 0); };
+    const back = () => { stage.hidden = true; shareRoot.hidden = false; };
+    let watch;
+    async function publish(s) {
+      clearInterval(watch);
+      const who_ = load('session'), tooBig = s.files.filter(x => x.size > 25e6);
+      const online = await fetch('/api/items').then(r => r.ok).catch(() => false);
+      if (!online) return done(publishLocal(s), false);
+      if (!who_) {
+        show(`<h1>Publish for everyone</h1><p class="muted">Log in with your wallet and your files are stored on dein.art: everyone can see them, and they stay yours to remove. It is free and it is not a transaction.</p>
+          <div class="actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" data-open-login>Log in with a wallet</button><button class="btn" data-stage="local">Keep it in this browser only</button><button class="btn bare" data-stage="back">Back</button></div>`);
+        watch = setInterval(() => { if (load('session')) { clearInterval(watch); publish(s); } }, 600);
+        return;
+      }
+      if (tooBig.length) return show(`<h1>${tooBig.length === 1 ? 'One file is' : tooBig.length + ' files are'} too large</h1><p class="muted">A file can be up to 25 MB for now: ${tooBig.map(x => `<b>${esc(x.name)}</b> (${fileSize(x.size)})`).join(', ')}. Take ${tooBig.length === 1 ? 'it' : 'them'} out, or keep everything in this browser only.</p>
+        <div class="actions" style="justify-content:flex-start;gap:8px"><button class="btn primary" data-stage="back">Back to the files</button><button class="btn" data-stage="local">Keep it in this browser only</button></div>`);
+      show(`<h1>Publishing…</h1><p class="muted">Your files are going up. Keep this page open.</p><div class="cf-bar"><i></i></div><p class="muted small" data-stage-note>Starting…</p>`);
+      try { done(await publishForAll(s, who_, (p, label) => { $('.cf-bar i', stage).style.width = Math.round(p * 100) + '%'; $('[data-stage-note]', stage).textContent = label; }), true); stage.hidden = true; shareRoot.hidden = false; }
+      catch (e) { show(`<h1>It did not go through</h1><p class="muted">${esc(e.message || 'Something went wrong')}.</p><div class="actions" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><button class="btn primary" data-stage="retry">Try again</button><button class="btn" data-stage="local">Keep it in this browser only</button><button class="btn bare" data-stage="back">Back</button></div>`); }
+    }
+    stage.addEventListener('click', e => { const b = e.target.closest('[data-stage]'); if (!b) return; clearInterval(watch);
+      if (b.dataset.stage === 'back') back(); else if (b.dataset.stage === 'local') { back(); done(publishLocal(state), false); } else publish(state); });
+    wizard(shareRoot, { state, steps, submitLabel: 'Publish', done: publish });
     redraw = () => { const b = shareRoot.querySelector('.cf-step'); if (b?.classList.contains('on')) b.click(); };
   }
 })();

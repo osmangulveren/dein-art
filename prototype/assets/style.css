@@ -1104,3 +1104,9 @@ a.merchbig { color: inherit; }
 [data-t="history"] .row .info b .link { font-weight: 600; }
 [data-c="cover"] .thumb.sq { border-radius: var(--r); overflow: hidden; }
 [data-c="cover"] .thumb.sq img { width: 100%; height: 100%; object-fit: cover; }
+
+/* publishing: the files going up */
+.cf-stage { max-width: 780px; margin: 0 auto; padding: 40px 24px 72px; }
+.cf-stage h1 { margin-bottom: 6px; }
+.cf-bar { height: 10px; border-radius: 10px; background: var(--soft); overflow: hidden; margin: 22px 0 10px; }
+.cf-bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 10px; transition: width .2s; }

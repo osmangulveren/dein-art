@@ -23,6 +23,7 @@
     sc.onload = () => { addLibrary(MARKET, addLibrary.seen).forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }); then(); };
     document.head.append(sc);
   };
+  document.addEventListener('market-changed', e => e.detail.forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }));
   const GROUPS = ['Wallets', 'Films', 'People', 'Studios', 'Categories', 'Marketplace'], LABEL = { Wallets: 'ENS names and wallets' };
   // artists whose ENS name is not written down yet: ask once, then they are found by it
   index.filter(x => x.address).forEach(x => resolveEns(x.address).then(n => { if (n) { x.m += ' ' + fold(n); x.sub += ' · ' + n; } }));

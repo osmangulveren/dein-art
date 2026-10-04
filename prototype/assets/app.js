@@ -160,6 +160,29 @@ const MARKET = (() => {
 })();
 const assets = MARKET;
 const marketItem = id => MARKET.find(x => x.id === id);
+
+/* ---------- what creators shared for everyone: kept by the site's API (worker/index.js), added when it answers ---------- */
+const sessionNow = () => { try { return JSON.parse(localStorage.getItem('session')) || null; } catch { return null; } };
+// a tile for files that have no picture: the file type on a quiet card
+const fileTile = ext => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400"><rect width="640" height="400" fill="#eceef3"/><rect x="250" y="96" width="140" height="180" rx="14" fill="#fff" stroke="#c9cedb" stroke-width="3"/><path d="M276 150h88M276 180h88M276 210h56" stroke="#c9cedb" stroke-width="6" stroke-linecap="round"/><rect x="214" y="232" width="${Math.max(84, ext.length * 24 + 36)}" height="48" rx="10" fill="#5b4bff"/><text x="${214 + Math.max(84, ext.length * 24 + 36) / 2}" y="265" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" fill="#fff" text-anchor="middle">${ext.toUpperCase().slice(0, 6)}</text></svg>`);
+function fromServer(d) {
+  const at = id => '/api/files/' + id, main = d.files[0] || {}, ext = ((main.name || '').split('.').pop() || 'file').slice(0, 5), free = !d.price, total = d.files.reduce((n, f) => n + f.size, 0);
+  const kind = (d.kind === 'audio' || d.kind === 'video') && free && d.files.length === 1 ? d.kind : 'image';
+  const pic = d.thumb ? at(d.thumb) : d.kind === 'image' && free && /^image\/(jpeg|png|webp|gif)/.test(main.type) ? at(main.id) : kind === 'audio' ? '' : fileTile(ext);
+  const by = d.by || short(d.owner);
+  return { id: 'up-' + d.id, sid: d.id, shared: true, owner: d.owner, cat: d.cat, sub: d.sub, title: d.title, by, creator: by, price: d.price || 0, lic: d.lic, kind, pic,
+    big: d.kind === 'image' && free && /^image\/(jpeg|png|webp|gif)/.test(main.type) ? at(main.id) : pic, video: kind === 'video' ? at(main.id) : undefined, audio: kind === 'audio' ? at(main.id) : undefined,
+    gallery: (d.gallery || []).length > 1 ? d.gallery.map(at) : undefined, files: d.files.map(f => ({ name: f.name, size: f.size, url: free ? at(f.id) + '?dl=1' : '', note: f.note, direct: true })),
+    desc: d.desc || `${d.title}, shared by ${by}.`, specs: { Format: ext.toUpperCase(), ...(d.files.length > 1 ? { Files: d.files.length } : {}), Tags: d.tags }, added: new Date(d.at).toISOString().slice(0, 10) };
+}
+const SHARED = fetch('/api/items').then(r => (r.ok ? r.json() : [])).then(list => (Array.isArray(list) ? list : [])).catch(() => []).then(list => {
+  const items = list.map(fromServer).filter(it => !MARKET.some(x => x.id === it.id));
+  MARKET.unshift(...items); items.forEach(it => addLibrary.seen.add(it.id));
+  if (items.length) document.dispatchEvent(new CustomEvent('market-changed', { detail: items }));
+  return items;
+});
+// titles added as credits, for everyone
+const TITLES = fetch('/api/titles').then(r => (r.ok ? r.json() : [])).then(list => (Array.isArray(list) ? list : [])).catch(() => []);
 const priceTag = it => it.price ? `<span class="price">$${it.price}</span>` : '<span class="price free">Free</span>';
 
 const campaigns = [
@@ -620,7 +643,7 @@ const creditsHtml = p => p.credits.map((c, i) => `
     <summary><span><b>${c.role}</b><span class="muted small">${c.total} ${c.total === 1 ? 'title' : 'titles'}</span></span>${chev}</summary>
     <div class="rows">${c.list.map(x => {
       const f = film[x.key];
-      const note = f ? `${f.kind} · ${f.dur}` : x.added ? 'Added by you' : x.kind ? [x.kind, x.credited, x.eps && `${x.eps} episodes`, x.upcoming && 'in post-production'].filter(Boolean).join(' · ') : 'Not on dein.art yet';
+      const note = f ? `${f.kind} · ${f.dur}` : x.added ? (page === 'creator' ? 'Added by you' : 'Added on dein.art') : x.kind ? [x.kind, x.credited, x.eps && `${x.eps} episodes`, x.upcoming && 'in post-production'].filter(Boolean).join(' · ') : 'Not on dein.art yet';
       return `<div class="row credit"><div class="thumb">${f ? `<img src="${frame(f, f.at, 250)}" alt="" loading="lazy">` : x.img ? `<img src="${x.img}" alt="" loading="lazy">` : ''}</div><div class="info"><b>${x.title}</b><span class="muted small">${note}</span></div><span class="year">${x.year || (x.upcoming ? 'Upcoming' : '')}</span>${f ? `<a class="btn" href="${watchUrl(f)}">Play</a>` : x.id && addedTitles[x.id] ? `<a class="btn" href="title.html?id=${encodeURIComponent(x.id)}">Open</a>` : x.imdb ? `<a class="btn" href="https://www.imdb.com/title/${x.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}</div>`;
     }).join('')}${c.total > c.list.length ? `<div class="row credit"><div class="info"><span class="muted small">and ${c.total - c.list.length} more</span></div><a class="link" href="https://www.wikidata.org/wiki/${p.wd}" target="_blank" rel="noopener">Full list on Wikidata</a></div>` : ''}</div>
   </details>`).join('');
@@ -712,6 +735,26 @@ function showNameEns() {
   resolveEns(address).then(n => {
     $('.enschip', h)?.remove();
     if (n && h.textContent.trim().toLowerCase() !== n.toLowerCase()) h.insertAdjacentHTML('beforeend', ` <a class="enschip" href="https://app.ens.domains/${encodeURIComponent(n)}" target="_blank" rel="noopener" title="ENS name of ${address}">${esc(n)}</a>`);
+  });
+}
+
+/* ---------- a wallet's page: what it shared and the credits it added, once the API answers ---------- */
+if ((page === 'artist' || page === 'creator') && subject.chain) {
+  const address = subject.chain.address;
+  SHARED.then(() => {
+    const mine = MARKET.filter(x => x.shared && x.owner === address); if (!mine.length) return;
+    const panel = $('[data-panel="assets"]'); if (!panel) return;
+    if (panel.querySelector('.empty')) panel.innerHTML = '';
+    panel.insertAdjacentHTML('afterbegin', mine.map(cards.assets).join(''));
+  });
+  TITLES.then(list => {
+    const mine = list.filter(t => t.owner === address); if (!mine.length) return;
+    mine.forEach(t => { addedTitles[t.id] = t;
+      if (subject.credits.some(c => c.list.some(x => x.id === t.id))) return;
+      let g = subject.credits.find(x => x.role === t.role); if (!g) subject.credits.push(g = { role: t.role || 'Credit', total: 0, list: [] });
+      g.list.unshift({ title: t.title, year: t.year, key: null, added: true, id: t.id, img: t.poster }); g.total++; });
+    $$('[data-credits]').forEach(el => { el.innerHTML = creditsHtml(subject); });
+    $$('[data-has-credits]').forEach(el => { el.hidden = false; });
   });
 }
 

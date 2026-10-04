@@ -2,7 +2,7 @@
    One catalogue (MARKET in app.js) holds everything shared or offered: footage, music, sound effects, photos,
    templates and merch. Each item has its own page; free items download from dein.art itself. */
 
-const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents', 'Merch'].filter(c => MARKET.some(it => it.cat === c));
+const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents', 'Merch'];
 const bytes = n => !n ? '' : n > 1e9 ? (n / 1e9).toFixed(2) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
 // a free file is fetched through dein.art when it lives on Wikimedia Commons, so the visitor never leaves the site
 const downloadUrl = f => /^https:\/\/(upload\.wikimedia\.org|cdn\.freesound\.org)\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
@@ -62,7 +62,9 @@ if ($('[data-shop="grid"]')) {
   const formats = {};   // the file types found in a category, most common first
   const formatsOf = c => formats[c] || (formats[c] = Object.entries(MARKET.filter(it => it.cat === c).reduce((m, it) => { const x = extOf(it); if (x) m[x] = (m[x] || 0) + 1; return m; }, {})).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([x]) => x));
   // how many items each category and kind holds; the catalogue does not change while the page is open
-  const tally = MARKET.reduce((m, it) => { m.All = (m.All || 0) + 1; m[it.cat] = (m[it.cat] || 0) + 1; const k = it.cat + '›' + it.sub; m[k] = (m[k] || 0) + 1; return m; }, {});
+  let tally = {};
+  const recount = () => { tally = MARKET.reduce((m, it) => { m.All = (m.All || 0) + 1; m[it.cat] = (m[it.cat] || 0) + 1; const k = it.cat + '›' + it.sub; m[k] = (m[k] || 0) + 1; return m; }, {}); };
+  recount();
   const subsOf = c => [...new Set(MARKET.filter(it => it.cat === c).map(it => it.sub))];
   const n = x => x.toLocaleString('en-US');
 
@@ -82,7 +84,7 @@ if ($('[data-shop="grid"]')) {
   function draw() {
     // filters that make no sense in this category are let go
     if (!LEN[state.cat]) state.len = ''; if (!RES[state.cat]) state.res = ''; if (!['Footage', 'Photos & images'].includes(state.cat)) state.shape = ''; if (state.cat === 'All' || !formatsOf(state.cat).includes(state.fmt)) state.fmt = '';
-    el('cats').innerHTML = ['All', ...CATS].map(c => `<button class="shopcat${state.cat === c && !state.sub ? ' on' : ''}" data-cat="${c}"><span>${c}</span><small>${n(tally[c] || 0)}</small></button>` +
+    el('cats').innerHTML = ['All', ...CATS.filter(c => tally[c])].map(c => `<button class="shopcat${state.cat === c && !state.sub ? ' on' : ''}" data-cat="${c}"><span>${c}</span><small>${n(tally[c] || 0)}</small></button>` +
       (c !== 'All' && state.cat === c ? subsOf(c).map(sb => `<button class="shopcat sub${state.sub === sb ? ' on' : ''}" data-cat="${c}" data-sub="${esc(sb)}"><span>${sb}</span><small>${n(tally[c + '›' + sb])}</small></button>`).join('') : '')).join('');
     el('price').innerHTML = [['all', 'All prices'], ['free', 'Free'], ['paid', 'Paid']].map(([k, l]) => `<button class="chip${state.price === k ? ' on' : ''}" data-price="${k}">${l}</button>`).join('');
     const pick = (key, opts) => `<select class="field fsel${state[key] ? ' on' : ''}" data-filter="${key}" aria-label="${opts[0][1]}">${opts.map(([v, l]) => `<option value="${v}"${state[key] === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
@@ -97,9 +99,10 @@ if ($('[data-shop="grid"]')) {
     if (landing) {
       // the front of the shop: a shelf from every category
       grid.className = 'shelves';
-      grid.innerHTML = CATS.map(c => { const list = MARKET.filter(it => it.cat === c), sound = c === 'Music' || c === 'Sound effects';
+      const fresh = MARKET.filter(x => x.shared || x.mine);
+      grid.innerHTML = (fresh.length ? `<div class="sec"><h2>New from creators</h2><p>${n(fresh.length)} shared on dein.art</p></div><div class="grid oneline">${fresh.slice(0, 8).map(a => shopCard(a, false)).join('')}</div>` : '') + CATS.filter(c => tally[c]).map(c => { const list = MARKET.filter(it => it.cat === c), sound = c === 'Music' || c === 'Sound effects';
         return `<div class="sec"><h2>${c}</h2><button class="link" data-cat="${c}">See all ${n(list.length)}</button></div>` + (sound ? `<div class="arows">${list.slice(0, 5).map(audioRow).join('')}</div>` : `<div class="grid oneline${c === 'Scripts & documents' ? ' docs' : ''}">${list.slice(0, 8).map(a => shopCard(a, true)).join('')}</div>`); }).join('');
-      el('count').textContent = `${n(MARKET.length)} items in ${CATS.length} categories`; el('more').hidden = true;
+      el('count').textContent = `${n(MARKET.length)} items in ${CATS.filter(c => tally[c]).length} categories`; el('more').hidden = true;
     } else {
       let items = MARKET.filter(match);
       if (SORT[state.sort]) items = [...items].sort(SORT[state.sort]);
@@ -129,6 +132,8 @@ if ($('[data-shop="grid"]')) {
     if (t) { state[t.dataset.toggle] = t.checked ? '1' : ''; reset(); }
   });
   document.addEventListener('saved-changed', () => { if (state.saved) draw(); else { const b = $('[data-toggle="saved"]'); if (b) b.textContent = '♥ Saved' + (saved.size ? ' · ' + saved.size : ''); } });
+  // what creators shared arrives from the API a moment after the page: count again and redraw
+  document.addEventListener('market-changed', () => { recount(); Object.keys(formats).forEach(k => delete formats[k]); draw(); });
   el('q').value = state.q;
   el('q').addEventListener('input', e => { state.q = e.target.value.trim(); reset(); });
   el('sort').addEventListener('change', e => { state.sort = e.target.value; reset(); });
@@ -136,16 +141,20 @@ if ($('[data-shop="grid"]')) {
 }
 
 /* ---------- one item ---------- */
-if ($('[data-i="title"]')) {
-  const it = marketItem(param('id')) || MARKET[0];
+if ($('[data-i="title"]')) (async () => {
   const put = (k, html) => $$(`[data-i="${k}"]`).forEach(el => { el.innerHTML = html; });
+  let it = marketItem(param('id'));
+  if (!it && /^up-/.test(param('id') || '')) { put('title', 'Loading…'); await SHARED; it = marketItem(param('id')); }
+  if (!it && param('id')) { document.title = 'Item not found — dein.art'; put('title', 'This item is not here'); put('note', 'It may have been removed by the person who shared it.'); put('acts', '<a class="btn primary" href="market.html">Go to the marketplace</a>'); return; }
+  if (!it) it = MARKET[0];
   const f = it.film && film[it.film], free = !it.price, files = it.files || [];
   document.title = `${it.title} — dein.art`;
-  put('crumbs', `<a href="market.html">Marketplace</a> › <a href="market.html?cat=${encodeURIComponent(it.cat)}">${it.cat}</a> › <a href="market.html?cat=${encodeURIComponent(it.cat)}&sub=${encodeURIComponent(it.sub)}">${it.sub}</a>`);
-  put('kind', it.sub === 'Packs' ? 'Sound pack' : it.cat === 'Merch' ? (PRODUCTS[it.type] || 'Merch') : it.sub);
+  put('crumbs', `<a href="market.html">Marketplace</a> › <a href="market.html?cat=${encodeURIComponent(it.cat)}">${esc(it.cat)}</a> › <a href="market.html?cat=${encodeURIComponent(it.cat)}&sub=${encodeURIComponent(it.sub)}">${esc(it.sub)}</a>`);
+  put('kind', esc(it.sub === 'Packs' ? 'Sound pack' : it.cat === 'Merch' ? (PRODUCTS[it.type] || 'Merch') : it.sub));
   put('title', esc(it.title));
   const page = artistUrl(it.by), studio = it.by === 'dein.art Studio';
-  put('by', `${who[it.by] ? `<a href="${page}">${avatar(it.by)}</a>` : `<span class="avatar" style="background:${tone(it.by)}">${initials(it.by)}</span>`}<span class="who"><b>${who[it.by] ? `<a href="${page}">${esc(it.by)}</a>` : esc(it.by)}</b><span class="muted small">${it.perf ? 'Performed by ' + esc(it.perf) : studio ? 'Made by dein.art for creators' : it.cat === 'Merch' ? 'Offered by the creator' : it.lib ? 'Free library · from ' + (it.sourceName || 'Wikimedia Commons') : 'Shared on dein.art'}</span></span>`);
+  if (it.owner) put('by', `<a href="artist.html?wallet=${it.owner}"><span class="avatar" style="background:linear-gradient(135deg,#${it.owner.slice(2, 8)},#${it.owner.slice(-6)})"></span></a><span class="who"><b><a href="artist.html?wallet=${it.owner}">${esc(it.by)}</a></b><span class="muted small">Shared on dein.art · ${ensTag(it.owner)}</span></span>`);
+  else put('by', `${who[it.by] ? `<a href="${page}">${avatar(it.by)}</a>` : `<span class="avatar" style="background:${tone(it.by)}">${initials(it.by)}</span>`}<span class="who"><b>${who[it.by] ? `<a href="${page}">${esc(it.by)}</a>` : esc(it.by)}</b><span class="muted small">${it.perf ? 'Performed by ' + esc(it.perf) : studio ? 'Made by dein.art for creators' : it.cat === 'Merch' ? 'Offered by the creator' : it.lib ? 'Free library · from ' + (it.sourceName || 'Wikimedia Commons') : 'Shared on dein.art'}</span></span>`);
   put('price', free ? '<b class="free">Free</b><span class="muted small">' + esc(it.lic) + '</span>' : `<b>$${it.price}</b><span class="muted small">${it.cat === 'Merch' ? 'plus shipping · made to order' : esc(it.lic)}</span>`);
 
   // the preview: a picture (with a gallery), a player, the product itself, or a document you can leaf through
@@ -166,14 +175,16 @@ if ($('[data-i="title"]')) {
     ? (files.length === 1 && !files[0].url ? `<button class="btn primary big" disabled>↓ Download · ${bytes(files[0].size)}</button>` : files.length === 1 ? `<a class="btn primary big" data-magnetic href="${downloadUrl(files[0])}" download="${esc(files[0].name)}"><span class="mag-in">↓ Download${files[0].size ? ' · ' + bytes(files[0].size) : ''}</span></a>` : `<a class="btn primary big" href="#files">↓ Download · ${files.length} files</a>`)
       + `<button class="btn" data-pay="support" data-title="Thank ${esc(it.by)}" data-creator="${esc(it.by)}">Say thanks</button>` + saveBtn(it, 'btn')
     : `<button class="btn primary big" data-pay="${it.kind === 'merch' ? 'merch' : 'buy'}" data-title="${esc(it.title)}" data-price="${it.price}" data-creator="${esc(it.by)}" ${it.creator === ME ? 'data-split' : ''}>${it.kind === 'merch' ? 'Order' : 'Get'} · $${it.price}</button>` + saveBtn(it, 'btn'));
-  put('note', it.mine && files.some(x => !x.url) ? 'Prototype: this file stayed on your computer, so it cannot be downloaded here yet.' : free ? 'Free to download and use. No account needed.' : it.kind === 'merch' ? 'Printed on demand and shipped to you. Prototype: nothing is charged.' : 'Yours right after payment. Prototype: nothing is charged.');
+  put('note', it.shared && !free ? 'Payments are not live yet, so the files of paid items stay locked. Prototype: nothing is charged.' : it.mine && files.some(x => !x.url) ? 'This item is kept in your browser only, so its file cannot be downloaded here.' : free ? 'Free to download and use. No account needed.' : it.kind === 'merch' ? 'Printed on demand and shipped to you. Prototype: nothing is charged.' : 'Yours right after payment. Prototype: nothing is charged.');
   put('facts', Object.entries({ Category: `${it.cat} · ${it.sub}`, ...(it.specs || {}), Licence: it.lic }).filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')
     + (it.collection ? `<dt>Collection</dt><dd><a class="link" href="${it.collection.url}">${esc(it.collection.name)}</a></dd>` : '') + (free ? '<dt data-dl hidden>Downloads</dt><dd data-dl hidden></dd>' : ''));
   put('works', (it.works || []).length ? `<p class="edlabel" style="flex-basis:100%;margin:0">Works with</p>${it.works.map(w => `<span>${w}</span>`).join('')}` : '');
   put('desc', `<div class="sec"><h2>About this ${it.cat === 'Merch' ? 'product' : it.sub === 'Packs' ? 'pack' : 'item'}</h2></div><p class="lead">${esc(it.desc || '')}</p>${it.source ? `<p class="muted small" style="margin-top:10px">Original file from <a class="link" href="${it.source}" target="_blank" rel="noopener">${it.sourceName || 'Wikimedia Commons'}</a>, ${it.lic === 'CC0' ? 'CC0' : esc(it.lic).toLowerCase()}.</p>` : ''}`);
   put('contents', it.contents ? `<div class="sec"><h2>In this pack</h2><p>${it.contents.length} sounds</p></div><div class="rows">${it.contents.map(c => `<div class="row"><button class="btn icon" data-audio="${c.audio}" aria-label="Play ${esc(c.title)}">▶</button><div class="info"><b>${esc(c.title)}</b><span class="muted small">${c.length}</span></div><a class="btn" href="item.html?id=${c.id}">Open</a></div>`).join('')}</div>` : '');
   put('files', files.length && (free || it.mine) ? `<div class="sec" id="files"><h2>${files.length === 1 ? 'File' : 'Files'}</h2></div><div class="rows">${files.map(x => `<div class="row"><div class="info"><b>${esc(x.name)}</b><span class="muted small">${[bytes(x.size), x.note].filter(Boolean).map(esc).join(' · ')}</span></div>${!free ? '' : x.url ? `<a class="btn dark" href="${downloadUrl(x)}" download="${esc(x.name)}">↓ Download</a>` : '<span class="muted small">Not uploaded</span>'}</div>`).join('')}</div>` : '');
-  if (it.mine) put('own', `<div class="box tp-own"><span><b>You shared this on ${it.added}</b><br><span class="muted small">Prototype: it is kept in this browser.</span></span><button class="btn" data-own-x>Remove</button></div>`);
+  const me = sessionNow();
+  if (it.mine) put('own', `<div class="box tp-own"><span><b>You shared this on ${it.added}</b><br><span class="muted small">It is kept in this browser only. Log in with a wallet and share it again to publish it for everyone.</span></span><button class="btn" data-own-x>Remove</button></div>`);
+  if (it.shared && me && me.address === it.owner) put('own', `<div class="box tp-own"><span><b>You shared this on ${it.added}</b><br><span class="muted small">Everyone can see it. Removing it deletes its files too.</span></span><button class="btn" data-shared-x>Remove</button></div>`);
   // only when the item really belongs to a film
   put('film', f ? `<div class="panel filmlink"><h3>From the film</h3><a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt=""><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}</p></div></a><a class="btn wide" href="${watchUrl(f)}" style="margin-top:12px">▶ Watch the film</a></div>` : '');
   const same = MARKET.filter(x => x !== it && x.creator === it.creator).slice(0, 8), like = MARKET.filter(x => x !== it && x.sub === it.sub && x.creator !== it.creator).concat(MARKET.filter(x => x !== it && x.cat === it.cat && x.sub !== it.sub)).slice(0, 8);
@@ -204,10 +215,13 @@ if ($('[data-i="title"]')) {
   }
 
   document.addEventListener('click', e => {
+    const gone = e.target.closest('[data-shared-x]');
+    if (gone && confirm(`Remove “${it.title}” and its files for everyone?`)) { gone.disabled = true; gone.textContent = 'Removing…';
+      fetch('/api/items/' + it.sid, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ session: sessionNow() }) }).then(r => r.json().then(d => { if (r.ok) location.href = 'market.html'; else { gone.disabled = false; gone.textContent = 'Remove'; alert(d.error || 'It could not be removed.'); } })).catch(() => { gone.disabled = false; gone.textContent = 'Remove'; }); }
     if (e.target.closest('[data-own-x]') && confirm(`Remove “${it.title}” from the marketplace?`)) { try { localStorage.setItem('shared', JSON.stringify((JSON.parse(localStorage.getItem('shared')) || []).filter(x => x.id !== it.id))); } catch {} location.href = 'market.html'; }
     const g = e.target.closest('[data-g]'), sz = e.target.closest('[data-size]'), col = e.target.closest('[data-colour]');
     if (g) { $('[data-i-main]').src = g.dataset.g; $$('.ithumb').forEach(b => b.classList.toggle('on', b === g)); }
     if (sz) $$('[data-size]').forEach(b => b.classList.toggle('on', b === sz));
     if (col) { it.colour = col.dataset.colour; $('.itemshot.merch').innerHTML = mockup(it); $$('[data-colour]').forEach(b => b.classList.toggle('on', b === col)); }
   });
-}
+})();
