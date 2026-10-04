@@ -261,13 +261,33 @@ document.body.insertAdjacentHTML('afterbegin', `
   ${side.main.map(sideLink).join('')}
   <hr><h4>You</h4>
   ${side.you.map(sideLink).join('')}
-  <hr><h4>Following</h4>
-  ${['Osman Burak Gülveren', 'F. W. Murnau', 'XCOPY', 'Buster Keaton'].filter(n => who[n]).map(n => `<a class="sl" href="${artistUrl(n)}">${avatar(n, 'xxs')}<span>${n}</span></a>`).join('')}
+  <hr><div data-following></div>
   <hr><h4>Categories</h4>
   ${side.explore.map(sideLink).join('')}
   <hr><p class="side-foot">Own your narrative.</p>
 </aside>
 <div class="scrim"></div>`);
+
+/* ---------- following and sharing ---------- */
+// Who you follow is kept in this browser; the sidebar lists them, or a few suggestions while you follow nobody.
+const following = new Set((() => { try { return JSON.parse(localStorage.getItem('following')) || []; } catch { return []; } })());
+const followName = b => b.dataset.follow || ($('h1') && $('h1').firstChild && $('h1').firstChild.textContent.trim()) || '';
+function drawFollowing() {
+  const place = n => (who[n] ? artistUrl(n) : (st => (st ? 'studio.html?s=' + st.slug : ''))(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.name === n)));
+  const mine = [...following].filter(place), list = mine.length ? mine : ['Osman Burak Gülveren', 'F. W. Murnau', 'XCOPY', 'Buster Keaton'].filter(n => who[n]);
+  $('[data-following]').innerHTML = `<h4>${mine.length ? 'Following' : 'Suggested'}</h4>` + list.map(n => `<a class="sl" href="${place(n)}">${who[n] ? avatar(n, 'xxs') : `<span class="avatar xxs" style="background:${tone(n)}">${initials(n)}</span>`}<span>${esc(n)}</span></a>`).join('');
+}
+const paintFollow = () => $$('.btn.follow').forEach(b => { if (b.closest('a')) return; const on = following.has(followName(b)); b.classList.toggle('on', on); b.textContent = on ? 'Following' : 'Follow'; b.setAttribute('aria-pressed', on); });
+document.addEventListener('click', e => {
+  const f = e.target.closest('.btn.follow'), sh = e.target.closest('[data-share]');
+  if (f && !f.closest('a')) { const n = followName(f); if (!n) return; following.has(n) ? following.delete(n) : following.add(n); try { localStorage.setItem('following', JSON.stringify([...following])); } catch {} paintFollow(); drawFollowing(); }
+  if (sh) {
+    const said = t => { const was = sh.dataset.label || (sh.dataset.label = sh.textContent); sh.textContent = t; setTimeout(() => { sh.textContent = was; }, 1600); };
+    const copy = () => (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject()).catch(() => { const t = Object.assign(document.createElement('textarea'), { value: location.href }); document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); }).then(() => said('Link copied'), () => said('Link copied'));
+    if (navigator.share && matchMedia('(hover: none)').matches) navigator.share({ title: document.title, url: location.href }).catch(() => {}); else copy();
+  }
+});
+addEventListener('DOMContentLoaded', () => { drawFollowing(); paintFollow(); });
 
 const root = document.documentElement;
 // the tab icon is the dot too
@@ -391,7 +411,7 @@ const cards = {
   rankrow: f => `<a class="rankrow" href="${watchUrl(f)}"><span class="num">${f.rank}</span><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="info"><h3>${f.title}</h3><p class="muted small">${byline(f)} · ${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div><span class="up">▲ ${f.up}%</span></a>`,
   castp: a => `<a class="castp" href="${artistUrl(a.name)}">${person(a)}<span><b>${a.name}</b><span class="muted small">${a.role}</span></span></a>`,
   artists: a => `<a class="rankrow" href="${artistUrl(a.name)}"><span class="num">${a.rank}</span>${person(a)}<div class="info"><h3>${a.name}</h3><p class="muted small">${a.role} · known for ${a.known}</p></div><span class="up">▲ ${a.up}%</span></a>`,
-  channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow">Follow</button></div>`,
+  channels: c => `<div class="channel"><span class="clogo" style="background:${c.tone}">${initials(c.name)}</span><a class="info" href="${c.href}"><b>${c.name}</b><span class="muted small">${c.about}</span></a><button class="btn follow" data-follow="${esc(c.name)}">Follow</button></div>`,
   campaigns: c => {
     const pct = Math.round(c.raised / c.goal * 100);
     return `<a class="card" href="fund.html"><div class="thumb"><img src="${c.pic}" alt="" loading="lazy"><span class="badge kind">Funding</span></div><h3>${c.title}</h3><p>${c.creator}</p><div class="progress"><span style="width:${pct}%"></span></div><p><span class="price">$${c.raised.toLocaleString('en-US')}</span> raised · ${pct}% · ${c.days} days left</p></a>`;
@@ -570,8 +590,8 @@ if (video) {
     ${cur.imdb ? `<a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb</a>` : ''}`);
   fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
     <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${live ? `${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago` : `${p.role}${years(p) ? ' · ' + years(p) : ''}`}</span></a>
-    <button class="btn follow">Follow</button>
-    ${live ? '' : '<button class="btn">Share</button>'}
+    <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
+    ${live ? '' : '<button class="btn" data-share>Share</button>'}
     <button class="btn primary" data-pay="${live ? 'tip' : 'support'}" data-split>♥ ${live ? 'Tip' : 'Support'}</button>`);
   fill('about', live
     ? `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`
@@ -665,7 +685,7 @@ if (page === 'artist' || page === 'creator') {
   document.title = `${a.name} — dein.art`;
   set('avatar', avatar(a.name, 'lg').replace('/120px-', '/250px-'));
   set('name', a.name);
-  set('acts', `<button class="btn follow">Follow</button><button class="btn">Share</button>${me ? `<button class="btn primary" data-pay="support" data-title="Support ${esc(a.name)}" data-creator="${esc(a.name)}">♥ Support</button>` : ''}`);
+  set('acts', `<button class="btn follow" data-follow="${esc(a.name)}">Follow</button><button class="btn" data-share>Share</button>${me ? `<button class="btn primary" data-pay="support" data-title="Support ${esc(a.name)}" data-creator="${esc(a.name)}">♥ Support</button>` : ''}`);
   $$('[data-chain-only]').forEach(el => { el.hidden = !chain; });
   const myMerch = [...merch.filter(m => m.creator === a.name), ...(edits.merch || []).map(m => ({ ...m, creator: a.name, added: true }))];
   $$('[data-merch]').forEach(el => { el.innerHTML = myMerch.length ? myMerch.map(merchCard).join('') : '<p class="muted empty">No merch yet.</p>'; });

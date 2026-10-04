@@ -1110,3 +1110,7 @@ a.merchbig { color: inherit; }
 .cf-stage h1 { margin-bottom: 6px; }
 .cf-bar { height: 10px; border-radius: 10px; background: var(--soft); overflow: hidden; margin: 22px 0 10px; }
 .cf-bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 10px; transition: width .2s; }
+
+/* following: the button shows the state */
+.btn.follow.on { background: var(--soft); color: var(--muted); border-color: var(--line); }
+[data-theme="dark"] .btn.follow.on { background: rgba(255,255,255,.1); border-color: transparent; color: #fff; }
