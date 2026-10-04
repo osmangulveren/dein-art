@@ -186,6 +186,18 @@ function resolveEns(address) {
     return n;
   }).catch(() => null);
 }
+// Every ENS name a wallet owns or that points to it, and one name looked up exactly (Blockscout's name service, no key).
+const BENS = 'https://bens.services.blockscout.com/api/v1/1/';
+const bensAsked = {};
+const bensGet = path => bensAsked[path] ||= fetch(BENS + path).then(r => (r.ok ? r.json() : null)).catch(() => null);
+const ensExpired = d => !!(d && d.expiry_date && new Date(d.expiry_date) < new Date());
+function ensNamesOf(address) {
+  const a = String(address).toLowerCase();
+  return bensGet(`addresses:lookup?address=${a}&resolved_to=true&owned_by=true&only_active=true&page_size=50`).then(d => ({
+    names: ((d && d.items) || []).map(x => ({ name: x.name, owns: ((x.owner || {}).hash || '').toLowerCase() === a || ((x.wrapped_owner || {}).hash || '').toLowerCase() === a, points: ((x.resolved_address || {}).hash || '').toLowerCase() === a })),
+    more: !!(d && d.next_page_params) }));
+}
+const ensDomain = name => bensGet('domains/' + encodeURIComponent(name)).then(d => (d && (d.resolved_address || d.owner) ? { name: d.name || name, address: ((d.resolved_address || d.owner).hash || '').toLowerCase(), expired: ensExpired(d), expires: d.expiry_date || '' } : null));
 function fillEns() {
   document.querySelectorAll('[data-ens]:not([data-ens-seen])').forEach(el => {
     el.dataset.ensSeen = 1;
