@@ -11,9 +11,12 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
    Everything shown is a real public-domain or CC0 work, listed in catalog.js with its source on Wikimedia Commons
    and its credits from Wikidata. Prices, counts and payments are examples: this is a prototype and nothing is charged. */
 
-const film = Object.fromEntries(CATALOG.films.map(f => [f.key, f]));
-const who = CATALOG.people;
+// The hand-picked films are in catalog.js. Tens of thousands more join them through films.js, a piece at a time; `film`
+// looks a key up among whatever has arrived so far.
 CATALOG.films.forEach(f => { f.creator = f.by[0]; });
+const filmIndex = { n: -1, map: new Map() };
+const film = new Proxy({}, { get: (_, key) => { if (filmIndex.n !== CATALOG.films.length) { filmIndex.map = new Map(CATALOG.films.map(f => [f.key, f])); filmIndex.n = CATALOG.films.length; } return filmIndex.map.get(key); } });
+const who = CATALOG.people;
 // Artists whose work lives on a blockchain are people like any other; they carry their wallet and collections.
 ONCHAIN.forEach(a => { if (a.ens) ensListed[a.address] = a.ens; });
 ONCHAIN.forEach(a => { who[a.name] = { name: a.name, role: a.role || 'Artist', pic: a.pic || a.collections.flatMap(c => c.tokens)[1]?.img, films: [], credits: a.credits || [], occ: [], chain: a, imdb: a.imdb }; });
@@ -26,10 +29,11 @@ if (/^0x[0-9a-fA-F]{40}$/.test(walletParam) && !ONCHAIN.some(a => a.address.toLo
 
 // A still from a film at a given second, in one of the widths Wikimedia serves.
 const WIDTHS = [250, 330, 500, 960, 1280];
-const frame = (f, t = f.at, want = 500) => `${f.tb}${WIDTHS.filter(w => w <= Math.min(want, f.w || 500)).pop()}px-seek%3D${t}-${f.tn}`;
+// (A film at the Internet Archive has one small picture and no stills.)
+const frame = (f, t = f.at, want = 500) => f.pic || `${f.tb}${WIDTHS.filter(w => w <= Math.min(want, f.w || 500)).pop() || 250}px-seek%3D${t}-${f.tn}`;
 const small = pic => pic.replace('/500px-', '/120px-');
 const watchUrl = f => 'watch.html?f=' + f.key;
-const sources = f => (f.webm ? `<source src="${f.webm}" type="video/webm">` : '') + (f.mov ? `<source src="${f.mov}" type="video/quicktime">` : '');
+const sources = f => (f.mp4 ? `<source src="${f.mp4}" type="video/mp4">` : '') + (f.webm ? `<source src="${f.webm}" type="video/webm">` : '') + (f.mov ? `<source src="${f.mov}" type="video/quicktime">` : '');
 
 // The film this page is about: the one in the address, or the featured one.
 const cur = film[param('f')] || film[page === 'live' ? 'nosferatu' : 'trip-to-the-moon'];
@@ -113,6 +117,47 @@ function addLibrary(list, seen) {
   }));
   return added;
 }
+// The second half of the free library: art that museums have released to the public domain, and public-domain books.
+// Linked where they live, never copied. It is a large list, so it arrives after the page is up (see loadMore below).
+const MUSEUMS = {
+  c: { name: 'Cleveland Museum of Art', id: 'cma', web: k => `https://openaccess-cdn.clevelandart.org/${k}/${k}_web.jpg`, file: k => `https://openaccess-cdn.clevelandart.org/${k}/${k}_print.jpg`, page: k => `https://clevelandart.org/art/${k}`, heavy: true },
+  m: { name: 'The Metropolitan Museum of Art', id: 'met', web: k => `https://images.metmuseum.org/CRDImages/${k.replace('/', '/web-large/')}`, file: k => `https://images.metmuseum.org/CRDImages/${k.replace('/', '/original/')}`, page: (k, n) => `https://www.metmuseum.org/art/collection/search/${n}`, heavy: true },
+  n: { name: 'National Gallery of Art', id: 'nga', pic: k => `https://api.nga.gov/iiif/${k}/full/!500,500/0/default.jpg`, web: k => `https://api.nga.gov/iiif/${k}/full/!1200,1200/0/default.jpg`, file: k => `https://api.nga.gov/iiif/${k}/full/!3000,3000/0/default.jpg`, page: (k, n) => `https://www.nga.gov/artworks/${n}` },
+  w: { name: 'Wellcome Collection', id: 'wel', pic: k => `https://iiif.wellcomecollection.org/image/${k}/full/500,/0/default.jpg`, web: k => `https://iiif.wellcomecollection.org/image/${k}/full/1200,/0/default.jpg`, file: k => `https://iiif.wellcomecollection.org/image/${k}/full/2400,/0/default.jpg`, page: (k, n) => `https://wellcomecollection.org/works/${n}` },
+};
+function addMore(list, seen) {
+  if (typeof LIBRARY_MORE === 'undefined' || addMore.done) return [];
+  addMore.done = true;
+  const added = [], put = it => { it.creator = it.by; it.price = 0; it.lib = true; seen.add(it.id); list.push(it); added.push(it); };
+  (LIBRARY_MORE['Photos & images'] || []).forEach(([sub, title, by, date, w, h, src, key, extra, cc0]) => {
+    const mu = MUSEUMS[src]; if (!mu) return;
+    const id = `${mu.id}-${slugify(src === 'c' ? key : extra || key)}`;
+    if (seen.has(id)) return;
+    const lic = src === 'w' && !cc0 ? 'Public domain' : 'CC0';
+    put({ id, cat: 'Photos & images', sub, title, by, lic, kind: 'image', w, h,
+      // a museum whose smallest picture is far too heavy for a card: cards ask a resizer for a light copy of it
+      pic: mu.heavy ? `https://wsrv.nl/?url=${encodeURIComponent(mu.web(key))}&w=500&output=webp` : mu.pic(key), big: mu.web(key),
+      files: [{ name: `${slugify(title) || id}.jpg`, size: src === 'c' ? extra : 0, url: mu.file(key) }], source: mu.page(key, extra), sourceName: mu.name,
+      specs: { ...(date ? { Date: date } : {}), ...(w && h ? { Size: `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} px` } : {}), Format: 'JPG', From: mu.name },
+      desc: `${title}${by && by !== 'Unknown artist' ? ' by ' + by : ''}${date ? ', ' + date : ''}. From the open-access collection of the ${mu.name}, ${lic === 'CC0' ? 'released under CC0' : 'in the public domain'}: free to use in any project, no credit needed.` });
+  });
+  (LIBRARY_MORE['Scripts & documents'] || []).forEach(([sub, title, by, n]) => {
+    const id = 'pg-' + n, page = 'https://www.gutenberg.org/ebooks/' + n;
+    if (seen.has(id)) return;
+    put({ id, cat: 'Scripts & documents', sub, title, by, lic: 'Public domain', kind: 'image', pic: '', big: '', book: true,
+      files: [{ name: `${slugify(title)}.epub`, url: page + '.epub3.images', direct: true, note: 'E-book, from Project Gutenberg' }, { name: `${slugify(title)}.txt`, url: page + '.txt.utf-8', direct: true, note: 'Plain text, from Project Gutenberg' }],
+      source: page, sourceName: 'Project Gutenberg', specs: { Format: 'EPUB and plain text', From: 'Project Gutenberg' },
+      desc: `${title}${by && by !== 'Unknown author' ? ' by ' + by : ''}. In the public domain in the United States: free to read, adapt and film. The book is kept by Project Gutenberg.` });
+  });
+  return added;
+}
+let moreAsked;
+const loadMore = () => moreAsked || (moreAsked = new Promise(done => {
+  const sc = document.createElement('script'); sc.src = 'assets/library-more.js';
+  sc.onload = () => { const added = addMore(MARKET, addLibrary.seen); if (added.length) document.dispatchEvent(new CustomEvent('market-changed', { detail: added })); done(added); };
+  sc.onerror = () => done([]); document.head.append(sc);
+}));
+
 const MARKET = (() => {
   const list = [], seen = addLibrary.seen = new Set();
   const add = it => { if (it && it.id && !seen.has(it.id)) { seen.add(it.id); list.push({ creator: it.by, ...it }); } };
@@ -143,7 +188,7 @@ const MARKET = (() => {
     shelf: g.type, title: i.title, by: name, film: i.film, price: 0, lic: i.lic, kind: i.dur ? 'video' : 'image', pic: i.pic, big: i.big, video: i.webm, mov: i.mov,
     files: [{ name: i.url.split('/').pop(), size: i.mb * 1e6, url: i.url }], desc: i.note, source: i.page,
     specs: { Year: i.year, Credit: i.credit, [i.dur ? 'Length' : 'Size']: i.dur ? `${i.dur} · ${i.w} × ${i.h}` : `${i.w.toLocaleString('en-US')} × ${i.h.toLocaleString('en-US')} px`, Format: i.format } }))));
-  CATALOG.films.forEach(f => f.scenes.slice(0, 2).forEach((sc, i) => { if (sc[1]) add(stillOf(f, i)); }));
+  CATALOG.films.forEach(f => f.scenes.slice(0, 2).forEach((sc, i) => { if (sc[1] && !f.auto) add(stillOf(f, i)); }));
   ONCHAIN.forEach(a => a.collections.filter(c => c.cc0 && c.tokens.length).forEach(c => c.tokens.slice(2, 4).forEach(t => add({
     id: `nft-${c.slug}-${t.n}`, cat: 'Photos & images', sub: 'Digital art', title: `${c.name} #${t.n}`, by: a.name, price: 0, lic: 'CC0', kind: 'image', pic: t.img, big: t.img.replace('/thumb/', '/'),
     files: [{ name: `${c.slug}-${t.n}.png`, url: t.img.replace('/thumb/', '/'), direct: true }], collection: { name: c.name, url: `collection.html?artist=${encodeURIComponent(a.name)}&c=${c.slug}` },
@@ -175,6 +220,8 @@ function fromServer(d) {
     gallery: (d.gallery || []).length > 1 ? d.gallery.map(at) : undefined, files: d.files.map(f => ({ name: f.name, size: f.size, url: free ? at(f.id) + '?dl=1' : '', note: f.note, direct: true })),
     desc: d.desc || `${d.title}, shared by ${by}.`, specs: { Format: ext.toUpperCase(), ...(d.files.length > 1 ? { Files: d.files.length } : {}), Tags: d.tags }, added: new Date(d.at).toISOString().slice(0, 10) };
 }
+// on the marketplace pages (where the first half of the library is already there) the second half follows at once
+const MORE = typeof LIBRARY !== 'undefined' ? loadMore() : Promise.resolve([]);
 const SHARED = fetch('/api/items').then(r => (r.ok ? r.json() : [])).then(list => (Array.isArray(list) ? list : [])).catch(() => []).then(list => {
   const items = list.map(fromServer).filter(it => !MARKET.some(x => x.id === it.id));
   MARKET.unshift(...items); items.forEach(it => addLibrary.seen.add(it.id));
@@ -206,7 +253,7 @@ const avatar = (name, cls = '') => who[name]?.pic ? `<img class="avatar ${cls}" 
 const face = name => avatar(name, 'xs');
 const mug = c => avatar(c.name);
 const person = a => avatar(a.name);
-const artistUrl = name => name === ME ? 'creator.html' : who[name] ? 'artist.html?name=' + encodeURIComponent(name) : '#';
+const artistUrl = name => name === ME ? 'creator.html' : who[name] || FILMS.known.has(name) ? 'artist.html?name=' + encodeURIComponent(name) : '#';
 const short = a => a.slice(0, 6) + '…' + a.slice(-4);
 const years = p => p.born ? `${p.born}–${p.died || ''}` : '';
 
@@ -236,7 +283,7 @@ $$('[data-icon]').forEach(el => { el.outerHTML = icons[el.dataset.icon]; });
 // What kind of thing a video is. The catalogue has films; the other kinds are ready for what creators publish.
 const CATEGORIES = [['feature-film', 'Feature film'], ['documentary', 'Documentary'], ['short-film', 'Short film'], ['animation', 'Animation'], ['series', 'Series'], ['vlog', 'Vlog'], ['entertainment', 'Entertainment'],
   ['reality-show', 'Reality show'], ['podcast', 'Podcast'], ['course', 'Course'], ['tutorial', 'Tutorial'], ['music-video', 'Music video']];
-const categoryOf = f => f.kind === 'Documentary' ? 'documentary' : f.kind === 'Animation' ? 'animation' : f.kind === 'Short film' || f.secs < 2400 ? 'short-film' : 'feature-film';
+const categoryOf = f => f.cat ? f.cat : f.kind === 'Documentary' ? 'documentary' : f.kind === 'Animation' ? 'animation' : f.kind === 'Short film' || f.secs < 2400 ? 'short-film' : 'feature-film';
 // Sidebar: every place on the site, one click away. [key, label, href, icon, shown in the narrow rail]
 const side = {
   main: [['home', 'Home', 'index.html', 'home', 1], ['trending', 'Trending', 'trending.html', 'trend', 1], ['live', 'Live', 'live.html', 'live', 1], ['market', 'Marketplace', 'market.html', 'market', 1], ['studios', 'Studios', 'studios.html', 'film', 1]],
@@ -348,7 +395,7 @@ document.body.insertAdjacentHTML('beforeend', `
     <div><b>Create</b><a href="release.html">Release a film</a><a href="share-asset.html">Share an asset</a><a href="add-credit.html">Add a credit</a><a href="fund.html">Start funding</a></div>
     <div><b>dein.art</b><a href="https://github.com/osmangulveren/dein-art" target="_blank" rel="noopener">Code on GitHub</a><a href="https://x.com/osmangulveren" target="_blank" rel="noopener">Follow the build on X</a><a href="deploy.html">Testnet contract</a></div>
   </nav>
-  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
+  <p class="demo-note muted small">This is a prototype. The films, music and images are real public-domain and CC0 works from <a class="link" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a> and the <a class="link" href="https://archive.org" target="_blank" rel="noopener">Internet Archive</a>, with credits from <a class="link" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a>, standing in for what creators would publish. Each film's page says why it is free to show. Public-domain works are free. Counts, earnings, merch and campaigns are examples, and nothing is charged.</p>
 </div></footer>
 <dialog id="pay">
   <div class="form">
@@ -424,10 +471,12 @@ $$('.close', dialog).forEach(b => b.addEventListener('click', () => dialog.close
 /* ---------- cards ---------- */
 
 const byline = f => f.by.join(' and ');
+const under = (f, ...more) => [byline(f), f.year, ...more].filter(Boolean).join(' · ');
+const durTag = f => (f.dur ? `<span class="badge dur">${f.dur}</span>` : '');
 const cards = {
-  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}<span data-views="${f.key}"></span></p></div></div></a>`,
-  resume: f => { const p = progress[f.key], left = Math.max(1, Math.round((f.secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / f.secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${f.title}</h3><p>${byline(f)} · ${f.year}</p></div></div></a>`; },
-  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy"><span class="badge dur">${f.dur}</span></div><div><h3>${f.title}</h3><p class="muted small">${byline(f)}<br>${f.year} · ${f.kind}<span data-views="${f.key}"></span></p></div></a>`,
+  films: f => `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy">${durTag(f)}</div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}<span data-views="${f.key}"></span></p></div></div></a>`,
+  resume: f => { const p = progress[f.key], secs = f.secs || p.of || 0, left = Math.max(1, Math.round((secs - p.t) / 60)); return `<a class="card" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f)}" alt="" loading="lazy"><span class="badge dur">${left} min left</span><span class="resumebar"><i style="width:${Math.round(p.t / secs * 100)}%"></i></span></div><div class="meta">${face(f.creator)}<div><h3>${esc(f.title)}</h3><p>${esc(under(f))}</p></div></div></a>`; },
+  next: f => `<a class="next" href="${watchUrl(f)}"><div class="thumb${f.pic ? ' soft' : ''}"><img src="${frame(f, f.at, 330)}" alt="" loading="lazy">${durTag(f)}</div><div><h3>${esc(f.title)}</h3><p class="muted small">${esc(byline(f))}<br>${[f.year, f.kind].filter(Boolean).join(' · ')}<span data-views="${f.key}"></span></p></div></a>`,
   live: s => `<a class="card" href="live.html?f=${s.key}"><div class="thumb"><img src="${frame(s, s.scenes[1][0])}" alt="" loading="lazy"><span class="badge live">LIVE</span><span class="badge dur">${s.viewers} watching</span></div><div class="meta">${face(s.creator)}<div><h3>Now screening: ${s.title}</h3><p>${byline(s)} · ${s.year}</p></div></div></a>`,
   assets: a => `<a class="card" data-kind="${a.cat}" href="${itemUrl(a)}"><div class="thumb${a.kind === 'merch' ? ' merchthumb' : a.pic ? '' : ' blank'}${a.dark ? ' darkbg' : ''}">${a.kind === 'merch' ? mockup(a) : a.pic ? `<img src="${a.pic}" alt="" loading="lazy">` : `<span class="soundwave awave" aria-hidden="true">${waveBars(a.id, 22)}</span>`}<span class="badge kind">${a.sub === 'Packs' ? 'Sound pack' : a.cat === 'Photos & images' ? a.sub : a.cat === 'Merch' ? PRODUCTS[a.type] || 'Merch' : a.cat}</span>${a.audio ? `<span class="badge dur listen" data-audio="${a.audio}">▶ ${a.specs?.Length || 'Listen'}</span>` : a.specs?.Length ? `<span class="badge dur">${String(a.specs.Length).split(' ')[0].replace(',', '')}</span>` : ''}</div><h3>${a.title}</h3><p>${a.by} · ${priceTag(a)}${a.film && film[a.film] ? ` · from ${film[a.film].title}` : ''}</p></a>`,
   merch: m => merchCard(m),
@@ -456,7 +505,8 @@ const addedTitles = (() => { try { return JSON.parse(localStorage.getItem('title
 });
 
 // Next to a film: the director's other films, then films of the same kind.
-const related = [...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by.includes(n))), ...CATALOG.films.filter(f => f !== cur && f.kind === cur.kind && !f.by.some(n => cur.by.includes(n)))].slice(0, 12);
+const sameKind = f => (cur.cat || f.cat ? categoryOf(f) === categoryOf(cur) : f.kind === cur.kind);
+const related = [...new Set([...(cur.rel || []).map(k => film[k]).filter(Boolean), ...CATALOG.films.filter(f => f !== cur && f.by.some(n => cur.by.includes(n))), ...CATALOG.films.filter(f => f !== cur && sameKind(f) && !f.by.some(n => cur.by.includes(n)))])].slice(0, 12);
 // What is rising this week: films, the people behind them, and the companies that made them.
 const trending = ['nosferatu', 'sherlock-jr', 'man-with-a-movie-camera', 'trip-to-the-moon', 'the-general', 'cabinet-of-dr-caligari', 'impossible-voyage', 'nanook-of-the-north', 'within-our-gates', 'suspense']
   .map((k, i) => ({ ...film[k], rank: i + 1, up: [212, 148, 96, 81, 77, 64, 52, 40, 33, 21][i] }));
@@ -472,15 +522,20 @@ const progress = (() => { try { return JSON.parse(localStorage.getItem('progress
 const watchlist = new Set((() => { try { return JSON.parse(localStorage.getItem('watchlist')) || []; } catch { return []; } })());
 const lists = { films, live: streams, assets, merch, campaigns, related, trending, artists, channels,
   mylist: [...watchlist].map(k => film[k]).filter(Boolean),
-  resume: Object.entries(progress).filter(([k, p]) => film[k] && p.t > 20 && p.t < film[k].secs * .95).sort((a, b) => b[1].at - a[1].at).map(([k]) => film[k]),
+  resume: Object.entries(progress).filter(([k, p]) => film[k] && p.t > 20 && p.t < (film[k].secs || p.of || 0) * .95).sort((a, b) => b[1].at - a[1].at).map(([k]) => film[k]),
   // films by the people you follow, as they are: no ranking decides whether you see them
   following: CATALOG.films.filter(f => f.by.some(n => following.has(n)) || following.has(f.creator)),
   quick: CATALOG.films.filter(f => f.secs && f.secs <= 900) };
+// the best known of each kind from the big catalogue, for the rows on the home page
+CATEGORIES.forEach(([slug]) => { lists['c-' + slug] = CATALOG.films.filter(f => f.source && categoryOf(f) === slug); });
+$$('[data-cat-all]').forEach(a => { const n = FILMS.counts[a.dataset.catAll]; if (n) a.textContent = `All ${n.toLocaleString('en-US')}`; });
+$$('[data-films-total]').forEach(el => { if (FILMS.total) el.textContent = `${(FILMS.total + CATALOG.films.filter(f => !f.source).length).toLocaleString('en-US')} free to watch`; });
 $$('[data-list]').forEach(el => {
   const names = el.dataset.list.split(' ');
   // a profile shows everything by that person, not just the front page's pick
   const by = el.dataset.by === '@subject' ? subject.name : el.dataset.by;
   let items = names.flatMap(name => (by ? [...lists[name], ...(more[name] || [])] : lists[name]).map(item => ({ item, name })));
+  if (names.length > 1) items = items.filter((x, i) => items.findIndex(y => y.item === x.item) === i);
   // on a profile: what this person made, and the films they are credited on
   if (by) items = items.filter(x => x.item.creator === by || x.item.crew?.some(c => c.name === by));
   // someone with no assets of their own still has stills from the films they worked on
@@ -591,9 +646,11 @@ const video = $('video[data-f-video]');
 if (video) {
   const live = page === 'live';
   document.title = `${cur.title} — dein.art`;
-  video.poster = frame(cur, live ? cur.scenes[1][0] : cur.at, 1280);
+  const posterAt = live && cur.scenes[1] ? cur.scenes[1][0] : cur.at;
+  // the Archive's picture of a film is small, so it sits blurred behind the play button instead of being stretched
+  if (cur.pic) { $('.player').classList.add('softposter'); $('.player').style.setProperty('--poster', `url("${cur.pic}")`); } else video.poster = frame(cur, posterAt, 1280);
   video.innerHTML = sources(cur);
-  $('.stage .glow').src = frame(cur, live ? cur.scenes[1][0] : cur.at, 330);
+  $('.stage .glow').src = frame(cur, posterAt, 330);
   // Viewing modes: Normal keeps the page around the film; Cinematic dims everything else and gives the film the screen.
   $('.player').insertAdjacentHTML('beforeend', `<label class="viewmodes"><span>Cinematic</span>${gooSwitch('cinema', false, 'Cinematic mode')}</label>`);
   const savedTheme = root.dataset.theme, savedSide = root.dataset.side;
@@ -615,14 +672,14 @@ if (video) {
   setMode((() => { try { return localStorage.getItem('viewmode'); } catch { return null; } })() === 'cinema' ? 'cinema' : 'normal', false);
   const play = $('.player .play');
   if (play) {
-    play.addEventListener('click', () => video.play().catch(() => {}));
-    video.addEventListener('play', () => { play.hidden = true; });
+    play.addEventListener('click', () => { video.dataset.wanted = '1'; video.play().catch(() => {}); });
+    video.addEventListener('play', () => { play.hidden = true; $('.player').classList.remove('softposter'); });
   }
   const lead = cur.creator, p = who[lead];
   fill('title', live ? `Now screening: ${cur.title}` : cur.title);
   fill('proof', `<span class="muted small">On-chain record · demo</span>
-    <a class="link" href="${cur.page}" target="_blank" rel="noopener" title="Where the film file comes from">${cur.lic} · Wikimedia Commons</a>
-    <a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener" title="Title, credits and dates">Wikidata</a>
+    <a class="link" href="${cur.page}" target="_blank" rel="noopener" title="Where the film file comes from">${esc(cur.lic)} · ${cur.source || 'Wikimedia Commons'}</a>
+    ${cur.wd ? `<a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener" title="Title, credits and dates">Wikidata</a>` : ''}
     ${cur.imdb ? `<a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb</a>` : ''}`);
   const studioLink = cur.company[0] ? ((st => (st ? `<a class="link" href="studio.html?s=${st.slug}">${st.name}</a>` : esc(cur.company[0])))(typeof STUDIOS !== 'undefined' && STUDIOS.find(x => x.company === cur.company[0]))) : '';
   if (live) {
@@ -630,24 +687,30 @@ if (video) {
       <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${streams.concat(more.live).find(s => s.key === cur.key)?.viewers || '310'} watching · started 12 minutes ago</span></a>
       <button class="btn follow" data-follow="${esc(lead)}">Follow</button>
       <button class="btn primary" data-pay="tip" data-split>♥ Tip</button>`);
-    fill('about', `<p>${cur.blurb} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`);
+    fill('about', `<p>${cur.blurb || ''} Everyone watching sees the same moment at the same time. Tips are shared across the cast and crew, the same way everything else a film earns is.</p>`);
   } else {
     // under the film: what it is, who made it, and the three things you can do
     fill('meta', `<span data-views="${cur.key}" data-views-lead></span>${[cur.year, cur.kind, cur.country[0], cur.dur].filter(Boolean).join(' · ')} <span class="pill tint">${esc(cur.lic)}</span>`);
     fill('byline', `<a href="${artistUrl(lead)}">${avatar(lead)}</a>
-      <a class="who" href="${artistUrl(lead)}"><b>${byline(cur)}</b><span class="muted small">${p.role}${years(p) ? ' · ' + years(p) : ''}</span></a>
-      <button class="btn follow" data-follow="${esc(lead)}">Follow</button>`);
-    fill('acts', `<button class="btn primary" data-pay="support" data-split>♥ Support</button>
+      <a class="who" href="${artistUrl(lead)}"><b>${esc(byline(cur))}</b><span class="muted small">${p ? p.role + (years(p) ? ' · ' + years(p) : '') : lead === 'Unknown maker' ? esc(cur.kind) : 'Maker'}</span></a>
+      ${lead === 'Unknown maker' ? '' : `<button class="btn follow" data-follow="${esc(lead)}">Follow</button>`}`);
+    // support goes to the people credited; a film with nobody credited here has no one to send it to yet
+    fill('acts', `${crew.length ? '<button class="btn primary" data-pay="support" data-split>♥ Support</button>' : ''}
       <button class="btn" data-mylist aria-pressed="${watchlist.has(cur.key)}">${watchlist.has(cur.key) ? '✓ In my list' : '+ My list'}</button>
       <button class="btn" data-share>Share</button>`);
-    fill('about', `<h2>About</h2><p class="lead">${cur.blurb}</p>
-      <dl class="facts">${[['Year', cur.year], ['Kind', cur.kind], ['Country', cur.country.join(', ')], ['Studio', studioLink], ['Running time', cur.dur], ['Licence', esc(cur.lic)],
-        ['Film file', `<a class="link" href="${cur.page}" target="_blank" rel="noopener">Wikimedia Commons ↗</a>`], ['Credits', `<a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener">Wikidata ↗</a>${cur.imdb ? ` · <a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>` : ''}`]]
-        .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-      <p class="muted small" style="margin-top:14px">Free to watch. The film's record on-chain is a demo.</p>`);
+    const wrong = `https://github.com/osmangulveren/dein-art/issues/new?title=${encodeURIComponent('Not public domain: ' + cur.title)}&body=${encodeURIComponent(location.href)}`;
+    fill('about', `<h2>About</h2><p class="lead" data-blurb>${cur.blurb || (cur.ia ? '<span class="muted">Reading the description from the Internet Archive…</span>' : '')}</p>
+      <dl class="facts">${[['Year', cur.year], ['Kind', esc(cur.kind)], ['Country', cur.country.join(', ')], ['Studio', studioLink], ['Running time', `<span data-runtime>${cur.dur}</span>`],
+        [cur.why ? 'Why it is free' : 'Licence', esc(cur.why ? FILMS.why(cur) : cur.lic)],
+        ['Film file', `<a class="link" href="${cur.page}" target="_blank" rel="noopener">${cur.source || 'Wikimedia Commons'} ↗</a>`],
+        ['Credits', [cur.wd && `<a class="link" href="https://www.wikidata.org/wiki/${cur.wd}" target="_blank" rel="noopener">Wikidata ↗</a>`, cur.imdb && `<a class="link" href="https://www.imdb.com/title/${cur.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>`].filter(Boolean).join(' · ')]]
+        .filter(r => r[1] && r[1] !== '<span data-runtime></span>' || (r[0] === 'Running time' && cur.ia)).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      <p class="muted small" style="margin-top:14px">Free to watch. The film's record on-chain is a demo.${cur.why === 'marked' ? ` This film is here because its page at the Internet Archive marks it public domain; nobody at dein.art has checked that. <a class="link" href="${wrong}" target="_blank" rel="noopener">Tell us if it is wrong</a>.` : cur.why ? ` <a class="link" href="${wrong}" target="_blank" rel="noopener">Report a mistake</a>.` : ''}</p>`);
     // the thing this platform is for: whatever the film earns goes to everyone who made it
     const top = [...crew].sort((x, y) => y.pct - x.pct);
-    fill('split', `<h2>Where support goes</h2>
+    // a film with nobody credited here has no split to show, and no cast row
+    if (!crew.length) { $$('[data-f="split"]').forEach(el => { el.hidden = true; el.parentElement.classList.add('solo'); }); $$('[data-cast]').forEach(el => { el.closest('section').hidden = true; }); }
+    else fill('split', `<h2>Where support goes</h2>
       <p class="muted small">Whatever this film earns is split across the people who made it, automatically, minus a flat ${money(FEE)} for dein.art each time.</p>
       <div class="splitbar" role="img" aria-label="Shares of cast and crew">${top.map(c => `<i style="flex:${c.pct};background:${tone(c.name)}" title="${esc(c.name)} · ${c.pct}%"></i>`).join('')}</div>
       <div class="splitlist">${top.slice(0, 4).map(c => `<a class="splitrow" href="${artistUrl(c.name)}"><i style="background:${tone(c.name)}"></i><span><b>${esc(c.name)}</b><small>${esc(c.role)}</small></span><em>${c.pct}%</em></a>`).join('')}</div>
@@ -676,11 +739,34 @@ if (video) {
     if (scenes.length) showScene(scenes[Math.min(2, scenes.length - 1)]); else { marks.hidden = true; sceneBox.hidden = true; }
   }
 }
+if (video && cur.ia) (async () => {
+  const say = html => $$('[data-blurb]').forEach(el => { el.innerHTML = html; });
+  try {
+    const d = await (await fetch('https://archive.org/metadata/' + encodeURIComponent(cur.ia))).json(), meta = d.metadata || {};
+    if (!cur.mp4) {
+      // the same choice the catalogue build makes: the longest film in the item, in the lightest version that plays everywhere
+      const order = ['h.264', 'h.264 IA', '512Kb MPEG4', 'MPEG4', 'HiRes MPEG4', 'h.264 HD'], len = f => { const v = String(f.length || ''), m = v.split(':').map(Number); return m.length > 1 ? m.reduce((a, x) => a * 60 + x, 0) : Number(v) || 0; };
+      const vids = (d.files || []).filter(f => /\.mp4$/i.test(f.name) && order.includes(f.format)), longest = Math.max(0, ...vids.map(len));
+      const best = vids.filter(f => len(f) >= longest * .95).sort((a, b) => order.indexOf(a.format) - order.indexOf(b.format))[0];
+      if (!best) throw new Error('no film file');
+      cur.mp4 = FILMS.mp4(cur.ia, best.name);
+      if (!cur.secs && longest) { cur.secs = Math.round(longest); cur.dur = clock(cur.secs); $$('[data-runtime]').forEach(el => { el.textContent = cur.dur; }); }
+      video.innerHTML = sources(cur); video.load();
+      if (video.dataset.wanted) video.play().catch(() => {});
+    }
+    const text = [].concat(meta.description || []).join(' '), box = document.createElement('div'); box.innerHTML = text.replace(/<br\s*\/?>(\s*)/gi, ' ');
+    const plain = box.textContent.replace(/\s+/g, ' ').trim();
+    if (!cur.blurb) say(plain ? `${esc(plain.length > 700 ? plain.slice(0, 700).replace(/\s+\S*$/, '') + '…' : plain)} <span class="muted small">Description from its page at the <a class="link" href="${cur.page}" target="_blank" rel="noopener">Internet Archive</a>.</span>` : `<span class="muted">The Internet Archive has no description of this film.</span>`);
+  } catch (e) {
+    if (!cur.blurb) say('');
+    if (!cur.mp4) { $('.player').insertAdjacentHTML('beforeend', `<div class="nofile"><b>This film could not be loaded from the Internet Archive.</b><a class="btn white" href="${cur.page}" target="_blank" rel="noopener">Open it there ↗</a></div>`); const pl = $('.player .play'); if (pl) pl.hidden = true; }
+  }
+})();
 if (video && page === 'watch') {
   // Scenes of the film as a strip of chapters under the player: a click jumps there, and the one that is playing is lit.
   const strip = $('[data-chapters]'), scenes = cur.scenes.filter(sc => sc[1]).map(([t, name]) => ({ t, name }));
   if (strip && scenes.length > 1) {
-    strip.innerHTML = scenes.map((sc, i) => `<button class="chapter" data-at="${sc.t}"><span class="thumb"><img src="${frame(cur, sc.t, 250)}" alt="" loading="lazy"><span class="badge dur">${clock(sc.t)}</span></span><b>${esc(sc.name)}</b></button>`).join('');
+    strip.innerHTML = scenes.map((sc, i) => `<button class="chapter" data-at="${sc.t}"${cur.auto ? ` aria-label="Play from ${sc.name}"` : ''}><span class="thumb"><img src="${frame(cur, sc.t, 250)}" alt="" loading="lazy"><span class="badge dur">${clock(sc.t)}</span></span>${cur.auto ? '' : `<b>${esc(sc.name)}</b>`}</button>`).join('');
     strip.addEventListener('click', e => { const b = e.target.closest('[data-at]'); if (b) { video.currentTime = Number(b.dataset.at); video.play().catch(() => {}); } });
     const light = () => { const at = scenes.reduce((k, sc, i) => (video.currentTime >= sc.t ? i : k), -1); $$('.chapter', strip).forEach((c, i) => c.classList.toggle('on', i === at)); };
     video.addEventListener('timeupdate', light); video.addEventListener('seeked', light);
@@ -695,11 +781,12 @@ if (video && page === 'watch') {
     const b = e.target.closest('[data-mylist]'); if (!b) return;
     watchlist.has(cur.key) ? watchlist.delete(cur.key) : watchlist.add(cur.key);
     try { localStorage.setItem('watchlist', JSON.stringify([...watchlist])); } catch {}
+    FILMS.remember(cur);
     b.textContent = watchlist.has(cur.key) ? '✓ In my list' : '+ My list'; b.setAttribute('aria-pressed', watchlist.has(cur.key));
   });
 
   // What plays next: the first film in the rail. With autoplay on it starts after a short count; either way the end of a film offers it.
-  const next = films.find(f => f !== cur) || related[0], card = $('[data-endcard]');
+  const next = [...related, ...films].find(f => f !== cur), card = $('[data-endcard]');
   let auto = (() => { try { return localStorage.getItem('autonext') !== 'off'; } catch { return true; } })(), timer;
   $('[data-autonext]').innerHTML = gooSwitch('autonext', auto, 'Play the next film automatically');
   document.addEventListener('goo', e => { if (e.detail.name !== 'autonext') return; auto = e.detail.on; try { localStorage.setItem('autonext', auto ? 'on' : 'off'); } catch {} });
@@ -707,7 +794,7 @@ if (video && page === 'watch') {
   video.addEventListener('ended', () => {
     if (!next || !card) return;
     let left = 8;
-    const draw = () => { card.innerHTML = `<div><span class="muted small">Up next</span><b>${esc(next.title)}</b><span class="muted small">${byline(next)} · ${next.year} · ${next.dur}</span>
+    const draw = () => { card.innerHTML = `<div><span class="muted small">Up next</span><b>${esc(next.title)}</b><span class="muted small">${esc(under(next, next.dur))}</span>
       <div class="endacts"><a class="btn white" href="${watchUrl(next)}">▶ Play${auto && timer ? ` in ${left}` : ' now'}</a><button class="btn glass" data-replay>Watch again</button>${auto && timer ? '<button class="btn glass" data-endstop>Cancel</button>' : ''}</div></div>
       <img src="${frame(next, next.at, 500)}" alt="">`; };
     card.hidden = false;
@@ -756,7 +843,7 @@ if (reviews) {
 
 /* ---------- home: straight to a kind of film, or to something to use in one ---------- */
 $$('[data-home-chips]').forEach(el => {
-  const has = slug => CATALOG.films.some(f => categoryOf(f) === slug);
+  const has = slug => FILMS.counts[slug] || CATALOG.films.some(f => categoryOf(f) === slug);
   el.innerHTML = '<span class="chiplabel">Watch</span>' + CATEGORIES.filter(([slug]) => has(slug)).map(([slug, label]) => `<a class="chip" href="category.html?c=${slug}">${label}</a>`).join('')
     + '<span class="chiplabel">Use in your film</span>' + ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Scripts & documents', 'Templates'].map(c => `<a class="chip" href="market.html?cat=${encodeURIComponent(c)}">${c}</a>`).join('');
 });
@@ -934,10 +1021,11 @@ async function fillViews() {
 fillViews();
 // a watch counts once per visit to the page, when the film starts playing
 if (video && page === 'watch') {
-  let last = 0;
+  let last = 0, last5 = false;
   video.addEventListener('timeupdate', () => {
     if (Math.abs(video.currentTime - last) < 5) return; last = video.currentTime;
-    progress[cur.key] = { t: Math.round(video.currentTime), at: Date.now() }; try { localStorage.setItem('progress', JSON.stringify(progress)); } catch {}
+    progress[cur.key] = { t: Math.round(video.currentTime), at: Date.now(), of: Math.round(video.duration) || cur.secs }; try { localStorage.setItem('progress', JSON.stringify(progress)); } catch {}
+    if (!last5) { last5 = true; FILMS.remember(cur); }
   });
   const was = progress[cur.key];
   if (was && was.t > 20 && was.t < cur.secs * .95) {
@@ -950,6 +1038,14 @@ if (video && page === 'watch') {
 if (video) video.addEventListener('play', async () => {
   try { const r = await fetch('/api/views/' + cur.key, { method: 'POST' }); if (r.ok) showViews(cur.key, (await r.json()).views); } catch {}
 }, { once: true });
+
+// A still from a film is made by Wikimedia the first time anyone asks for it, and that first request can fail. Ask again, twice.
+document.addEventListener('error', e => {
+  const img = e.target;
+  if (img.tagName !== 'IMG' || !/px-seek%3D/.test(img.src) || Number(img.dataset.tries) >= 2) return;
+  img.dataset.tries = Number(img.dataset.tries || 0) + 1;
+  setTimeout(() => { const src = img.src; img.src = ''; img.src = src; }, 2500 * img.dataset.tries);
+}, true);
 
 /* ---------- rows that slide: arrows, or drag with the mouse ---------- */
 
@@ -975,15 +1071,53 @@ initCharts(); initHeat();
 
 if (page === 'category') {
   const [slug, label] = CATEGORIES.find(c => c[0] === param('c')) || CATEGORIES[0];
-  const list = CATALOG.films.filter(f => categoryOf(f) === slug);
+  const all = CATALOG.films.filter(f => categoryOf(f) === slug);          // hand-picked first, then best known first
   document.title = `${label} — dein.art`;
   const many = label.replace(/y$/, 'ie').replace(/s$/, '') + 's';
   $('[data-cat="title"]').textContent = many;
-  $('[data-cat="count"]').textContent = list.length ? `${list.length} to watch, free` : '';
-  $('[data-cat="chips"]').innerHTML = CATEGORIES.map(([sl, l]) => `<a class="chip${sl === slug ? ' on' : ''}" href="category.html?c=${sl}">${l}</a>`).join('');
-  $('[data-cat="grid"]').innerHTML = list.map(cards.films).join('') || `<div class="box" style="grid-column:1/-1"><b>No ${many.toLowerCase()} here yet</b><p>This category is ready for the first one. <a class="link" href="upload.html">Publish yours</a>.</p></div>`;
+  $('[data-cat="chips"]').innerHTML = CATEGORIES.map(([sl, l]) => `<a class="chip${sl === slug ? ' on' : ''}" href="category.html?c=${sl}">${l}${FILMS.counts[sl] ? ` <small>${(FILMS.counts[sl] + CATALOG.films.filter(f => !f.source && categoryOf(f) === sl).length).toLocaleString('en-US')}</small>` : ''}</a>`).join('');
   $$('.sl').forEach(l => l.classList.toggle('on', l.dataset.key === 'cat-' + slug));
-  fillViews();
+  $('[data-cat="chips"] .chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  const grid = $('[data-cat="grid"]'), tools = $('[data-cat="tools"]');
+  if (!all.length) grid.innerHTML = `<div class="box" style="grid-column:1/-1"><b>No ${many.toLowerCase()} here yet</b><p>This category is ready for the first one. <a class="link" href="release.html">Publish yours</a>.</p></div>`;
+  else {
+    // Thousands of films do not go on a page at once: sixty, then sixty more. The view is kept in the address, so it can be shared.
+    const STEP = 60, fold = t => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const decades = [...new Set(all.map(f => f.year && Math.floor(f.year / 10) * 10).filter(Boolean))].sort();
+    const state = { q: param('q') || '', sort: param('sort') || 'known', decade: Number(param('decade')) || 0, len: param('len') || '', shown: STEP };
+    const SORTS = { known: ['Best known first', null], new: ['Newest first', (x, y) => (y.year || 0) - (x.year || 0)], old: ['Oldest first', (x, y) => (x.year || 9999) - (y.year || 9999)], az: ['A to Z', (x, y) => x.title.localeCompare(y.title)], long: ['Longest first', (x, y) => (y.secs || 0) - (x.secs || 0)], short: ['Shortest first', (x, y) => (x.secs || 1e9) - (y.secs || 1e9)] };
+    const LENS = { '': ['Any length', () => true], s: ['Under 10 minutes', f => f.secs && f.secs < 600], m: ['10 to 40 minutes', f => f.secs >= 600 && f.secs < 2400], l: ['Over 40 minutes', f => f.secs >= 2400] };
+    tools.hidden = false;
+    tools.innerHTML = `<input class="field" type="search" data-cat-q placeholder="Find in ${many.toLowerCase()}: a title, a maker, a year" aria-label="Find in this category" value="${esc(state.q)}">
+      <select class="field" data-cat-decade aria-label="Decade"><option value="0">Any year</option>${decades.map(d => `<option value="${d}"${d === state.decade ? ' selected' : ''}>${d}s</option>`).join('')}</select>
+      <select class="field" data-cat-len aria-label="Length">${Object.entries(LENS).map(([k, [l]]) => `<option value="${k}"${k === state.len ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <select class="field" data-cat-sort aria-label="Order">${Object.entries(SORTS).map(([k, [l]]) => `<option value="${k}"${k === state.sort ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+    grid.insertAdjacentHTML('afterend', '<div class="more" data-cat-more hidden><button class="btn">Show more</button></div>');
+    const moreBox = $('[data-cat-more]');
+    const words = () => fold(state.q).split(/\s+/).filter(Boolean);
+    const found = () => {
+      const w = words(), len = (LENS[state.len] || LENS[''])[1];
+      const list = all.filter(f => (!state.decade || (f.year >= state.decade && f.year < state.decade + 10)) && len(f) && (!w.length || (hay => w.every(x => hay.includes(x)))(fold(`${f.title} ${f.by.join(' ')} ${f.year} ${f.kind}`))));
+      return SORTS[state.sort]?.[1] ? [...list].sort(SORTS[state.sort][1]) : list;
+    };
+    const draw = keep => {
+      const list = found();
+      if (!keep) state.shown = STEP;
+      grid.innerHTML = list.slice(0, state.shown).map(cards.films).join('') || `<div class="box" style="grid-column:1/-1"><b>Nothing matches</b><p>Try fewer words, another decade or any length.</p></div>`;
+      $('[data-cat="count"]').textContent = list.length === all.length ? `${all.length.toLocaleString('en-US')} to watch, free` : `${list.length.toLocaleString('en-US')} of ${all.length.toLocaleString('en-US')}`;
+      moreBox.hidden = list.length <= state.shown; $('button', moreBox).textContent = `Show more (${(list.length - state.shown).toLocaleString('en-US')} left)`;
+      const u = new URL(location.href); [['q', state.q], ['sort', state.sort === 'known' ? '' : state.sort], ['decade', state.decade || ''], ['len', state.len]].forEach(([k, v]) => (v ? u.searchParams.set(k, v) : u.searchParams.delete(k)));
+      history.replaceState(null, '', u); fillViews();
+    };
+    let wait;
+    tools.addEventListener('input', e => { if (e.target.matches('[data-cat-q]')) { state.q = e.target.value; clearTimeout(wait); wait = setTimeout(draw, 140); } });
+    tools.addEventListener('change', e => {
+      if (e.target.matches('[data-cat-sort]')) state.sort = e.target.value; else if (e.target.matches('[data-cat-decade]')) state.decade = Number(e.target.value); else if (e.target.matches('[data-cat-len]')) state.len = e.target.value; else return;
+      draw();
+    });
+    $('button', moreBox).addEventListener('click', () => { state.shown += STEP; draw(true); });
+    draw();
+  }
 }
 
 /* ---------- chips and tabs ---------- */

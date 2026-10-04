@@ -31,9 +31,9 @@ This is an early, side-project build, made in public a little at a time. Right n
 
 The content in the prototype is real, so the pages can be judged with actual films, music and images in them:
 
-- **Films** are public-domain works from Wikimedia Commons: Georges Méliès, F. W. Murnau, Dziga Vertov, Buster Keaton, Sergei Eisenstein, Lois Weber, Oscar Micheaux and others. They play in the page.
+- **Films** are public-domain works. 27 are hand-picked from Wikimedia Commons: Georges Méliès, F. W. Murnau, Dziga Vertov, Buster Keaton, Sergei Eisenstein, Lois Weber, Oscar Micheaux and others. About 26,000 more come from Wikimedia Commons and the Internet Archive: features, shorts, cartoons, newsreels, serials, early television, home movies, classroom and training films. They play in the page, and each film's page says why it is free to show. The weakest reason, "marked public domain at the Internet Archive by whoever put it there", is said in those words and comes with a link to report a mistake.
 - **Credits** on film and artist pages come from Wikidata.
-- **Music and images** in the marketplace are CC0 or public-domain recordings, paintings and photographs.
+- **The marketplace** opens with about 30,000 free files: footage, music, sound effects, photographs and documents from Wikimedia Commons, CC0 sounds from Freesound, open-access art from the Cleveland Museum of Art, the National Gallery of Art and the Wellcome Collection, and public-domain books from Project Gutenberg. They are linked where they live, not copied.
 
 - **Artists from the blockchain** sit alongside the others: real artists with CC0 collections on Ethereum, listed with the wallet that created the work. Their pages are unclaimed: the artists have not joined dein.art. A page is claimed from that wallet. Once the claims contract is deployed to the Sepolia testnet (`prototype/deploy.html`), the claim is a transaction there, public and the same for everyone, paid with free test ETH. Until then, the wallet signs a message that is checked in the browser. Any wallet also has a page at `artist.html?wallet=0x…` that its holder can claim.
 

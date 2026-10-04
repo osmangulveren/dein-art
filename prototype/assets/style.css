@@ -1400,3 +1400,26 @@ label.rel-thumb.add { display: grid; place-items: center; margin: 0; border: 1.5
 .feed b { display: block; font-weight: 500; } .feed small { color: var(--muted); } .feed time { color: var(--muted); font-size: 12px; white-space: nowrap; } .feed a:hover b { color: var(--accent); }
 @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashgrid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 700px) { .drow { grid-template-columns: minmax(0, 1fr) 76px; } .drow > :nth-child(3), .drow > :nth-child(4) { display: none; } .bars { gap: 6px; height: 190px; } .barcol em { font-size: 10px; } .kpi { min-height: 0; } }
+
+/* ---------- the big catalogue: films from the Internet Archive, and a category with thousands in it ---------- */
+/* the Archive's picture of a film is 180 px wide: shown at its own sharpness, over a blurred copy that fills the card */
+.thumb.soft { background: #0e0f13; }
+.thumb.soft > img { filter: saturate(1.05) contrast(1.02); image-rendering: auto; }
+.thumb.soft::before { content: ""; position: absolute; inset: 0; z-index: 1; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.38)); pointer-events: none; }
+.thumb.soft .badge { z-index: 2; }
+.player.softposter::before { content: ""; position: absolute; inset: -6%; background: var(--poster) center / cover no-repeat; filter: blur(22px) saturate(1.2) brightness(.78); pointer-events: none; }
+.player.softposter video { background: transparent; position: relative; }
+.player .nofile { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; color: #fff; background: rgba(8,9,12,.72); }
+.filmbody.solo { grid-template-columns: minmax(0, 1fr); }
+.cattools { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, max-content); gap: 10px; margin: 0 0 22px; }
+.cattools .field { width: auto; min-width: 0; padding: 10px 14px; font: inherit; color: var(--text); }
+.cattools select.field { cursor: pointer; }
+.chip small { margin-left: 4px; opacity: .6; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.homerow { margin-top: 34px; }
+.homerow .sec { margin-top: 0; padding-right: 92px; }
+@media (max-width: 800px) { .cattools { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .cattools input.field { grid-column: 1 / -1; } .cattools select.field { padding: 10px 8px; font-size: 13px; } .homerow .sec { padding-right: 0; } }
+/* a book that has no scanned page to show: its drawn cover, large, on the item's page */
+.itemshot.bookshot { padding: 34px; }
+.itemshot.bookshot .bookcover { position: relative; inset: auto; width: min(320px, 70%); aspect-ratio: 2 / 3; border-radius: 6px 14px 14px 6px; padding: 54px 26px 26px; box-shadow: 0 24px 50px -18px rgba(16,18,22,.5); }
+.itemshot.bookshot .bookcover b { font-size: 30px; -webkit-line-clamp: 7; }
+.itemshot.bookshot .bookcover small { font-size: 14px; }

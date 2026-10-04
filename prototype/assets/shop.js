@@ -5,7 +5,7 @@
 const CATS = ['Footage', 'Music', 'Sound effects', 'Photos & images', 'Templates', 'Scripts & documents', 'Merch'];
 const bytes = n => !n ? '' : n > 1e9 ? (n / 1e9).toFixed(2) + ' GB' : n > 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB';
 // a free file is fetched through dein.art when it lives on Wikimedia Commons, so the visitor never leaves the site
-const downloadUrl = f => /^https:\/\/(upload\.wikimedia\.org|cdn\.freesound\.org)\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
+const downloadUrl = f => /^https:\/\/(upload\.wikimedia\.org|cdn\.freesound\.org|openaccess-cdn\.clevelandart\.org|images\.metmuseum\.org|api\.nga\.gov|iiif\.wellcomecollection\.org)\//.test(f.url) && !f.direct ? `/api/download?url=${encodeURIComponent(f.url)}&name=${encodeURIComponent(f.name)}` : f.url;
 
 /* ---------- what the filters and the cards read off an item ---------- */
 const secsOf = it => { if (it.secs == null) { const t = String((it.specs && it.specs.Length) || it.dur || '').split(' ')[0].split(':').map(Number); it.secs = t.length > 1 && !t.some(isNaN) ? t.reduce((x, n) => x * 60 + n, 0) : 0; } return it.secs; };
@@ -146,6 +146,7 @@ if ($('[data-i="title"]')) (async () => {
   const put = (k, html) => $$(`[data-i="${k}"]`).forEach(el => { el.innerHTML = html; });
   let it = marketItem(param('id'));
   if (!it && /^up-/.test(param('id') || '')) { put('title', 'Loading…'); await SHARED; it = marketItem(param('id')); }
+  if (!it && /^(cma|met|nga|wel|pg)-/.test(param('id') || '')) { put('title', 'Loading…'); await MORE; it = marketItem(param('id')); }
   if (!it && param('id')) { document.title = 'Item not found — dein.art'; put('title', 'This item is not here'); put('note', 'It may have been removed by the person who shared it.'); put('acts', '<a class="btn primary" href="market.html">Go to the marketplace</a>'); return; }
   if (!it) it = MARKET[0];
   const f = it.film && film[it.film], free = !it.price, files = it.files || [];
@@ -165,6 +166,7 @@ if ($('[data-i="title"]')) (async () => {
     : it.kind === 'audio' || it.kind === 'pack' ? `<div class="itemshot sound">${it.pic ? `<img src="${it.pic}" alt="">` : `<span class="soundwave big" aria-hidden="true">${waveBars(it.id, 44)}</span>`}<audio controls preload="none" src="${it.audio || ''}"></audio></div>`
     : pages ? `<div class="itemshot doc"><img data-page-img src="${it.big}" alt="Page 1 of ${esc(it.title)}"></div>
         <div class="pager"><button class="btn icon" data-pg="-1" aria-label="Previous page" disabled>‹</button><span>Page <input class="field" type="number" min="1" value="1" data-pg-n aria-label="Page"> <span data-pg-of></span></span><button class="btn icon" data-pg="1" aria-label="Next page">›</button></div>`
+    : it.book ? `<div class="itemshot bookshot"><span class="bookcover" style="--tone:${tone(it.title)}"><b>${esc(it.title)}</b><small>${esc(it.by)}</small></span></div>`
     : `<div class="itemshot${it.dark ? ' darkbg' : ''}"><img data-i-main src="${it.big || gallery[0] || it.pic}" alt=""></div>`;
   put('media', media + (gallery.length ? `<div class="itemthumbs">${gallery.map((g, i) => `<button class="ithumb${i ? '' : ' on'}${it.dark ? ' darkbg' : ''}" data-g="${g}"><img src="${g}" alt="" loading="lazy"></button>`).join('')}</div>` : ''));
 
@@ -174,7 +176,7 @@ if ($('[data-i="title"]')) (async () => {
 
   put('acts', free
     ? (files.length === 1 && !files[0].url ? `<button class="btn primary big" disabled>↓ Download · ${bytes(files[0].size)}</button>` : files.length === 1 ? `<a class="btn primary big" data-magnetic href="${downloadUrl(files[0])}" download="${esc(files[0].name)}"><span class="mag-in">↓ Download${files[0].size ? ' · ' + bytes(files[0].size) : ''}</span></a>` : `<a class="btn primary big" href="#files">↓ Download · ${files.length} files</a>`)
-      + `<button class="btn" data-pay="support" data-title="Thank ${esc(it.by)}" data-creator="${esc(it.by)}">Say thanks</button>` + saveBtn(it, 'btn')
+      + (it.lib ? '' : `<button class="btn" data-pay="support" data-title="Thank ${esc(it.by)}" data-creator="${esc(it.by)}">Say thanks</button>`) + saveBtn(it, 'btn')
     : `<button class="btn primary big" data-pay="${it.kind === 'merch' ? 'merch' : 'buy'}" data-title="${esc(it.title)}" data-price="${it.price}" data-creator="${esc(it.by)}" ${it.creator === ME ? 'data-split' : ''}>${it.kind === 'merch' ? 'Order' : 'Get'} · $${it.price}</button>` + saveBtn(it, 'btn'));
   put('note', it.shared && !free ? 'Payments are not live yet, so the files of paid items stay locked. Prototype: nothing is charged.' : it.mine && files.some(x => !x.url) ? 'This item is kept in your browser only, so its file cannot be downloaded here.' : free ? 'Free to download and use. No account needed.' : it.kind === 'merch' ? 'Printed on demand and shipped to you. Prototype: nothing is charged.' : 'Yours right after payment. Prototype: nothing is charged.');
   put('facts', Object.entries({ Category: `${it.cat} · ${it.sub}`, ...(it.specs || {}), Licence: it.lic }).filter(([, v]) => v).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')

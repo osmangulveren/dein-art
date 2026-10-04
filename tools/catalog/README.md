@@ -34,3 +34,42 @@ python3 9_founder.py      # write ../../prototype/assets/founder.js (data copied
 photos and images, scripts and documents from Wikimedia Commons (public domain or CC0 only, checked twice), and CC0
 sound effects from Freesound, found through the Openverse API. Nothing is copied: the site links the originals and
 downloads go through `/api/download`. Openverse allows 200 requests a day without a key; answers are cached in `cache/`.
+
+## The big film catalogue
+
+Three scripts build `prototype/films/`: about 26,000 public-domain films, cut into pieces that a page loads only when it
+needs them (see the top of `prototype/assets/films.js`).
+
+```bash
+python3 12_films_wikidata.py   # every film on Wikidata with its video on Commons, or marked public domain with a copy at the Internet Archive
+python3 13_films_archive.py    # public-domain films at the Internet Archive (takes hours: see below)
+python3 13b_archive_extra.py   # which Archive collections each item sits in, and how many Wikipedias write about each film
+python3 14_films_build.py      # write ../../prototype/films/
+```
+
+A film is only taken when one of these holds, and its page on the site says which:
+
+- its file is on Wikimedia Commons under a public-domain or CC0 licence (trailers, clips and files much shorter than the film are left out);
+- Wikidata records it as public domain and points to its copy at the Archive;
+- it was first shown before 1931;
+- it belongs to the Prelinger Archives, to Universal Newsreels, or is a work of the US government (FedFlix, NASA);
+- its page at the Archive marks it public domain **and** it was first shown before 1964. This is the weakest reason, since
+  the mark is put there by whoever uploaded the film. These films say so on their page and carry a link to report a mistake.
+
+Credits come from Wikidata. Only people who have died, or were born before 1900, get a page; nobody living is listed as a
+member. Portraits are shown only when their own licence is public domain or CC0.
+
+The Archive answers about one request a second and slows down when asked several at once, so `13_films_archive.py` reads
+the file list of each item one at a time and keeps what it has in `ia_meta.jsonl`. It can be stopped and started again.
+`14_films_build.py` works with whatever has been read so far: a film whose file list has not been read yet is still
+listed, and its page finds the file in the visitor's browser when it opens. Running the build again later fills in more
+running times and puts more films in the right category (feature or short).
+
+## Museum art and books
+
+`15_library_more.py` builds `prototype/assets/library-more.js`, the second half of the free library: about 14,000 works of
+art that museums have released (Cleveland Museum of Art and National Gallery of Art under CC0, Wellcome Collection under
+the Public Domain Mark or CC0) and about 5,800 public-domain books from Project Gutenberg's own catalogue file. The site
+links each museum's own image and each book's own page; downloads of the pictures go through `/api/download`. The file
+is large, so pages load it after they are up. Two museums are left out on purpose, because their servers turn programs
+away: the Art Institute of Chicago and the Metropolitan Museum.

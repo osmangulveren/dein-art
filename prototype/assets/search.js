@@ -7,8 +7,9 @@
   const studios = typeof STUDIOS !== 'undefined' ? STUDIOS : [];
   // every searchable thing: its group, what it is called, what else it can be found by, and where it lives
   const marketEntry = it => ({ g: 'Marketplace', title: it.title, more: [it.by, it.cat, it.sub, it.desc, it.specs && it.specs.Tags, it.film && film[it.film] && film[it.film].title].join(' '), sub: `${it.sub || it.cat} · ${it.price ? '$' + it.price : 'Free'}`, href: itemUrl(it), pic: it.kind === 'merch' ? '' : it.pic, ref: it });
+  const filmEntry = f => ({ g: 'Films', title: f.title, more: [f.by.join(' '), f.year, f.kind, f.country, f.company, (f.crew || []).map(c => c.name).join(' ')].join(' '), sub: [byline(f), f.year, f.kind].filter(Boolean).join(' · '), href: watchUrl(f), pic: frame(f, f.at, 250), ref: f });
   const index = [
-    ...CATALOG.films.map(f => ({ g: 'Films', title: f.title, more: [f.by.join(' '), f.year, f.kind, f.country, f.company, (f.crew || []).map(c => c.name).join(' ')].join(' '), sub: `${byline(f)} · ${f.year} · ${f.kind}`, href: watchUrl(f), pic: frame(f, f.at, 250), ref: f })),
+    ...CATALOG.films.map(filmEntry),
     ...added.map(t => ({ g: 'Films', title: t.title, more: [t.directors.map(d => d.name).join(' '), t.year, t.type, t.genres.join(' '), t.desc].join(' '), sub: `${t.directors.map(d => d.name).join(', ')} · ${t.year} · ${t.type}`, href: 'title.html?id=' + encodeURIComponent(t.id), pic: t.poster, added: t })),
     ...Object.values(who).map(p => { const ens = p.chain && (p.chain.ens || ensListed[p.chain.address] || (ensKnown[p.chain.address] || {}).n); return { g: 'People', title: p.name, more: [p.role, ens, p.chain && p.chain.address].join(' '), sub: [p.role, ens].filter(Boolean).join(' · '), href: artistUrl(p.name), person: p.name, address: p.chain && p.chain.listed !== false && !ens ? p.chain.address : null }; }),
     ...studios.map(s => ({ g: 'Studios', title: s.name, more: [s.type, s.place, s.about].join(' '), sub: [s.type, s.place].filter(Boolean).join(' · '), href: 'studio.html?s=' + s.slug, studio: s })),
@@ -20,8 +21,18 @@
   const withLibrary = then => {
     if (libraryAsked) return; libraryAsked = true;
     const sc = document.createElement('script'); sc.src = 'assets/library.js';
-    sc.onload = () => { addLibrary(MARKET, addLibrary.seen).forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }); then(); };
+    sc.onload = () => { addLibrary(MARKET, addLibrary.seen).forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }); then(); loadMore().then(then); };
     document.head.append(sc);
+  };
+  // the big film catalogue and the people credited in it join the search the same way, a category at a time
+  let filmsAsked = false; const indexed = new Set(CATALOG.films.map(f => f.key)), people = new Set(Object.keys(who));
+  const withFilms = then => {
+    if (filmsAsked || !FILMS.total) return; filmsAsked = true;
+    FILMS.all().then(() => {
+      CATALOG.films.forEach(f => { if (indexed.has(f.key)) return; indexed.add(f.key); const x = filmEntry(f); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); });
+      FILMS.names.forEach(([name, role]) => { if (people.has(name)) return; people.add(name); index.push({ g: 'People', title: name, more: role, sub: role, href: artistUrl(name), person: name, t: fold(name), m: fold(role) }); });
+      then();
+    });
   };
   document.addEventListener('market-changed', e => e.detail.forEach(it => { const x = marketEntry(it); index.push({ ...x, t: fold(x.title), m: fold(x.more) }); }));
   const GROUPS = ['Wallets', 'Films', 'People', 'Studios', 'Categories', 'Marketplace'], LABEL = { Wallets: 'ENS names and wallets' };
@@ -56,15 +67,17 @@
 
   function find(q) {
     const words = fold(q).split(/\s+/).filter(Boolean); if (!words.length) return [];
-    return index.map(x => {
-      let score = 0;
-      for (const w of words) {
-        // a word counts when something starts with it: "rain" finds "Rain and thunder", not "train"
-        const i = x.t.indexOf(w), start = (' ' + x.t).search(new RegExp('[^a-z0-9]' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-        if (i === 0) score += 4; else if (start >= 0) score += 3; else if ((' ' + x.m).search(new RegExp('[^a-z0-9]' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))) >= 0) score += 1; else return null;
+    // a word counts when something starts with it: "rain" finds "Rain and thunder", not "train"
+    const starts = words.map(w => new RegExp('(^|[^a-z0-9])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))), whole = words.join(' '), out = [];
+    for (const x of index) {
+      let score = 0, ok = true;
+      for (let k = 0; k < words.length && ok; k++) {
+        if (x.t.startsWith(words[k])) score += 4; else if (starts[k].test(x.t)) score += 3; else if (starts[k].test(x.m)) score += 1; else ok = false;
       }
-      return { x, score: score + (x.t === words.join(' ') ? 5 : 0) };
-    }).filter(Boolean).sort((a, b) => b.score - a.score).map(r => r.x);
+      // among equals, the hand-picked films and the better known ones come first (that is the order they were added in)
+      if (ok) out.push({ x, score: score + (x.t === whole ? 5 : 0), i: out.length });
+    }
+    return out.sort((a, b) => b.score - a.score || a.i - b.i).map(r => r.x);
   }
   const mark = (text, q) => { const w = q.trim().split(/\s+/).filter(Boolean).map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); return w.length ? esc(text).replace(new RegExp(`(${w.join('|')})`, 'gi'), '<mark>$1</mark>') : esc(text); };
   const thumb = x => x.wallet ? `<span class="avatar" style="background:${tone(x.wallet)}">◈</span>` : x.person ? avatar(x.person) : x.studio ? `<span class="clogo" style="background:${tone(x.title)}">${initials(x.title)}</span>` : x.pic ? `<img class="sthumb" src="${x.pic}" alt="">` : `<span class="sthumb blank">${x.g === 'Categories' ? '#' : x.ref && x.ref.kind === 'merch' ? '◆' : '♪'}</span>`;
@@ -96,7 +109,7 @@
       }), 280);
     };
     input.addEventListener('input', draw);
-    input.addEventListener('focus', () => { withLibrary(() => { if (!box.hidden) draw(); }); draw(); });
+    input.addEventListener('focus', () => { withLibrary(() => { if (!box.hidden) draw(); }); withFilms(() => { if (!box.hidden) draw(); }); draw(); });
     input.addEventListener('keydown', e => {
       const links = $$('a.sg', box);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!links.length) return; at = (at + (e.key === 'ArrowDown' ? 1 : -1) + links.length + (at < 0 && e.key === 'ArrowUp' ? 1 : 0)) % links.length; links.forEach((l, i) => l.classList.toggle('on', i === at)); links[at].scrollIntoView({ block: 'nearest' }); }
@@ -111,7 +124,7 @@
   /* ---------- the results page ---------- */
   const out = $('[data-search]');
   if (out) {
-    const q = (param('q') || '').trim(), hits = find(q);
+    const q = (param('q') || '').trim(); let hits = find(q);
     let tab = param('in') && GROUPS.includes(param('in')) ? param('in') : 'All';
     document.title = q ? `${q} — search — dein.art` : 'Search — dein.art';
     const count = g => hits.filter(x => x.g === g).length;
@@ -136,6 +149,9 @@
         ${q && !hits.length ? `<div class="box" style="margin-top:24px"><b>Nothing found for “${esc(q)}”</b><p>Check the spelling, try fewer words, or browse <a class="link" href="trending.html">what is trending</a> and the <a class="link" href="market.html">marketplace</a>.</p></div>` : ''}`;
       if (typeof fillViews === 'function') fillViews();
     };
+    // the results page waits for nothing: what is known is shown, and the rest of the catalogue joins when it arrives
+    withFilms(() => { hits = find(q); draw(); });
+    document.addEventListener('market-changed', () => { hits = find(q); draw(); });
     out.addEventListener('click', e => { const b = e.target.closest('[data-in]'); if (!b) return; tab = b.dataset.in; const u = new URL(location.href); tab === 'All' ? u.searchParams.delete('in') : u.searchParams.set('in', tab); history.replaceState(null, '', u); draw(); window.scrollTo(0, 0); });
     draw();
     walletHits(q).then(list => { if (list.length) { hits.unshift(...list); draw(); } });

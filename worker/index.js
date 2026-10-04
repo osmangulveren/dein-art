@@ -262,10 +262,10 @@ export default {
       return new Response(stream, { status, headers });
     }
 
-    // Free files from Wikimedia Commons and Freesound, served as a download from dein.art itself, so the visitor stays on the site.
+    // Free files from Wikimedia Commons, Freesound and four museums' open-access collections, served as a download from dein.art itself, so the visitor stays on the site.
     if (path === '/api/download' && method === 'GET') {
       let src; try { src = new URL(url.searchParams.get('url') || ''); } catch { return json({ error: 'bad url' }, 400); }
-      if (src.protocol !== 'https:' || !['upload.wikimedia.org', 'cdn.freesound.org'].includes(src.hostname)) return json({ error: 'not an allowed source' }, 403);
+      if (src.protocol !== 'https:' || !['upload.wikimedia.org', 'cdn.freesound.org', 'openaccess-cdn.clevelandart.org', 'images.metmuseum.org', 'api.nga.gov', 'iiif.wellcomecollection.org'].includes(src.hostname)) return json({ error: 'not an allowed source' }, 403);
       const name = (url.searchParams.get('name') || src.pathname.split('/').pop()).replace(/[^\w.\- ()]+/g, '_').slice(0, 120);
       const r = await fetch(src.toString(), { headers: { 'User-Agent': 'dein-art/0.1 (https://github.com/osmangulveren/dein-art)' } });
       if (!r.ok) return json({ error: 'source answered ' + r.status }, 502);
